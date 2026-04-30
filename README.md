@@ -1,6 +1,6 @@
 shogiAI 小筆記
 
-這個專案是在做一件事：把 CSA 將棋棋譜整理成之後可以拿去訓練模型的資料。
+這個專案把 CSA 將棋棋譜整理成之後可以拿去訓練模型的資料。
 
 流程大概是：
 
@@ -55,10 +55,7 @@ python src\csa_preprocess.py --input data\game1.csa --output out\game1.npz --enc
 
 python src\csa_preprocess.py --input data --output out\samples.npz --recursive --encoding utf-8 --keep-invalid-report out\invalid.jsonl
 
-注意：你的 game1.csa 是 UTF-8，所以記得加 --encoding utf-8。
-
-
-跑完會看到什麼
+注意如果你的 game1.csa 是 UTF-8，所以記得加 --encoding utf-8。
 
 成功時大概會看到：
 
