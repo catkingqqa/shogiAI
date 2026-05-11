@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSA 棋譜瀏覽器</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>CSA 棋譜瀏覽器</h1>
+          <p id="gameMeta">載入棋譜中...</p>
+        </div>
+        <label class="game-picker">
+          <span>棋譜</span>
+          <select id="gameSelect"></select>
+        </label>
+      </header>
+
+      <section class="play-area">
+        <aside class="side-panel">
+          <div class="player player-white">
+            <span class="player-label">後手</span>
+            <strong id="whiteName">後手</strong>
+            <div id="whiteHands" class="hands"></div>
+          </div>
+        </aside>
+
+        <section class="board-wrap" aria-label="將棋棋盤">
+          <div id="board" class="board"></div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="player player-black">
+            <span class="player-label">先手</span>
+            <strong id="blackName">先手</strong>
+            <div id="blackHands" class="hands"></div>
+          </div>
+        </aside>
+      </section>
+
+      <footer class="controls">
+        <button id="prevBtn" type="button" aria-label="上一手">←</button>
+        <div class="move-status">
+          <strong id="plyStatus">0 / 0</strong>
+          <span id="lastMove">開始局面</span>
+        </div>
+        <button id="nextBtn" type="button" aria-label="下一手">→</button>
+      </footer>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
