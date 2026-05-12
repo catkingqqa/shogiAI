@@ -8,6 +8,7 @@
   </head>
   <body>
     <main class="app-shell">
+      <!-- 頁首區：顯示目前棋局資訊，並提供棋譜下拉選單。 -->
       <header class="topbar">
         <div>
           <h1>CSA 棋譜瀏覽器</h1>
@@ -19,6 +20,35 @@
         </label>
       </header>
 
+      <!-- 搜尋區：依賽事、日期區間、棋手、戰型向後端查詢棋局。 -->
+      <section class="search-panel" aria-label="搜尋棋局">
+        <label>
+          <span>賽事</span>
+          <input id="eventFilter" type="search" placeholder="例如 棋聖戦" />
+        </label>
+        <label>
+          <span>日期起</span>
+          <input id="dateFromFilter" type="date" />
+        </label>
+        <label>
+          <span>日期迄</span>
+          <input id="dateToFilter" type="date" />
+        </label>
+        <label>
+          <span>棋手</span>
+          <input id="playerFilter" type="search" placeholder="先手或後手" />
+        </label>
+        <label>
+          <span>戰型</span>
+          <input id="openingFilter" type="search" placeholder="例如 角換わり" />
+        </label>
+        <div class="search-actions">
+          <button id="searchBtn" class="text-btn" type="button">搜尋</button>
+          <button id="clearSearchBtn" class="text-btn secondary" type="button">清除</button>
+        </div>
+      </section>
+
+      <!-- 對局區：左右顯示雙方棋手與手駒，中間顯示 9x9 棋盤。 -->
       <section class="play-area">
         <aside class="side-panel">
           <div class="player player-white">
@@ -41,14 +71,26 @@
         </aside>
       </section>
 
+      <!-- 播放控制區：上一手、下一手、回初始局面、跳最後一手。 -->
       <footer class="controls">
-        <button id="prevBtn" type="button" aria-label="上一手">←</button>
+        <button id="firstBtn" class="control-btn" type="button" title="回到初始局面" aria-label="回到初始局面">|←</button>
+        <button id="prevBtn" class="control-btn" type="button" title="上一手" aria-label="上一手">←</button>
         <div class="move-status">
           <strong id="plyStatus">0 / 0</strong>
           <span id="lastMove">開始局面</span>
         </div>
-        <button id="nextBtn" type="button" aria-label="下一手">→</button>
+        <button id="nextBtn" class="control-btn" type="button" title="下一手" aria-label="下一手">→</button>
+        <button id="lastBtn" class="control-btn" type="button" title="跳到最後一手" aria-label="跳到最後一手">→|</button>
       </footer>
+
+      <!-- 手順區：列出全部走法，可點擊跳到指定手數，也可標記重點手。 -->
+      <section class="move-list-panel" aria-label="手順">
+        <div class="move-list-head">
+          <h2>手順</h2>
+          <span id="moveListCount">0 手</span>
+        </div>
+        <div id="moveList" class="move-list"></div>
+      </section>
     </main>
 
     <script src="/app.js"></script>

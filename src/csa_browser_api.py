@@ -1,21 +1,34 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import mimetypes
+import os
 import re
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 from urllib.parse import parse_qs, unquote, urlparse
 
+import cshogi
 
+try:
+    import pymysql
+except ImportError:
+    pymysql = None
+
+
+# 專案路徑與棋盤基本設定：
+# API 會從 data 讀取本機 CSA，也會從 web 提供前端靜態檔案。
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 WEB_DIR = ROOT / "web"
 
+# CSA/USI 棋子代號轉換表：
+# 後端內部用英文字代號處理棋子，回傳前端時再轉成將棋文字。
 MOVE_RE = re.compile(r"^[+-][0-9]{4}[A-Z]{2}$")
 BOARD_RANKS = range(1, 10)
 BOARD_FILES = range(9, 0, -1)
@@ -37,6 +50,42 @@ PIECE_NAMES = {
     "RY": "龍",
 }
 
+TYPE_TO_KIND = {
+    cshogi.PAWN: "FU",
+    cshogi.LANCE: "KY",
+    cshogi.KNIGHT: "KE",
+    cshogi.SILVER: "GI",
+    cshogi.GOLD: "KI",
+    cshogi.BISHOP: "KA",
+    cshogi.ROOK: "HI",
+    cshogi.KING: "OU",
+    cshogi.PROM_PAWN: "TO",
+    cshogi.PROM_LANCE: "NY",
+    cshogi.PROM_KNIGHT: "NK",
+    cshogi.PROM_SILVER: "NG",
+    cshogi.PROM_BISHOP: "UM",
+    cshogi.PROM_ROOK: "RY",
+}
+
+USI_DROP_TO_KIND = {
+    "P": "FU",
+    "L": "KY",
+    "N": "KE",
+    "S": "GI",
+    "G": "KI",
+    "B": "KA",
+    "R": "HI",
+}
+
+HAND_INDEX_TO_KIND = {
+    0: "FU",
+    1: "KY",
+    2: "KE",
+    3: "GI",
+    4: "KI",
+    5: "KA",
+    6: "HI",
+}
 HAND_ORDER = ["HI", "KA", "KI", "GI", "KE", "KY", "FU"]
 UNPROMOTE = {
     "TO": "FU",
@@ -50,23 +99,26 @@ UNPROMOTE = {
 
 @dataclass
 class Piece:
+    # 棋盤上一顆棋子的狀態：屬於哪一方、是哪種棋子。
     color: str
     kind: str
 
 
 @dataclass
 class MoveRecord:
+    # 一手棋的顯示資料，包含起點、終點、棋子與原始走法文字。
     ply: int
     color: str
     from_square: str | None
-    to_square: str
-    piece: str
+    to_square: str | None
+    piece: str | None
     usi_like: str
     captured: str | None = None
 
 
 @dataclass
 class Position:
+    # 某一手之後的完整局面，包含棋盤、手駒、輪到哪一方與最後一步。
     ply: int
     turn: str
     board: dict[str, Piece]
@@ -76,14 +128,25 @@ class Position:
 
 @dataclass
 class Game:
+    # 一盤棋的完整記憶體資料；CSA 檔模式會直接使用這個結構重播。
     id: str
-    path: Path
+    name: str
     metadata: dict[str, str] = field(default_factory=dict)
     positions: list[Position] = field(default_factory=list)
     moves: list[MoveRecord] = field(default_factory=list)
 
 
+class GameSource(Protocol):
+    # 共同資料來源介面：不論資料來自 CSA 檔或 MySQL，都提供相同 API。
+    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        ...
+
+    def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
+        ...
+
+
 def clone_board(board: dict[str, Piece]) -> dict[str, Piece]:
+    # 複製棋盤字典，避免重播時改到前一手的局面。
     return {square: Piece(piece.color, piece.kind) for square, piece in board.items()}
 
 
@@ -100,6 +163,7 @@ def opponent(color: str) -> str:
 
 
 def empty_hands() -> dict[str, dict[str, int]]:
+    # 建立雙方空手駒區，後續吃子或打入會更新這裡。
     return {"+": {piece: 0 for piece in HAND_ORDER}, "-": {piece: 0 for piece in HAND_ORDER}}
 
 
@@ -112,6 +176,7 @@ def add_hand(hands: dict[str, dict[str, int]], color: str, piece: str, delta: in
 
 
 def initial_board() -> dict[str, Piece]:
+    # 建立標準將棋初始局面；CSA 沒有明確盤面時會用這個起點。
     rows = {
         1: ["-KY", "-KE", "-GI", "-KI", "-OU", "-KI", "-GI", "-KE", "-KY"],
         2: [" * ", "-HI", " * ", " * ", " * ", " * ", " * ", "-KA", " * "],
@@ -130,6 +195,7 @@ def initial_board() -> dict[str, Piece]:
 
 
 def apply_board_row(board: dict[str, Piece], rank: int, content: str) -> None:
+    # 解析 CSA 的 P1~P9 棋盤列資料，放到內部棋盤座標。
     if len(content) < 27:
         raise ValueError(f"rank P{rank} is too short")
 
@@ -148,6 +214,7 @@ def apply_board_row(board: dict[str, Piece], rank: int, content: str) -> None:
 
 
 def apply_hand_line(hands: dict[str, dict[str, int]], color: str, content: str) -> None:
+    # 解析 CSA 的手駒資料，累計雙方持有的棋子數量。
     compact = content.replace(" ", "")
     for index in range(0, len(compact), 4):
         token = compact[index : index + 4]
@@ -159,6 +226,7 @@ def apply_hand_line(hands: dict[str, dict[str, int]], color: str, content: str) 
 
 
 def parse_metadata(line: str, metadata: dict[str, str]) -> None:
+    # 解析 CSA 的棋局資訊，例如棋手、賽事、日期、戰型和結果。
     if line.startswith("N+") or line.startswith("N-"):
         metadata["black" if line[1] == "+" else "white"] = line[2:].strip()
     elif line.startswith("$") and ":" in line:
@@ -182,6 +250,7 @@ def apply_move(
     ply: int,
     line: str,
 ) -> MoveRecord:
+    # 對目前局面套用一手 CSA 走法，處理移動、吃子、打入與升變。
     color = line[0]
     from_square = square_name(line[1], line[2])
     to_square = square_name(line[3], line[4])
@@ -220,6 +289,7 @@ def apply_move(
 
 
 def read_csa_text(path: Path) -> str:
+    # 讀取 CSA 文字並嘗試常見編碼，避免 UTF-8 BOM 或日文編碼造成解析失敗。
     raw = path.read_bytes()
     for encoding in ("utf-8-sig", "utf-8", "cp932", "shift_jis"):
         try:
@@ -230,6 +300,7 @@ def read_csa_text(path: Path) -> str:
 
 
 def parse_csa(path: Path, game_id: str) -> Game:
+    # 解析單一 CSA 檔，逐手產生 positions，供「本機檔案模式」使用。
     board: dict[str, Piece] = {}
     hands = empty_hands()
     turn = "+"
@@ -262,15 +333,7 @@ def parse_csa(path: Path, game_id: str) -> Game:
 
         if line in {"+", "-"} and not moves:
             turn = line
-            positions.append(
-                Position(
-                    ply=0,
-                    turn=turn,
-                    board=clone_board(board),
-                    hands=clone_hands(hands),
-                    last_move=None,
-                )
-            )
+            positions.append(Position(0, turn, clone_board(board), clone_hands(hands), None))
             continue
 
         if MOVE_RE.match(line):
@@ -278,27 +341,11 @@ def parse_csa(path: Path, game_id: str) -> Game:
                 board = initial_board()
                 has_board_rows = True
                 if not positions:
-                    positions.append(
-                        Position(
-                            ply=0,
-                            turn=turn,
-                            board=clone_board(board),
-                            hands=clone_hands(hands),
-                            last_move=None,
-                        )
-                    )
+                    positions.append(Position(0, turn, clone_board(board), clone_hands(hands), None))
             move = apply_move(board, hands, len(moves) + 1, compact_move_text(line))
             moves.append(move)
             turn = opponent(move.color)
-            positions.append(
-                Position(
-                    ply=len(moves),
-                    turn=turn,
-                    board=clone_board(board),
-                    hands=clone_hands(hands),
-                    last_move=move,
-                )
-            )
+            positions.append(Position(len(moves), turn, clone_board(board), clone_hands(hands), move))
             continue
 
         if line.startswith("%"):
@@ -307,31 +354,384 @@ def parse_csa(path: Path, game_id: str) -> Game:
     if not positions:
         if not has_board_rows:
             board = initial_board()
-        positions.append(
-            Position(ply=0, turn=turn, board=clone_board(board), hands=clone_hands(hands), last_move=None)
+        positions.append(Position(0, turn, clone_board(board), clone_hands(hands), None))
+
+    return Game(id=game_id, name=Path(game_id).name, metadata=metadata, positions=positions, moves=moves)
+
+
+def text_matches(value: str, needle: str) -> bool:
+    # 本機檔案模式的模糊搜尋，比對時忽略大小寫與空字串。
+    return needle.lower() in (value or "").lower()
+
+
+def filter_file_games(games: list[dict[str, Any]], filters: dict[str, str]) -> list[dict[str, Any]]:
+    # 本機 CSA 檔模式的搜尋邏輯，盡量與 MySQL 模式使用相同欄位名稱。
+    event = filters.get("event", "").strip()
+    date_from = filters.get("date_from", "").strip()
+    date_to = filters.get("date_to", "").strip()
+    player = filters.get("player", "").strip()
+    opening = filters.get("opening", "").strip()
+    filtered = []
+
+    for game in games:
+        if event and not text_matches(game.get("event", ""), event):
+            continue
+        played_at = str(game.get("startTime", ""))[:10]
+        if date_from and (not played_at or played_at < date_from):
+            continue
+        if date_to and (not played_at or played_at > date_to):
+            continue
+        if player and not (
+            text_matches(game.get("black", ""), player) or text_matches(game.get("white", ""), player)
+        ):
+            continue
+        if opening and not text_matches(game.get("opening", ""), opening):
+            continue
+        filtered.append(game)
+
+    return sorted(filtered, key=lambda item: (item.get("startTime", ""), item.get("id", "")), reverse=True)
+
+
+class CsaFileSource:
+    # 從 data 資料夾直接讀 CSA 檔的資料來源，適合沒有資料庫時展示。
+    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        games = []
+        if not DATA_DIR.exists():
+            return games
+        for path in sorted(DATA_DIR.rglob("*.csa")):
+            game_id = path.relative_to(DATA_DIR).as_posix()
+            try:
+                game = parse_csa(path, game_id)
+                games.append(serialize_game_summary(game))
+            except Exception as exc:
+                games.append({"id": game_id, "name": path.name, "error": str(exc)})
+        return filter_file_games(games, filters or {})
+
+    def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
+        decoded = unquote(game_id).replace("\\", "/")
+        path = (DATA_DIR / decoded).resolve()
+        data_root = DATA_DIR.resolve()
+        if data_root != path and data_root not in path.parents:
+            raise FileNotFoundError(game_id)
+        if path.suffix.lower() != ".csa" or not path.is_file():
+            raise FileNotFoundError(game_id)
+
+        game = parse_csa(path, decoded)
+        if ply < 0 or ply >= len(game.positions):
+            raise ValueError(f"ply must be between 0 and {len(game.positions) - 1}")
+        return serialize_position(game, game.positions[ply])
+
+
+@dataclass
+class MySqlConfig:
+    # MySQL 連線設定，由命令列參數或環境變數帶入。
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
+
+
+class MySqlSource:
+    # 從 MySQL 讀棋局清單、局面與手順，是目前網頁正式使用的資料來源。
+    def __init__(self, config: MySqlConfig):
+        if pymysql is None:
+            raise RuntimeError("PyMySQL is not installed. Run `python -m pip install -r requirements.txt`.")
+        self.config = config
+
+    def connect(self) -> Any:
+        # 建立資料庫連線；每次 API 查詢短連線處理，避免長時間佔用連線。
+        return pymysql.connect(
+            host=self.config.host,
+            port=self.config.port,
+            user=self.config.user,
+            password=self.config.password,
+            database=self.config.database,
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=True,
         )
 
-    return Game(id=game_id, path=path, metadata=metadata, positions=positions, moves=moves)
+    @staticmethod
+    def clean_text(value: Any) -> str:
+        # 將資料庫中的 None、空字串或字面上的 null 統一轉成空字串。
+        if value is None:
+            return ""
+        text = str(value).strip()
+        return "" if text.lower() in {"", "null", "none"} else text
+
+    @classmethod
+    def display_name(cls, row: dict[str, Any]) -> str:
+        # 棋局下拉選單顯示名稱：日期、賽事、雙方名稱有資料才顯示。
+        played_at = row.get("played_at")
+        date_text = played_at.isoformat() if played_at else ""
+        event_text = cls.clean_text(row.get("event_name"))
+        black_text = cls.clean_text(row.get("black_player"))
+        white_text = cls.clean_text(row.get("white_player"))
+        players_text = ""
+        if black_text and white_text:
+            players_text = f"{black_text} vs {white_text}"
+        elif black_text or white_text:
+            players_text = black_text or white_text
+
+        parts = [part for part in (date_text, event_text, players_text) if part]
+        if parts:
+            return " · ".join(parts)
+        return cls.clean_text(row.get("original_file_name")) or f"game-{row['game_id']}"
+
+    @staticmethod
+    def like_param(value: str) -> str:
+        return f"%{value.strip()}%"
+
+    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        # 讀取棋局列表，並依搜尋條件加上 WHERE；預設依日期由新到舊排序。
+        filters = filters or {}
+        where_sql, params = self.build_filters(filters)
+        with self.connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    f"""
+                    SELECT
+                        g.game_id,
+                        g.original_file_name,
+                        COALESCE(bp.player_name, '先手') AS black_player,
+                        COALESCE(wp.player_name, '後手') AS white_player,
+                        COALESCE(g.event_name, '') AS event_name,
+                        COALESCE(g.opening, '') AS opening,
+                        COALESCE(g.result, '') AS result,
+                        g.played_at,
+                        COUNT(m.move_id) AS move_count
+                    FROM game_records g
+                    LEFT JOIN players bp ON g.black_player_id = bp.player_id
+                    LEFT JOIN players wp ON g.white_player_id = wp.player_id
+                    LEFT JOIN moves m ON g.game_id = m.game_id
+                    {where_sql}
+                    GROUP BY
+                        g.game_id, g.original_file_name, bp.player_name, wp.player_name,
+                        g.event_name, g.opening, g.result, g.played_at
+                    ORDER BY g.played_at DESC, g.game_id DESC
+                    """,
+                    params,
+                )
+                rows = cursor.fetchall()
+
+        games = []
+        for row in rows:
+            games.append(
+                {
+                    "id": str(row["game_id"]),
+                    "name": self.display_name(row),
+                    "moves": int(row["move_count"]),
+                    "black": self.clean_text(row["black_player"]) or "先手",
+                    "white": self.clean_text(row["white_player"]) or "後手",
+                    "event": self.clean_text(row["event_name"]),
+                    "opening": self.clean_text(row["opening"]),
+                    "result": self.clean_text(row["result"]),
+                    "startTime": row["played_at"].isoformat() if row["played_at"] else "",
+                }
+            )
+        return games
+
+    def build_filters(self, filters: dict[str, str]) -> tuple[str, list[Any]]:
+        # 將前端送來的搜尋欄位轉成 SQL WHERE 子句與參數，避免字串拼接 SQL。
+        clauses: list[str] = []
+        params: list[Any] = []
+
+        event = filters.get("event", "").strip()
+        if event:
+            clauses.append("COALESCE(g.event_name, '') LIKE %s")
+            params.append(self.like_param(event))
+
+        date_from = filters.get("date_from", "").strip()
+        if date_from:
+            clauses.append("g.played_at >= %s")
+            params.append(date_from)
+
+        date_to = filters.get("date_to", "").strip()
+        if date_to:
+            clauses.append("g.played_at <= %s")
+            params.append(date_to)
+
+        player = filters.get("player", "").strip()
+        if player:
+            clauses.append("(COALESCE(bp.player_name, '') LIKE %s OR COALESCE(wp.player_name, '') LIKE %s)")
+            params.extend([self.like_param(player), self.like_param(player)])
+
+        opening = filters.get("opening", "").strip()
+        if opening:
+            clauses.append("COALESCE(g.opening, '') LIKE %s")
+            params.append(self.like_param(opening))
+
+        if not clauses:
+            return "", []
+        return "WHERE " + " AND ".join(clauses), params
+
+    def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
+        # 從 positions 讀出指定手數的 SFEN，再轉成前端棋盤需要的 JSON。
+        try:
+            game_pk = int(game_id)
+        except ValueError as exc:
+            raise FileNotFoundError(game_id) from exc
+
+        with self.connect() as conn:
+            with conn.cursor() as cursor:
+                game = self.fetch_game(cursor, game_pk)
+                if game is None:
+                    raise FileNotFoundError(game_id)
+
+                cursor.execute("SELECT COUNT(*) AS move_count FROM moves WHERE game_id = %s", (game_pk,))
+                max_ply = int(cursor.fetchone()["move_count"])
+                if ply < 0 or ply > max_ply:
+                    raise ValueError(f"ply must be between 0 and {max_ply}")
+
+                cursor.execute(
+                    """
+                    SELECT move_number, side_to_move, sfen, is_check, legal_moves_count
+                    FROM positions
+                    WHERE game_id = %s AND move_number = %s
+                    LIMIT 1
+                    """,
+                    (game_pk, ply),
+                )
+                position = cursor.fetchone()
+                if position is None:
+                    raise FileNotFoundError(f"position {ply} for game {game_id}")
+
+                cursor.execute(
+                    """
+                    SELECT move_number, side_to_move, original_move, usi_move, comment
+                    FROM moves
+                    WHERE game_id = %s
+                    ORDER BY move_number
+                    """,
+                    (game_pk,),
+                )
+                moves = cursor.fetchall()
+
+        board_obj = cshogi.Board(position["sfen"])
+        board, hands = board_from_cshogi(board_obj)
+        last_row = next((move for move in moves if int(move["move_number"]) == ply), None)
+        last_move = move_from_db_row(last_row, board) if last_row else None
+        move_records = [move_from_db_row(move, None) for move in moves]
+
+        return {
+            "game": game,
+            "ply": ply,
+            "maxPly": max_ply,
+            "turn": "+" if position["side_to_move"] == "black" else "-",
+            "turnLabel": "先手" if position["side_to_move"] == "black" else "後手",
+            "board": board_grid(board),
+            "hands": hands,
+            "handOrder": HAND_ORDER,
+            "pieceNames": PIECE_NAMES,
+            "lastMove": serialize_move(last_move),
+            "moves": [serialize_move(move) for move in move_records],
+            "isCheck": bool(position["is_check"]),
+            "legalMovesCount": position["legal_moves_count"],
+        }
+
+    def fetch_game(self, cursor: Any, game_pk: int) -> dict[str, Any] | None:
+        # 讀取單一棋局基本資料，供局面 API 回傳標題、棋手、賽事與手數。
+        cursor.execute(
+            """
+            SELECT
+                g.game_id,
+                g.original_file_name,
+                COALESCE(bp.player_name, '先手') AS black_player,
+                COALESCE(wp.player_name, '後手') AS white_player,
+                COALESCE(g.event_name, '') AS event_name,
+                COALESCE(g.opening, '') AS opening,
+                COALESCE(g.result, '') AS result,
+                g.played_at
+            FROM game_records g
+            LEFT JOIN players bp ON g.black_player_id = bp.player_id
+            LEFT JOIN players wp ON g.white_player_id = wp.player_id
+            WHERE g.game_id = %s
+            LIMIT 1
+            """,
+            (game_pk,),
+        )
+        row = cursor.fetchone()
+        if row is None:
+            return None
+        cursor.execute("SELECT COUNT(*) AS move_count FROM moves WHERE game_id = %s", (game_pk,))
+        move_count = int(cursor.fetchone()["move_count"])
+        return {
+            "id": str(row["game_id"]),
+            "name": self.display_name(row),
+            "moves": move_count,
+            "black": self.clean_text(row["black_player"]) or "先手",
+            "white": self.clean_text(row["white_player"]) or "後手",
+            "event": self.clean_text(row["event_name"]),
+            "opening": self.clean_text(row["opening"]),
+            "result": self.clean_text(row["result"]),
+            "startTime": row["played_at"].isoformat() if row["played_at"] else "",
+        }
 
 
-def game_files() -> list[Path]:
-    if not DATA_DIR.exists():
-        return []
-    return sorted(path for path in DATA_DIR.rglob("*.csa") if path.is_file())
+def cshogi_square_to_browser(square_name_text: str) -> str:
+    # cshogi 的座標使用 1a 這類格式，前端顯示時改成 11~99。
+    rank = ord(square_name_text[1]) - ord("a") + 1
+    return f"{square_name_text[0]}{rank}"
 
 
-def safe_game_path(game_id: str) -> Path:
-    decoded = unquote(game_id).replace("\\", "/")
-    path = (DATA_DIR / decoded).resolve()
-    data_root = DATA_DIR.resolve()
-    if data_root != path and data_root not in path.parents:
-        raise FileNotFoundError(game_id)
-    if path.suffix.lower() != ".csa" or not path.is_file():
-        raise FileNotFoundError(game_id)
-    return path
+def usi_square_to_browser(square_name_text: str) -> str:
+    if len(square_name_text) != 2:
+        return square_name_text
+    rank = ord(square_name_text[1]) - ord("a") + 1
+    return f"{square_name_text[0]}{rank}"
+
+
+def board_from_cshogi(board_obj: cshogi.Board) -> tuple[dict[str, Piece], dict[str, dict[str, int]]]:
+    # 將 cshogi.Board 轉成前端自訂的棋盤與手駒資料結構。
+    board: dict[str, Piece] = {}
+    for square_index, piece in enumerate(board_obj.pieces):
+        if piece == cshogi.NONE:
+            continue
+        piece_type = int(board_obj.piece_type(square_index))
+        kind = TYPE_TO_KIND[piece_type]
+        color = "-" if piece >= 17 else "+"
+        square = cshogi_square_to_browser(cshogi.SQUARE_NAMES[square_index])
+        board[square] = Piece(color=color, kind=kind)
+
+    hands = empty_hands()
+    black_hands, white_hands = board_obj.pieces_in_hand
+    for index, kind in HAND_INDEX_TO_KIND.items():
+        hands["+"][kind] = int(black_hands[index])
+        hands["-"][kind] = int(white_hands[index])
+    return board, hands
+
+
+def move_from_db_row(row: dict[str, Any] | None, board_after_move: dict[str, Piece] | None) -> MoveRecord | None:
+    # 將資料庫 moves 的 USI 走法轉成前端可標示來源格與目標格的 MoveRecord。
+    if row is None:
+        return None
+    usi = row.get("usi_move") or row.get("original_move") or ""
+    from_square: str | None = None
+    to_square: str | None = None
+    piece: str | None = None
+
+    if len(usi) >= 4 and "*" in usi:
+        piece = USI_DROP_TO_KIND.get(usi[0])
+        to_square = usi_square_to_browser(usi[2:4])
+    elif len(usi) >= 4:
+        from_square = usi_square_to_browser(usi[0:2])
+        to_square = usi_square_to_browser(usi[2:4])
+        if board_after_move is not None and to_square in board_after_move:
+            piece = board_after_move[to_square].kind
+
+    return MoveRecord(
+        ply=int(row["move_number"]),
+        color="+" if row["side_to_move"] == "black" else "-",
+        from_square=from_square,
+        to_square=to_square,
+        piece=piece,
+        usi_like=usi,
+    )
 
 
 def serialize_piece(piece: Piece | None) -> dict[str, str] | None:
+    # 把內部棋子物件轉成 JSON，可直接給前端渲染。
     if piece is None:
         return None
     return {
@@ -343,6 +743,7 @@ def serialize_piece(piece: Piece | None) -> dict[str, str] | None:
 
 
 def serialize_move(move: MoveRecord | None) -> dict[str, Any] | None:
+    # 把內部手順物件轉成 JSON，包含手數、先後手、座標與顯示文字。
     if move is None:
         return None
     return {
@@ -351,28 +752,33 @@ def serialize_move(move: MoveRecord | None) -> dict[str, Any] | None:
         "from": move.from_square,
         "to": move.to_square,
         "piece": move.piece,
-        "label": PIECE_NAMES[move.piece],
+        "label": PIECE_NAMES.get(move.piece or "", ""),
         "text": move.usi_like,
         "captured": move.captured,
     }
 
 
-def serialize_position(game: Game, position: Position) -> dict[str, Any]:
-    board = []
+def board_grid(board: dict[str, Piece]) -> list[list[dict[str, Any]]]:
+    # 依前端需要的顯示順序輸出 9x9 棋盤格。
+    rows = []
     for rank in BOARD_RANKS:
         row = []
         for file_number in BOARD_FILES:
             square = f"{file_number}{rank}"
-            row.append({"square": square, "piece": serialize_piece(position.board.get(square))})
-        board.append(row)
+            row.append({"square": square, "piece": serialize_piece(board.get(square))})
+        rows.append(row)
+    return rows
 
+
+def serialize_position(game: Game, position: Position) -> dict[str, Any]:
+    # 本機 CSA 檔模式的局面序列化，欄位格式與 MySQL 模式保持一致。
     return {
         "game": serialize_game_summary(game),
         "ply": position.ply,
         "maxPly": len(game.moves),
         "turn": position.turn,
         "turnLabel": "先手" if position.turn == "+" else "後手",
-        "board": board,
+        "board": board_grid(position.board),
         "hands": position.hands,
         "handOrder": HAND_ORDER,
         "pieceNames": PIECE_NAMES,
@@ -382,9 +788,10 @@ def serialize_position(game: Game, position: Position) -> dict[str, Any]:
 
 
 def serialize_game_summary(game: Game) -> dict[str, Any]:
+    # 本機 CSA 檔模式的棋局摘要，供 /api/games 清單使用。
     return {
         "id": game.id,
-        "name": game.path.name,
+        "name": game.name,
         "moves": len(game.moves),
         "black": game.metadata.get("black", "先手"),
         "white": game.metadata.get("white", "後手"),
@@ -395,7 +802,9 @@ def serialize_game_summary(game: Game) -> dict[str, Any]:
 
 
 class CsaBrowserHandler(BaseHTTPRequestHandler):
-    server_version = "CsaBrowser/0.1"
+    # HTTP 處理器：提供 API 路由，也負責把 web 資料夾中的前端檔案送出去。
+    server_version = "CsaBrowser/0.2"
+    source: GameSource
 
     def do_GET(self) -> None:
         try:
@@ -408,29 +817,21 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def route_get(self) -> None:
+        # GET 路由分派：棋局清單、指定局面，其他路徑視為靜態檔案。
         parsed = urlparse(self.path)
         path = parsed.path
 
         if path == "/api/games":
-            self.api_games()
+            filters = {key: values[0] for key, values in parse_qs(parsed.query).items() if values and values[0].strip()}
+            self.send_json({"games": self.source.list_games(filters)})
             return
         if path.startswith("/api/games/"):
             self.api_position(path.removeprefix("/api/games/"), parsed.query)
             return
         self.serve_static(path)
 
-    def api_games(self) -> None:
-        games = []
-        for path in game_files():
-            game_id = path.relative_to(DATA_DIR).as_posix()
-            try:
-                game = parse_csa(path, game_id)
-                games.append(serialize_game_summary(game))
-            except Exception as exc:
-                games.append({"id": game_id, "name": path.name, "error": str(exc)})
-        self.send_json({"games": games})
-
     def api_position(self, game_id: str, query: str) -> None:
+        # /api/games/<id>?ply=N：取得指定棋局指定手數的局面。
         params = parse_qs(query)
         ply_text = params.get("ply", ["0"])[0]
         try:
@@ -438,13 +839,10 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         except ValueError as exc:
             raise ValueError("ply must be an integer") from exc
 
-        path = safe_game_path(game_id)
-        game = parse_csa(path, unquote(game_id))
-        if ply < 0 or ply >= len(game.positions):
-            raise ValueError(f"ply must be between 0 and {len(game.positions) - 1}")
-        self.send_json(serialize_position(game, game.positions[ply]))
+        self.send_json(self.source.get_position(unquote(game_id), ply))
 
     def serve_static(self, request_path: str) -> None:
+        # 提供 index.html、app.js、styles.css，並限制只能讀 web 資料夾內檔案。
         if request_path in {"", "/"}:
             request_path = "/index.html"
         relative = unquote(request_path.lstrip("/")).replace("\\", "/")
@@ -464,6 +862,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def send_json(self, payload: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
+        # 統一 JSON 回應格式，使用 UTF-8 保留中文棋手與賽事名稱。
         body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -476,16 +875,46 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
 
 def parse_args() -> argparse.Namespace:
+    # 後端啟動參數：可選 CSA 檔模式或 MySQL 模式，以及伺服器 port。
     parser = argparse.ArgumentParser(description="Serve a CSA game browser and JSON API.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--source", choices=["mysql", "csa"], default="mysql")
+    parser.add_argument("--db-host", default=os.getenv("MYSQL_HOST", "127.0.0.1"))
+    parser.add_argument("--db-port", type=int, default=int(os.getenv("MYSQL_PORT", "3306")))
+    parser.add_argument("--db-user", default=os.getenv("MYSQL_USER"))
+    parser.add_argument("--db-password", default=os.getenv("MYSQL_PASSWORD"))
+    parser.add_argument("--db-name", default=os.getenv("MYSQL_DATABASE", "DB11211213"))
     return parser.parse_args()
 
 
+def build_source(args: argparse.Namespace) -> GameSource:
+    # 依 --source 建立資料來源；正式展示通常使用 mysql。
+    if args.source == "csa":
+        return CsaFileSource()
+    if not args.db_user:
+        raise SystemExit("Missing --db-user or MYSQL_USER.")
+    password = args.db_password
+    if password is None:
+        password = getpass.getpass(f"MySQL password for {args.db_user}@{args.db_host}: ")
+    return MySqlSource(
+        MySqlConfig(
+            host=args.db_host,
+            port=args.db_port,
+            user=args.db_user,
+            password=password,
+            database=args.db_name,
+        )
+    )
+
+
 def main() -> int:
+    # 程式入口：建立資料來源，啟動 ThreadingHTTPServer，等待瀏覽器請求。
     args = parse_args()
+    CsaBrowserHandler.source = build_source(args)
     server = ThreadingHTTPServer((args.host, args.port), CsaBrowserHandler)
     print(f"CSA browser running at http://{args.host}:{args.port}")
+    print(f"Data source: {args.source}")
     print("Press Ctrl+C to stop.")
     try:
         server.serve_forever()

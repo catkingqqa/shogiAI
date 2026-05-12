@@ -1,3 +1,4 @@
+/* 全站變數：集中設定顏色、陰影與背景，方便統一調整視覺風格。 */
 :root {
   --bg: #f5f3ec;
   --ink: #1e2329;
@@ -15,6 +16,7 @@
   box-sizing: border-box;
 }
 
+/* 頁面基礎樣式：設定字體、背景與整體留白。 */
 body {
   margin: 0;
   min-height: 100vh;
@@ -22,12 +24,14 @@ body {
   color: var(--ink);
 }
 
+/* 主容器：限制最大寬度，讓棋盤與側欄在大螢幕上維持好閱讀的比例。 */
 .app-shell {
   width: min(1180px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 24px 0;
 }
 
+/* 頁首與控制列共用外觀：白色面板、邊框與陰影。 */
 .topbar,
 .controls {
   display: flex;
@@ -47,6 +51,7 @@ h1 {
   color: var(--muted);
 }
 
+/* 棋譜選擇器：讓使用者從資料庫棋局清單切換目前播放的棋譜。 */
 .game-picker {
   display: grid;
   gap: 6px;
@@ -65,6 +70,60 @@ select {
   font: inherit;
 }
 
+input {
+  width: 100%;
+  border: 1px solid #bcc4c7;
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+/* 搜尋區：賽事、日期、棋手、戰型條件會送到後端 API 過濾棋局。 */
+.search-panel {
+  display: grid;
+  grid-template-columns: 1.2fr minmax(130px, 0.8fr) minmax(130px, 0.8fr) 1.2fr 1.2fr auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 18px;
+  padding: 14px 0 4px;
+  border-top: 1px solid rgba(30, 35, 41, 0.12);
+}
+
+.search-panel label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.search-panel span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.search-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.text-btn {
+  min-height: 40px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  padding: 0 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.text-btn.secondary {
+  border: 1px solid rgba(31, 111, 120, 0.28);
+  background: #fffdf6;
+  color: var(--accent);
+}
+
+/* 對局主區：左右為雙方資訊，中間為棋盤。 */
 .play-area {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) minmax(320px, 620px) minmax(160px, 1fr);
@@ -73,11 +132,13 @@ select {
   margin: 28px 0;
 }
 
+/* 棋盤外框：提供背景、邊框與固定比例容器。 */
 .board-wrap {
   width: 100%;
   aspect-ratio: 1;
 }
 
+/* 棋盤格線：使用 9 欄 grid 產生 9x9 將棋棋盤。 */
 .board {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
@@ -89,6 +150,7 @@ select {
   box-shadow: 0 16px 40px rgba(50, 43, 31, 0.18);
 }
 
+/* 單一格子：放置棋子，並在邊緣補上座標提示。 */
 .square {
   position: relative;
   display: grid;
@@ -120,6 +182,7 @@ select {
   pointer-events: none;
 }
 
+/* 棋子外觀：依先手/後手旋轉與配色，升變棋子使用不同底色。 */
 .piece {
   display: grid;
   place-items: center;
@@ -144,6 +207,7 @@ select {
   color: var(--danger);
 }
 
+/* 棋手與手駒側欄：顯示雙方名稱與目前持有手駒。 */
 .side-panel {
   min-width: 0;
 }
@@ -188,21 +252,28 @@ select {
   font-weight: 500;
 }
 
+/* 播放控制列：負責上一手、下一手、初始局面與最後一手。 */
 .controls {
   justify-content: center;
+  flex-wrap: wrap;
 }
 
 button {
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.control-btn {
   display: grid;
   place-items: center;
   width: 48px;
   height: 48px;
-  border: 0;
   border-radius: 50%;
   background: var(--accent);
   color: #fff;
-  font-size: 24px;
-  cursor: pointer;
+  font-size: 20px;
+  font-weight: 800;
 }
 
 button:disabled {
@@ -221,6 +292,102 @@ button:disabled {
   color: var(--muted);
 }
 
+/* 手順列表：每一手可點擊跳轉，星號可標記重點手。 */
+.move-list-panel {
+  border-top: 1px solid rgba(30, 35, 41, 0.16);
+  padding-top: 18px;
+}
+
+.move-list-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.move-list-head h2 {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0;
+}
+
+.move-list-head span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.move-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.move-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  min-height: 38px;
+  border: 1px solid rgba(31, 111, 120, 0.2);
+  border-radius: 6px;
+  background: #fffdf6;
+  overflow: hidden;
+}
+
+.move-row:hover {
+  border-color: var(--accent);
+}
+
+.move-row.active {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.move-row.marked {
+  border-color: #b8860b;
+  box-shadow: inset 3px 0 0 #d69b17;
+}
+
+.move-jump,
+.move-marker {
+  background: transparent;
+  color: var(--ink);
+}
+
+.move-jump {
+  padding: 8px 10px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.move-marker {
+  display: grid;
+  place-items: center;
+  border-left: 1px solid rgba(31, 111, 120, 0.14);
+  color: #a06d00;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.move-marker:hover {
+  background: rgba(214, 155, 23, 0.12);
+}
+
+.move-row.active .move-jump,
+.move-row.active .move-marker {
+  color: #fff;
+  font-weight: 700;
+}
+
+.move-row.active .move-marker {
+  border-left-color: rgba(255, 255, 255, 0.26);
+}
+
+/* 響應式調整：窄螢幕時將棋手資訊與棋盤改成上下排列。 */
 @media (max-width: 800px) {
   .topbar {
     align-items: stretch;
@@ -230,6 +397,14 @@ button:disabled {
   .play-area {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+
+  .search-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .search-actions {
+    grid-column: 1 / -1;
   }
 
   .player {
@@ -250,5 +425,15 @@ button:disabled {
 
   .piece {
     font-size: clamp(13px, 7vw, 24px);
+  }
+
+  .move-status {
+    order: -1;
+    min-width: 100%;
+  }
+
+  .move-list {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    max-height: 180px;
   }
 }

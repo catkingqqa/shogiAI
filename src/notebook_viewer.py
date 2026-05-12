@@ -12,6 +12,7 @@ import numpy as np
 
 @dataclass(frozen=True)
 class BoardSample:
+    # Jupyter 顯示用的一個局面樣本，包含棋盤、下一手、來源與訓練標籤。
     index: int
     board: cshogi.Board
     move: int | None
@@ -23,6 +24,7 @@ class BoardSample:
     sfen: str | None = None
 
     def _repr_html_(self) -> str:
+        # Jupyter 會自動呼叫這個方法，把局面渲染成 SVG 棋盤與文字資訊。
         value = "" if self.value is None else f"<dt>value</dt><dd>{self.value:+.1f}</dd>"
         move_label = "" if self.move_label is None else f"<dt>move label</dt><dd>{self.move_label}</dd>"
         source = "" if self.source is None else f"<dt>source</dt><dd>{self.source}</dd>"
@@ -50,6 +52,7 @@ class BoardSample:
 
 @dataclass(frozen=True)
 class BoardSampleCollection:
+    # 多個 BoardSample 的包裝，讓 notebook 可以一次顯示多個局面。
     samples: list[BoardSample]
 
     def _repr_html_(self) -> str:
@@ -58,6 +61,7 @@ class BoardSampleCollection:
 
 def csa_boards(path: str | Path, encoding: str = "utf-8", game_index: int = 0) -> list[BoardSample]:
     """Return replayable CSA positions as Jupyter-displayable BoardSample objects."""
+    # 從 CSA 棋譜重播每一步，回傳可在 notebook 直接顯示的局面列表。
     games = CSA.Parser.parse_file(str(path), encoding=encoding)
     parser = games[game_index]
     board = cshogi.Board(parser.sfen)
@@ -83,6 +87,7 @@ def csa_boards(path: str | Path, encoding: str = "utf-8", game_index: int = 0) -
 
 def npz_samples(path: str | Path) -> list[BoardSample]:
     """Return .npz samples as Jupyter-displayable BoardSample objects."""
+    # 讀取 csa_preprocess.py 產生的 npz 訓練資料，還原成可檢查的局面樣本。
     data = np.load(path, allow_pickle=False)
     moves = data["moves"]
     values = data["values"]
@@ -111,14 +116,17 @@ def npz_samples(path: str | Path) -> list[BoardSample]:
 
 def show(sample: BoardSample) -> BoardSample:
     """Return one BoardSample. In Jupyter, the returned object displays as HTML."""
+    # notebook 輔助函式：回傳單一樣本，讓 Jupyter 自動顯示 HTML。
     return sample
 
 
 def show_many(samples: Iterable[BoardSample], limit: int = 10) -> BoardSampleCollection:
     """Return several BoardSample objects as one Jupyter-displayable collection."""
+    # notebook 輔助函式：限制顯示數量，避免一次輸出太多盤面。
     return BoardSampleCollection(list(samples)[:limit])
 
 
 def board_from_sfen(sfen: str) -> cshogi.Board:
     """Create a cshogi.Board that displays directly as SVG in Jupyter."""
+    # 直接用 SFEN 建立 cshogi 棋盤，方便臨時檢查資料庫或棋譜中的局面。
     return cshogi.Board(sfen)

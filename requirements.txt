@@ -2,3 +2,4 @@ cshogi==0.9.7
 numpy>=1.26,<1.27
 jupyter>=1.0
 ipython>=8.0
+PyMySQL>=1.1,<1.2

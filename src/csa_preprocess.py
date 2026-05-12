@@ -11,6 +11,8 @@ from cshogi import CSA
 import numpy as np
 
 
+# 模型訓練資料的固定尺寸設定：
+# 將 9x9 棋盤、手駒、輪到哪方走棋都轉成固定大小的 numpy array。
 PIECE_TYPE_COUNT = 14
 HAND_PIECE_COUNT = 7
 BOARD_SIZE = 9
@@ -22,6 +24,7 @@ MOVE_LABELS = NORMAL_MOVE_LABELS + HAND_PIECE_COUNT * SQUARE_N
 
 @dataclass
 class SampleMeta:
+    # 每一筆訓練樣本的來源資訊，方便之後回查是從哪份棋譜、哪一步產生。
     source: str
     game_index: int
     ply: int
@@ -31,6 +34,7 @@ class SampleMeta:
 
 @dataclass
 class InvalidGame:
+    # 記錄無法解析或中途出錯的棋局，讓批次轉檔時不會因單一檔案中斷。
     source: str
     game_index: int
     reason: str
@@ -40,6 +44,7 @@ class InvalidGame:
 
 
 def iter_csa_files(path: Path, recursive: bool) -> Iterable[Path]:
+    # 依照使用者給的路徑找出 CSA/KIF 檔；可以處理單檔或整個資料夾。
     if path.is_file():
         yield path
         return
@@ -50,18 +55,21 @@ def iter_csa_files(path: Path, recursive: bool) -> Iterable[Path]:
 
 
 def piece_color(piece: int) -> int | None:
+    # cshogi 用數字代表棋子，這裡把棋子換成黑方/白方/空格。
     if piece == cshogi.NONE:
         return None
     return cshogi.WHITE if piece >= 17 else cshogi.BLACK
 
 
 def orient_square(square: int, turn: int, orient_to_turn: bool) -> int:
+    # 若要以「輪到走棋的一方」視角訓練，白方走棋時會把棋盤旋轉 180 度。
     if orient_to_turn and turn == cshogi.WHITE:
         return 80 - square
     return square
 
 
 def encode_state(board: cshogi.Board, orient_to_turn: bool = True) -> np.ndarray:
+    # 把目前局面轉成神經網路容易吃的 43 層特徵平面。
     state = np.zeros((STATE_PLANES, BOARD_SIZE, BOARD_SIZE), dtype=np.uint8)
     turn = board.turn
 
@@ -99,6 +107,7 @@ def encode_state(board: cshogi.Board, orient_to_turn: bool = True) -> np.ndarray
 
 
 def encode_move(move: int, turn: int, orient_to_turn: bool = True) -> int:
+    # 把 cshogi 的走法編號轉成自己的 policy label，包含普通移動、升變、打入。
     view_move = cshogi.move_rotate(move) if orient_to_turn and turn == cshogi.WHITE else move
     to_square = cshogi.move_to(view_move)
 
@@ -114,6 +123,7 @@ def encode_move(move: int, turn: int, orient_to_turn: bool = True) -> int:
 
 
 def value_for_turn(result: int, turn: int) -> float:
+    # 從當前走棋方角度標記勝負：贏為 1、輸為 -1、和棋為 0。
     if result == cshogi.DRAW:
         return 0.0
     if result == cshogi.BLACK_WIN:
@@ -129,6 +139,7 @@ def replay_game(
     game_index: int,
     orient_to_turn: bool,
 ) -> tuple[list[np.ndarray], list[int], list[float], list[SampleMeta]]:
+    # 逐手重播一盤棋，產生每一步的盤面、下一手答案、勝負標籤和 metadata。
     if parser.win not in cshogi.GAME_RESULTS:
         raise ValueError(f"game has no known result: {parser.win}")
 
@@ -161,6 +172,7 @@ def replay_game(
 
 
 def parse_args() -> argparse.Namespace:
+    # 命令列參數設定：輸入棋譜、輸出 npz、是否遞迴掃描和錯誤報告。
     ap = argparse.ArgumentParser(description="Convert legal CSA games into training samples.")
     ap.add_argument("--input", required=True, type=Path, help="CSA file or directory")
     ap.add_argument("--output", required=True, type=Path, help="Output .npz file")
@@ -173,6 +185,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    # 主流程：掃描棋譜、轉成訓練資料、輸出壓縮 npz，並記錄壞棋譜。
     args = parse_args()
     orient_to_turn = not args.no_orient
 
