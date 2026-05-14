@@ -13,7 +13,7 @@ CSA 棋譜 -> 用 cshogi 檢查能不能合法重播 -> 每一步切成一筆樣
 
 進到專案資料夾：
 
-cd C:\Users\20050\OneDrive\桌面\code\shogiAI
+cd \shogiAI
 
 裝需要的套件：
 
