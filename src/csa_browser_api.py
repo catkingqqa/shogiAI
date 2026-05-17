@@ -607,12 +607,25 @@ class MySqlSource:
                     (game_pk,),
                 )
                 moves = cursor.fetchall()
+                cursor.execute(
+                    """
+                    SELECT sfen
+                    FROM positions
+                    WHERE game_id = %s AND move_number = 0
+                    LIMIT 1
+                    """,
+                    (game_pk,),
+                )
+                initial_position = cursor.fetchone()
 
         board_obj = cshogi.Board(position["sfen"])
         board, hands = board_from_cshogi(board_obj)
-        last_row = next((move for move in moves if int(move["move_number"]) == ply), None)
-        last_move = move_from_db_row(last_row, board) if last_row else None
-        move_records = [move_from_db_row(move, None) for move in moves]
+        move_records = (
+            move_records_from_db_rows(str(initial_position["sfen"]), moves)
+            if initial_position is not None
+            else [move_from_db_row(move, None) for move in moves]
+        )
+        last_move = next((move for move in move_records if move.ply == ply), None)
 
         return {
             "game": game,
@@ -730,6 +743,181 @@ def move_from_db_row(row: dict[str, Any] | None, board_after_move: dict[str, Pie
     )
 
 
+def move_records_from_db_rows(initial_sfen: str, rows: list[dict[str, Any]]) -> list[MoveRecord]:
+    # 由初始局面重播資料庫 USI 手順，補齊每一手移動後的棋子種類。
+    board = cshogi.Board(initial_sfen)
+    records: list[MoveRecord] = []
+
+    for row in rows:
+        usi = row.get("usi_move") or row.get("original_move") or ""
+        try:
+            move = board.move_from_usi(usi)
+            if not board.is_legal(move):
+                raise ValueError(f"illegal move: {usi}")
+            records.append(move_record_from_usi(board, move, int(row["move_number"])))
+            board.push(move)
+        except Exception:
+            fallback = move_from_db_row(row, None)
+            if fallback is not None:
+                records.append(fallback)
+
+    return records
+
+
+def browser_square_from_usi(square_text: str) -> str:
+    return usi_square_to_browser(square_text)
+
+
+def move_record_from_usi(board_before_move: cshogi.Board, move: int, ply: int) -> MoveRecord:
+    # 自行對奕模式使用的 MoveRecord，資料格式與瀏覽既有棋局時保持一致。
+    usi = cshogi.move_to_usi(move)
+    board_after_move = board_before_move.copy()
+    board_after_move.push(move)
+    board_after, _ = board_from_cshogi(board_after_move)
+
+    if "*" in usi:
+        from_square = None
+        to_square = browser_square_from_usi(usi[2:4])
+    else:
+        from_square = browser_square_from_usi(usi[0:2])
+        to_square = browser_square_from_usi(usi[2:4])
+
+    piece = board_after.get(to_square)
+    return MoveRecord(
+        ply=ply,
+        color="+" if board_before_move.turn == cshogi.BLACK else "-",
+        from_square=from_square,
+        to_square=to_square,
+        piece=piece.kind if piece else None,
+        usi_like=usi,
+    )
+
+
+def repetition_key(board: cshogi.Board) -> str:
+    # SFEN 最後一欄是手數，千日手判定只看局面、輪到誰走與持駒。
+    return " ".join(board.sfen().split()[:3])
+
+
+def replay_usi_moves(moves_usi: list[str]) -> tuple[cshogi.Board, list[MoveRecord], int]:
+    # 從初始局面重播使用者自行對奕的主線，並拒絕非法手。
+    board = cshogi.Board()
+    records: list[MoveRecord] = []
+    position_counts = {repetition_key(board): 1}
+    max_repetition_count = 1
+
+    for ply, usi in enumerate(moves_usi, start=1):
+        move = board.move_from_usi(usi)
+        if not board.is_legal(move):
+            raise ValueError(f"illegal move at ply {ply}: {usi}")
+        records.append(move_record_from_usi(board, move, ply))
+        board.push(move)
+        key = repetition_key(board)
+        position_counts[key] = position_counts.get(key, 0) + 1
+        max_repetition_count = max(max_repetition_count, position_counts[key])
+
+    return board, records, max_repetition_count
+
+
+def serialize_legal_move(board: cshogi.Board, move: int) -> dict[str, Any]:
+    # 提供前端點擊棋盤時所需的來源格、目標格、棋子與是否升變資訊。
+    usi = cshogi.move_to_usi(move)
+    record = move_record_from_usi(board, move, 1)
+    return {
+        "usi": usi,
+        "from": record.from_square,
+        "to": record.to_square,
+        "piece": record.piece,
+        "label": PIECE_NAMES.get(record.piece or "", ""),
+        "isDrop": "*" in usi,
+        "isPromotion": usi.endswith("+"),
+    }
+
+
+def serialize_self_play_state(
+    board: cshogi.Board,
+    moves: list[MoveRecord],
+    max_repetition_count: int,
+) -> dict[str, Any]:
+    # 自行對奕模式的局面格式，沿用瀏覽器已經會渲染的欄位，再加上合法走法。
+    board_data, hands = board_from_cshogi(board)
+    legal_moves = list(board.legal_moves)
+    return {
+        "game": {
+            "id": "self-play",
+            "name": "自行對奕",
+            "moves": len(moves),
+            "black": "先手",
+            "white": "後手",
+            "event": "",
+            "opening": "",
+            "result": "",
+            "startTime": "",
+        },
+        "ply": len(moves),
+        "maxPly": len(moves),
+        "turn": "+" if board.turn == cshogi.BLACK else "-",
+        "turnLabel": "先手" if board.turn == cshogi.BLACK else "後手",
+        "board": board_grid(board_data),
+        "hands": hands,
+        "handOrder": HAND_ORDER,
+        "pieceNames": PIECE_NAMES,
+        "lastMove": serialize_move(moves[-1] if moves else None),
+        "moves": [serialize_move(move) for move in moves],
+        "isCheck": bool(board.is_check()),
+        "legalMovesCount": len(legal_moves),
+        "legalMoves": [serialize_legal_move(board, move) for move in legal_moves],
+        "repetitionCount": max_repetition_count,
+        "isSennichite": max_repetition_count >= 4,
+    }
+
+
+def csa_square_from_usi(square_text: str) -> str:
+    rank = ord(square_text[1]) - ord("a") + 1
+    return f"{square_text[0]}{rank}"
+
+
+def move_to_csa_line(board_before_move: cshogi.Board, move: int) -> str:
+    # 由 USI 走法與走後棋子種類產生一行 CSA 記譜。
+    usi = cshogi.move_to_usi(move)
+    color = "+" if board_before_move.turn == cshogi.BLACK else "-"
+    from_square = "00" if "*" in usi else csa_square_from_usi(usi[0:2])
+    to_square = csa_square_from_usi(usi[2:4] if "*" in usi else usi[2:4])
+
+    board_after_move = board_before_move.copy()
+    board_after_move.push(move)
+    piece_type = int(board_after_move.piece_type(cshogi.move_to(move)))
+    return f"{color}{from_square}{to_square}{TYPE_TO_KIND[piece_type]}"
+
+
+CSA_RESULT_CODES = {"", "TORYO", "SENNICHITE", "JISHOGI"}
+
+
+def build_csa_text(moves_usi: list[str], black_name: str, white_name: str, result_code: str = "") -> str:
+    # 下載用 CSA：採標準初始局面與使用者目前保留的主線。
+    if result_code not in CSA_RESULT_CODES:
+        raise ValueError("unsupported result code")
+    board = cshogi.Board()
+    lines = [
+        "V2.2",
+        f"N+{black_name or '先手'}",
+        f"N-{white_name or '後手'}",
+        "PI",
+        "+",
+    ]
+
+    for ply, usi in enumerate(moves_usi, start=1):
+        move = board.move_from_usi(usi)
+        if not board.is_legal(move):
+            raise ValueError(f"illegal move at ply {ply}: {usi}")
+        lines.append(move_to_csa_line(board, move))
+        board.push(move)
+
+    if result_code:
+        lines.append(f"%{result_code}")
+
+    return "\n".join(lines) + "\n"
+
+
 def serialize_piece(piece: Piece | None) -> dict[str, str] | None:
     # 把內部棋子物件轉成 JSON，可直接給前端渲染。
     if piece is None:
@@ -816,6 +1004,16 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
+    def do_POST(self) -> None:
+        try:
+            self.route_post()
+        except FileNotFoundError:
+            self.send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+        except ValueError as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+        except Exception as exc:
+            self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
+
     def route_get(self) -> None:
         # GET 路由分派：棋局清單、指定局面，其他路徑視為靜態檔案。
         parsed = urlparse(self.path)
@@ -830,6 +1028,28 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             return
         self.serve_static(path)
 
+    def route_post(self) -> None:
+        # POST 路由分派：自行對奕局面與 CSA 匯出。
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/self-play/state":
+            payload = self.read_json_body()
+            moves = self.parse_moves_payload(payload)
+            board, records, max_repetition_count = replay_usi_moves(moves)
+            self.send_json(serialize_self_play_state(board, records, max_repetition_count))
+            return
+        if parsed.path == "/api/self-play/csa":
+            payload = self.read_json_body()
+            moves = self.parse_moves_payload(payload)
+            csa = build_csa_text(
+                moves,
+                str(payload.get("blackName", "先手")).strip() or "先手",
+                str(payload.get("whiteName", "後手")).strip() or "後手",
+                str(payload.get("result", "")).strip(),
+            )
+            self.send_json({"csa": csa})
+            return
+        raise FileNotFoundError(parsed.path)
+
     def api_position(self, game_id: str, query: str) -> None:
         # /api/games/<id>?ply=N：取得指定棋局指定手數的局面。
         params = parse_qs(query)
@@ -840,6 +1060,24 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             raise ValueError("ply must be an integer") from exc
 
         self.send_json(self.source.get_position(unquote(game_id), ply))
+
+    def read_json_body(self) -> dict[str, Any]:
+        content_length = int(self.headers.get("Content-Length", "0"))
+        raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
+        try:
+            payload = json.loads(raw.decode("utf-8"))
+        except json.JSONDecodeError as exc:
+            raise ValueError("request body must be valid JSON") from exc
+        if not isinstance(payload, dict):
+            raise ValueError("request body must be a JSON object")
+        return payload
+
+    @staticmethod
+    def parse_moves_payload(payload: dict[str, Any]) -> list[str]:
+        moves = payload.get("moves", [])
+        if not isinstance(moves, list) or not all(isinstance(move, str) for move in moves):
+            raise ValueError("moves must be a list of USI strings")
+        return moves
 
     def serve_static(self, request_path: str) -> None:
         # 提供 index.html、app.js、styles.css，並限制只能讀 web 資料夾內檔案。

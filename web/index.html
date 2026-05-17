@@ -8,88 +8,163 @@
   </head>
   <body>
     <main class="app-shell">
-      <!-- 頁首區：顯示目前棋局資訊，並提供棋譜下拉選單。 -->
-      <header class="topbar">
-        <div>
-          <h1>CSA 棋譜瀏覽器</h1>
-          <p id="gameMeta">載入棋譜中...</p>
-        </div>
-        <label class="game-picker">
-          <span>棋譜</span>
-          <select id="gameSelect"></select>
-        </label>
-      </header>
+      <nav class="mode-tabs" aria-label="功能切換">
+        <button id="browserTab" class="mode-tab active" type="button">棋譜瀏覽</button>
+        <button id="selfPlayTab" class="mode-tab" type="button">自行對奕</button>
+      </nav>
 
-      <!-- 搜尋區：依賽事、日期區間、棋手、戰型向後端查詢棋局。 -->
-      <section class="search-panel" aria-label="搜尋棋局">
-        <label>
-          <span>賽事</span>
-          <input id="eventFilter" type="search" placeholder="例如 棋聖戦" />
-        </label>
-        <label>
-          <span>日期起</span>
-          <input id="dateFromFilter" type="date" />
-        </label>
-        <label>
-          <span>日期迄</span>
-          <input id="dateToFilter" type="date" />
-        </label>
-        <label>
-          <span>棋手</span>
-          <input id="playerFilter" type="search" placeholder="先手或後手" />
-        </label>
-        <label>
-          <span>戰型</span>
-          <input id="openingFilter" type="search" placeholder="例如 角換わり" />
-        </label>
-        <div class="search-actions">
-          <button id="searchBtn" class="text-btn" type="button">搜尋</button>
-          <button id="clearSearchBtn" class="text-btn secondary" type="button">清除</button>
-        </div>
-      </section>
+      <section class="workspace">
+        <section id="browserView" class="mode-view active">
+          <header class="topbar">
+            <div>
+              <h1>CSA 棋譜瀏覽器</h1>
+              <p id="gameMeta">載入棋譜中...</p>
+            </div>
+            <label class="game-picker">
+              <span>棋譜</span>
+              <select id="gameSelect"></select>
+            </label>
+          </header>
 
-      <!-- 對局區：左右顯示雙方棋手與手駒，中間顯示 9x9 棋盤。 -->
-      <section class="play-area">
-        <aside class="side-panel">
-          <div class="player player-white">
-            <span class="player-label">後手</span>
-            <strong id="whiteName">後手</strong>
-            <div id="whiteHands" class="hands"></div>
-          </div>
-        </aside>
+          <section class="search-panel" aria-label="搜尋棋局">
+            <label>
+              <span>賽事</span>
+              <input id="eventFilter" type="search" placeholder="例如 棋聖戦" />
+            </label>
+            <label>
+              <span>日期起</span>
+              <input id="dateFromFilter" type="date" />
+            </label>
+            <label>
+              <span>日期迄</span>
+              <input id="dateToFilter" type="date" />
+            </label>
+            <label>
+              <span>棋手</span>
+              <input id="playerFilter" type="search" placeholder="先手或後手" />
+            </label>
+            <label>
+              <span>戰型</span>
+              <input id="openingFilter" type="search" placeholder="例如 角換わり" />
+            </label>
+            <div class="search-actions">
+              <button id="searchBtn" class="text-btn" type="button">搜尋</button>
+              <button id="clearSearchBtn" class="text-btn secondary" type="button">清除</button>
+            </div>
+          </section>
 
-        <section class="board-wrap" aria-label="將棋棋盤">
-          <div id="board" class="board"></div>
+          <section class="play-area">
+            <aside class="side-panel">
+              <div class="player player-white">
+                <span class="player-label">後手</span>
+                <strong id="whiteName">後手</strong>
+                <div id="whiteHands" class="hands"></div>
+              </div>
+            </aside>
+
+            <section class="board-wrap" aria-label="將棋棋盤">
+              <div id="board" class="board"></div>
+            </section>
+
+            <aside class="side-panel">
+              <div class="player player-black">
+                <span class="player-label">先手</span>
+                <strong id="blackName">先手</strong>
+                <div id="blackHands" class="hands"></div>
+              </div>
+            </aside>
+          </section>
+
+          <footer class="controls">
+            <button id="firstBtn" class="control-btn" type="button" title="回到初始局面" aria-label="回到初始局面">|←</button>
+            <button id="prevBtn" class="control-btn" type="button" title="上一手" aria-label="上一手">←</button>
+            <div class="move-status">
+              <strong id="plyStatus">0 / 0</strong>
+              <span id="lastMove">開始局面</span>
+            </div>
+            <button id="nextBtn" class="control-btn" type="button" title="下一手" aria-label="下一手">→</button>
+            <button id="lastBtn" class="control-btn" type="button" title="跳到最後一手" aria-label="跳到最後一手">→|</button>
+          </footer>
+
+          <section class="move-list-panel" aria-label="手順">
+            <div class="move-list-head">
+              <h2>手順</h2>
+              <span id="moveListCount">0 手</span>
+            </div>
+            <div id="moveList" class="move-list"></div>
+          </section>
         </section>
 
-        <aside class="side-panel">
-          <div class="player player-black">
-            <span class="player-label">先手</span>
-            <strong id="blackName">先手</strong>
-            <div id="blackHands" class="hands"></div>
-          </div>
-        </aside>
-      </section>
+        <section id="selfPlayView" class="mode-view">
+          <header class="topbar self-play-topbar">
+            <div>
+              <h1>自行對奕</h1>
+              <p id="selfPlayMeta">載入局面中...</p>
+            </div>
+            <div class="self-play-actions">
+              <label>
+                <span>先手</span>
+                <input id="selfBlackName" type="text" value="先手" />
+              </label>
+              <label>
+                <span>後手</span>
+                <input id="selfWhiteName" type="text" value="後手" />
+              </label>
+              <label>
+                <span>結果</span>
+                <select id="selfResult">
+                  <option value="">未設定</option>
+                  <option value="TORYO">投了</option>
+                  <option value="SENNICHITE">千日手</option>
+                  <option value="JISHOGI">持將棋</option>
+                </select>
+              </label>
+              <button id="downloadCsaBtn" class="text-btn" type="button">下載 CSA</button>
+              <button id="resetSelfPlayBtn" class="text-btn secondary" type="button">重開</button>
+            </div>
+          </header>
 
-      <!-- 播放控制區：上一手、下一手、回初始局面、跳最後一手。 -->
-      <footer class="controls">
-        <button id="firstBtn" class="control-btn" type="button" title="回到初始局面" aria-label="回到初始局面">|←</button>
-        <button id="prevBtn" class="control-btn" type="button" title="上一手" aria-label="上一手">←</button>
-        <div class="move-status">
-          <strong id="plyStatus">0 / 0</strong>
-          <span id="lastMove">開始局面</span>
-        </div>
-        <button id="nextBtn" class="control-btn" type="button" title="下一手" aria-label="下一手">→</button>
-        <button id="lastBtn" class="control-btn" type="button" title="跳到最後一手" aria-label="跳到最後一手">→|</button>
-      </footer>
+          <section class="play-area">
+            <aside class="side-panel">
+              <div class="player player-white">
+                <span class="player-label">後手</span>
+                <strong id="selfWhiteLabel">後手</strong>
+                <div id="selfWhiteHands" class="hands interactive-hands"></div>
+              </div>
+            </aside>
 
-      <!-- 手順區：列出全部走法，可點擊跳到指定手數，也可標記重點手。 -->
-      <section class="move-list-panel" aria-label="手順">
-        <div class="move-list-head">
-          <h2>手順</h2>
-          <span id="moveListCount">0 手</span>
-        </div>
-        <div id="moveList" class="move-list"></div>
+            <section class="board-wrap" aria-label="自行對奕棋盤">
+              <div id="selfBoard" class="board interactive-board"></div>
+            </section>
+
+            <aside class="side-panel">
+              <div class="player player-black">
+                <span class="player-label">先手</span>
+                <strong id="selfBlackLabel">先手</strong>
+                <div id="selfBlackHands" class="hands interactive-hands"></div>
+              </div>
+            </aside>
+          </section>
+
+          <footer class="controls self-play-controls">
+            <button id="selfFirstBtn" class="control-btn" type="button" title="回到初始局面" aria-label="回到初始局面">|←</button>
+            <button id="selfUndoBtn" class="control-btn" type="button" title="悔棋" aria-label="悔棋">←</button>
+            <div class="move-status">
+              <strong id="selfPlyStatus">0 / 0</strong>
+              <span id="selfLastMove">開始局面</span>
+            </div>
+            <button id="selfRedoBtn" class="control-btn" type="button" title="還原一步" aria-label="還原一步">→</button>
+            <button id="selfLastBtn" class="control-btn" type="button" title="還原到最後" aria-label="還原到最後">→|</button>
+          </footer>
+
+          <section class="move-list-panel" aria-label="自行對奕手順">
+            <div class="move-list-head">
+              <h2>自建手順</h2>
+              <span id="selfMoveListCount">0 手</span>
+            </div>
+            <div id="selfMoveList" class="move-list"></div>
+          </section>
+        </section>
       </section>
     </main>
 

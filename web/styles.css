@@ -26,9 +26,49 @@ body {
 
 /* 主容器：限制最大寬度，讓棋盤與側欄在大螢幕上維持好閱讀的比例。 */
 .app-shell {
-  width: min(1180px, calc(100vw - 32px));
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  gap: 24px;
+  width: min(1320px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 24px 0;
+}
+
+.mode-tabs {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  position: sticky;
+  top: 24px;
+}
+
+.mode-tab {
+  min-height: 44px;
+  border-radius: 6px;
+  border: 1px solid rgba(31, 111, 120, 0.2);
+  background: #fffdf6;
+  color: var(--ink);
+  padding: 0 12px;
+  text-align: left;
+  font-weight: 700;
+}
+
+.mode-tab.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.workspace {
+  min-width: 0;
+}
+
+.mode-view {
+  display: none;
+}
+
+.mode-view.active {
+  display: block;
 }
 
 /* 頁首與控制列共用外觀：白色面板、邊框與陰影。 */
@@ -49,6 +89,30 @@ h1 {
 .topbar p {
   margin: 6px 0 0;
   color: var(--muted);
+}
+
+.self-play-topbar {
+  align-items: end;
+}
+
+.self-play-actions {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.self-play-actions label {
+  display: grid;
+  gap: 6px;
+  min-width: 120px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.self-play-actions select {
+  min-width: 120px;
 }
 
 /* 棋譜選擇器：讓使用者從資料庫棋局清單切換目前播放的棋譜。 */
@@ -172,14 +236,32 @@ input {
 
 .square.last-to {
   background: linear-gradient(135deg, #f4dc8c, #e29b51);
+  box-shadow: inset 0 0 0 3px rgba(31, 111, 120, 0.85);
 }
 
-.square.last-from::after {
+.interactive-board .square {
+  cursor: pointer;
+}
+
+.square.selected {
+  box-shadow: inset 0 0 0 3px rgba(154, 61, 47, 0.9);
+}
+
+.square.legal-target::after {
   content: "";
   position: absolute;
-  inset: 8%;
-  border: 2px solid rgba(31, 111, 120, 0.85);
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: rgba(31, 111, 120, 0.72);
   pointer-events: none;
+}
+
+.square.legal-target.occupied-target::after {
+  width: 72%;
+  height: 72%;
+  border: 3px solid rgba(31, 111, 120, 0.72);
+  background: transparent;
 }
 
 /* 棋子外觀：依先手/後手旋轉與配色，升變棋子使用不同底色。 */
@@ -250,6 +332,20 @@ input {
   color: var(--muted);
   border-style: dashed;
   font-weight: 500;
+}
+
+.interactive-hands .hand-piece {
+  cursor: pointer;
+}
+
+.interactive-hands .hand-piece.selectable:hover,
+.interactive-hands .hand-piece.selected {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px rgba(31, 111, 120, 0.18);
+}
+
+.interactive-hands .hand-piece.selected {
+  background: #e9f5f4;
 }
 
 /* 播放控制列：負責上一手、下一手、初始局面與最後一手。 */
@@ -336,6 +432,10 @@ button:disabled {
   overflow: hidden;
 }
 
+#selfMoveList .move-row {
+  grid-template-columns: 1fr;
+}
+
 .move-row:hover {
   border-color: var(--accent);
 }
@@ -387,11 +487,42 @@ button:disabled {
   border-left-color: rgba(255, 255, 255, 0.26);
 }
 
+.self-play-controls .control-btn {
+  background: #49686d;
+}
+
 /* 響應式調整：窄螢幕時將棋手資訊與棋盤改成上下排列。 */
 @media (max-width: 800px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .mode-tabs {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mode-tab {
+    text-align: center;
+  }
+
   .topbar {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .self-play-topbar {
+    align-items: stretch;
+  }
+
+  .self-play-actions {
+    justify-content: stretch;
+  }
+
+  .self-play-actions label {
+    min-width: 0;
+    flex: 1 1 140px;
   }
 
   .play-area {
