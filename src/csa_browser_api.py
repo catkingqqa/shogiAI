@@ -14,7 +14,7 @@ from typing import Any, Protocol
 from urllib.parse import parse_qs, unquote, urlparse
 
 import cshogi
-from ai_search import evaluate_material, search_best_move
+from ai_search import evaluate_position, search_best_move
 from policy_model import PolicyValuePredictor
 
 try:
@@ -1290,9 +1290,9 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     def evaluate_with_value_head(self, board: cshogi.Board) -> int:
         if self.policy_predictor is None:
-            return evaluate_material(board)
+            return evaluate_position(board)
         value_bonus = int(round(self.policy_predictor.value_for_board(board) * 1_000))
-        return evaluate_material(board) + value_bonus
+        return evaluate_position(board) + value_bonus
 
     def value_estimate(self, board: cshogi.Board) -> float | None:
         if self.policy_predictor is None:
