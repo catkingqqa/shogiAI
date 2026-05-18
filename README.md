@@ -146,6 +146,31 @@ move_label_count 是 move label 的總數。
 如果之後做 policy head，輸出大小就可以用這個數字。
 
 
+Policy + Value Network
+
+若要從 MySQL 棋譜資料訓練 policy + value network，可先輸出資料集：
+
+```powershell
+python src\export_policy_dataset.py --output out\policy_dataset.npz --host 140.135.65.53 --port 3306 --user 11211213 --password <password> --database DB11211213
+```
+
+再訓練小型 CNN：
+
+```powershell
+python src\train_policy.py --input out\policy_dataset.npz --output out\policy_model.pt
+```
+
+啟動瀏覽器 API 時若 `out\policy_model.pt` 存在，AI 對弈頁面會自動顯示 policy 候選手與 value 估計；alpha-beta 搜尋會用 policy 分數做走法排序。
+
+若要讓 alpha-beta 的葉節點也使用 value head，可在啟動時加上：
+
+```powershell
+--use-value-eval
+```
+
+這會增加推論成本；在目前資料量較小、CPU 推論為主時，預設仍先使用較快的子力評估。
+
+
 想看 .npz 內容
 
 可以用 Python 簡單印一下：

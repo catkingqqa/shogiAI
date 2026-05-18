@@ -1,7 +1,9 @@
 const browserTab = document.querySelector("#browserTab");
 const selfPlayTab = document.querySelector("#selfPlayTab");
+const aiPlayTab = document.querySelector("#aiPlayTab");
 const browserView = document.querySelector("#browserView");
 const selfPlayView = document.querySelector("#selfPlayView");
+const aiPlayView = document.querySelector("#aiPlayView");
 
 const gameSelect = document.querySelector("#gameSelect");
 const boardEl = document.querySelector("#board");
@@ -46,6 +48,29 @@ const selfMoveListCount = document.querySelector("#selfMoveListCount");
 const downloadCsaBtn = document.querySelector("#downloadCsaBtn");
 const resetSelfPlayBtn = document.querySelector("#resetSelfPlayBtn");
 
+const aiPlayMeta = document.querySelector("#aiPlayMeta");
+const aiPlayerSide = document.querySelector("#aiPlayerSide");
+const aiDepth = document.querySelector("#aiDepth");
+const aiTimeLimit = document.querySelector("#aiTimeLimit");
+const startAiPlayBtn = document.querySelector("#startAiPlayBtn");
+const resignAiPlayBtn = document.querySelector("#resignAiPlayBtn");
+const aiScore = document.querySelector("#aiScore");
+const aiSearchDepth = document.querySelector("#aiSearchDepth");
+const aiNodes = document.querySelector("#aiNodes");
+const aiValue = document.querySelector("#aiValue");
+const aiPv = document.querySelector("#aiPv");
+const aiCandidateCount = document.querySelector("#aiCandidateCount");
+const aiCandidateList = document.querySelector("#aiCandidateList");
+const aiBoard = document.querySelector("#aiBoard");
+const aiBlackLabel = document.querySelector("#aiBlackLabel");
+const aiWhiteLabel = document.querySelector("#aiWhiteLabel");
+const aiBlackHands = document.querySelector("#aiBlackHands");
+const aiWhiteHands = document.querySelector("#aiWhiteHands");
+const aiPlyStatus = document.querySelector("#aiPlyStatus");
+const aiLastMove = document.querySelector("#aiLastMove");
+const aiMoveList = document.querySelector("#aiMoveList");
+const aiMoveListCount = document.querySelector("#aiMoveListCount");
+
 let activeMode = "browser";
 let currentGameId = "";
 let currentPly = 0;
@@ -59,6 +84,13 @@ let selectedSelfSource = null;
 let selfPlayLoaded = false;
 let selfResultManuallySet = false;
 let selfResultWasAuto = false;
+
+let aiMoves = [];
+let aiState = null;
+let aiSelectedSource = null;
+let aiPlayLoaded = false;
+let aiThinking = false;
+let aiResignedSide = null;
 
 async function fetchJson(url) {
   const response = await fetch(url);
@@ -106,8 +138,10 @@ function setActiveMode(mode) {
   activeMode = mode;
   browserTab.classList.toggle("active", mode === "browser");
   selfPlayTab.classList.toggle("active", mode === "self-play");
+  aiPlayTab.classList.toggle("active", mode === "ai-play");
   browserView.classList.toggle("active", mode === "browser");
   selfPlayView.classList.toggle("active", mode === "self-play");
+  aiPlayView.classList.toggle("active", mode === "ai-play");
 }
 
 function markerStorageKey() {
@@ -401,6 +435,23 @@ function legalDropPiecesForColor(color) {
   return selfState.legalMoves.filter((move) => move.isDrop).map((move) => move.piece);
 }
 
+function aiLegalMovesForSelection() {
+  if (!aiState || !aiSelectedSource) {
+    return [];
+  }
+  if (aiSelectedSource.type === "board") {
+    return aiState.legalMoves.filter((move) => move.from === aiSelectedSource.square);
+  }
+  return aiState.legalMoves.filter((move) => move.isDrop && move.piece === aiSelectedSource.piece);
+}
+
+function aiLegalDropPiecesForColor(color) {
+  if (!aiState || aiState.turn !== color || aiState.turn !== aiState.playerSide || aiThinking || aiState.isGameOver) {
+    return [];
+  }
+  return aiState.legalMoves.filter((move) => move.isDrop).map((move) => move.piece);
+}
+
 function renderSelfPlayState(state) {
   selfState = state;
   syncAutomaticSelfPlayResult(state);
@@ -444,6 +495,88 @@ function renderSelfPlayState(state) {
   renderSelfMoveList(state);
 }
 
+function aiResultLabel(state) {
+  if (state.result === "checkmate") {
+    return `${sideLabel(state.winner)}勝 · 將死`;
+  }
+  if (state.result === "sennichite") {
+    return "千日手";
+  }
+  if (state.result === "resignation") {
+    return `${sideLabel(state.winner)}勝 · 投了`;
+  }
+  return "";
+}
+
+function renderAiSearch(search, valueEstimate) {
+  aiScore.textContent = search ? String(search.score) : "-";
+  aiSearchDepth.textContent = search ? String(search.depth) : "-";
+  aiNodes.textContent = search ? String(search.nodes) : "-";
+  aiValue.textContent = valueEstimate == null ? "-" : valueEstimate.toFixed(3);
+  aiPv.textContent = search?.pv?.length ? search.pv.join(" ") : "-";
+}
+
+function renderAiCandidates(candidates) {
+  aiCandidateList.innerHTML = "";
+  aiCandidateCount.textContent = `${candidates.length} 手`;
+  if (candidates.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "candidate-item";
+    empty.innerHTML = "<strong>尚無模型</strong><span>訓練後會顯示候選手</span>";
+    aiCandidateList.appendChild(empty);
+    return;
+  }
+  for (const [index, candidate] of candidates.entries()) {
+    const item = document.createElement("div");
+    item.className = "candidate-item";
+    const title = document.createElement("strong");
+    title.textContent = `${index + 1}. ${candidate.usi}`;
+    const detail = document.createElement("span");
+    detail.textContent = `${(candidate.probability * 100).toFixed(1)}% · ${candidate.label}`;
+    item.appendChild(title);
+    item.appendChild(detail);
+    aiCandidateList.appendChild(item);
+  }
+}
+
+function renderAiPlayState(state) {
+  aiState = state;
+  const legalMoves = aiLegalMovesForSelection();
+  const legalTargets = legalMoves.map((move) => move.to);
+  const selectedHandPiece = aiSelectedSource?.type === "hand" ? aiSelectedSource.piece : null;
+  const resultText = aiResultLabel(state);
+
+  aiBlackLabel.textContent = state.game.black;
+  aiWhiteLabel.textContent = state.game.white;
+  aiPlayMeta.textContent = [
+    resultText || `${state.turnLabel}行棋`,
+    aiThinking ? "AI 思考中" : "",
+    !state.isGameOver && state.turn === state.playerSide ? "輪到你" : "",
+    !state.isGameOver && state.turn !== state.playerSide ? "輪到 AI" : "",
+    state.isSennichite ? "已偵測千日手" : "",
+  ].filter(Boolean).join(" · ");
+  renderAiSearch(state.search, state.valueEstimate);
+  renderAiCandidates(state.policyCandidates || []);
+  renderBoardInto(aiBoard, state, { selectedSource: aiSelectedSource, legalTargets });
+  renderHandsInto(aiBlackHands, state.hands["+"] || {}, state, {
+    interactive: true,
+    selectedPiece: state.turn === "+" ? selectedHandPiece : null,
+    legalDropPieces: aiLegalDropPiecesForColor("+"),
+  });
+  renderHandsInto(aiWhiteHands, state.hands["-"] || {}, state, {
+    interactive: true,
+    selectedPiece: state.turn === "-" ? selectedHandPiece : null,
+    legalDropPieces: aiLegalDropPiecesForColor("-"),
+  });
+  aiPlyStatus.textContent = `${aiMoves.length} 手`;
+  aiLastMove.textContent = state.lastMove ? formatMoveNotation(state.lastMove) : "開始局面";
+  if (state.isCheck && !state.isGameOver) {
+    aiLastMove.textContent += ` · ${state.turnLabel}被王手`;
+  }
+  resignAiPlayBtn.disabled = state.isGameOver || aiThinking;
+  renderAiMoveList(state);
+}
+
 function syncAutomaticSelfPlayResult(state) {
   if (state.isSennichite && !selfResultManuallySet) {
     selfResult.value = "SENNICHITE";
@@ -456,10 +589,10 @@ function syncAutomaticSelfPlayResult(state) {
   }
 }
 
-function createSelfMoveListItem(move, ply) {
+function createPlainMoveListItem(move, ply, activePly) {
   const row = document.createElement("div");
   row.className = "move-row";
-  if (ply === selfMoves.length) {
+  if (ply === activePly) {
     row.classList.add("active");
   }
 
@@ -475,11 +608,21 @@ function createSelfMoveListItem(move, ply) {
 function renderSelfMoveList(state) {
   selfMoveList.innerHTML = "";
   selfMoveListCount.textContent = `${selfMoves.length} 手 · 可還原 ${selfRedoMoves.length}`;
-  selfMoveList.appendChild(createSelfMoveListItem({ color: "+", text: "開始局面" }, 0));
+  selfMoveList.appendChild(createPlainMoveListItem({ color: "+", text: "開始局面" }, 0, selfMoves.length));
   state.moves.forEach((move, index) => {
-    selfMoveList.appendChild(createSelfMoveListItem(move, index + 1));
+    selfMoveList.appendChild(createPlainMoveListItem(move, index + 1, selfMoves.length));
   });
   keepActiveMoveVisible(selfMoveList, selfMoveList.querySelector(".move-row.active"));
+}
+
+function renderAiMoveList(state) {
+  aiMoveList.innerHTML = "";
+  aiMoveListCount.textContent = `${aiMoves.length} 手`;
+  aiMoveList.appendChild(createPlainMoveListItem({ color: "+", text: "開始局面" }, 0, aiMoves.length));
+  state.moves.forEach((move, index) => {
+    aiMoveList.appendChild(createPlainMoveListItem(move, index + 1, aiMoves.length));
+  });
+  keepActiveMoveVisible(aiMoveList, aiMoveList.querySelector(".move-row.active"));
 }
 
 async function loadSelfPlayState() {
@@ -487,6 +630,17 @@ async function loadSelfPlayState() {
   selectedSelfSource = null;
   selfPlayLoaded = true;
   renderSelfPlayState(state);
+}
+
+async function loadAiPlayState() {
+  const state = await postJson("/api/ai-play/state", {
+    moves: aiMoves,
+    playerSide: aiPlayerSide.value,
+    resignedSide: aiResignedSide,
+  });
+  aiSelectedSource = null;
+  aiPlayLoaded = true;
+  renderAiPlayState(state);
 }
 
 async function undoSelfPlay(count = 1) {
@@ -514,6 +668,35 @@ async function commitSelfMove(usi) {
   await loadSelfPlayState();
 }
 
+async function maybeRequestAiMove() {
+  if (!aiState || aiState.isGameOver || aiState.turn === aiState.playerSide || aiThinking) {
+    return;
+  }
+  aiThinking = true;
+  renderAiPlayState(aiState);
+  try {
+    const state = await postJson("/api/ai-play/move", {
+      moves: aiMoves,
+      playerSide: aiPlayerSide.value,
+      depth: aiDepth.value,
+      timeLimitMs: aiTimeLimit.value,
+    });
+    aiMoves = state.moves.map((move) => move.text);
+    aiSelectedSource = null;
+    aiState = state;
+  } finally {
+    aiThinking = false;
+  }
+  renderAiPlayState(aiState);
+}
+
+async function commitAiMove(usi) {
+  aiMoves.push(usi);
+  aiSelectedSource = null;
+  await loadAiPlayState();
+  await maybeRequestAiMove();
+}
+
 function chooseMoveCandidate(candidates) {
   if (candidates.length <= 1) {
     return candidates[0] || null;
@@ -539,9 +722,28 @@ function selfBoardPieceAt(square) {
   return null;
 }
 
+function aiBoardPieceAt(square) {
+  if (!aiState) {
+    return null;
+  }
+  for (const row of aiState.board) {
+    const cell = row.find((item) => item.square === square);
+    if (cell) {
+      return cell.piece;
+    }
+  }
+  return null;
+}
+
 function renderSelfSelection() {
   if (selfState) {
     renderSelfPlayState(selfState);
+  }
+}
+
+function renderAiSelection() {
+  if (aiState) {
+    renderAiPlayState(aiState);
   }
 }
 
@@ -575,6 +777,14 @@ selfPlayTab.addEventListener("click", async () => {
   setActiveMode("self-play");
   if (!selfPlayLoaded) {
     await loadSelfPlayState();
+  }
+});
+
+aiPlayTab.addEventListener("click", async () => {
+  setActiveMode("ai-play");
+  if (!aiPlayLoaded) {
+    await loadAiPlayState();
+    await maybeRequestAiMove();
   }
 });
 
@@ -679,6 +889,58 @@ for (const [container, color] of [[selfBlackHands, "+"], [selfWhiteHands, "-"]])
   });
 }
 
+aiBoard.addEventListener("click", async (event) => {
+  if (!aiState || aiThinking || aiState.isGameOver || aiState.turn !== aiState.playerSide) {
+    return;
+  }
+  const square = event.target.closest(".square");
+  if (!square) {
+    return;
+  }
+  const squareName = square.dataset.square;
+  const candidateMoves = aiLegalMovesForSelection().filter((move) => move.to === squareName);
+  if (candidateMoves.length > 0) {
+    const chosenMove = chooseMoveCandidate(candidateMoves);
+    if (chosenMove) {
+      await commitAiMove(chosenMove.usi);
+    }
+    return;
+  }
+
+  const piece = aiBoardPieceAt(squareName);
+  if (piece && piece.color === aiState.playerSide) {
+    aiSelectedSource = { type: "board", square: squareName };
+  } else {
+    aiSelectedSource = null;
+  }
+  renderAiSelection();
+});
+
+for (const [container, color] of [[aiBlackHands, "+"], [aiWhiteHands, "-"]]) {
+  container.addEventListener("click", (event) => {
+    if (
+      !aiState
+      || aiThinking
+      || aiState.isGameOver
+      || aiState.turn !== color
+      || aiState.turn !== aiState.playerSide
+    ) {
+      return;
+    }
+    const chip = event.target.closest(".hand-piece.selectable");
+    if (!chip) {
+      return;
+    }
+    const piece = chip.dataset.piece;
+    if (aiSelectedSource?.type === "hand" && aiSelectedSource.piece === piece) {
+      aiSelectedSource = null;
+    } else {
+      aiSelectedSource = { type: "hand", piece };
+    }
+    renderAiSelection();
+  });
+}
+
 selfFirstBtn.addEventListener("click", async () => {
   await undoSelfPlay(selfMoves.length);
 });
@@ -738,6 +1000,22 @@ resetSelfPlayBtn.addEventListener("click", async () => {
   await loadSelfPlayState();
 });
 
+startAiPlayBtn.addEventListener("click", async () => {
+  aiMoves = [];
+  aiSelectedSource = null;
+  aiResignedSide = null;
+  await loadAiPlayState();
+  await maybeRequestAiMove();
+});
+
+resignAiPlayBtn.addEventListener("click", async () => {
+  if (!aiState || aiState.isGameOver) {
+    return;
+  }
+  aiResignedSide = aiState.playerSide;
+  await loadAiPlayState();
+});
+
 document.addEventListener("keydown", async (event) => {
   if (isFormControl(event.target)) {
     return;
@@ -758,6 +1036,9 @@ document.addEventListener("keydown", async (event) => {
     return;
   }
 
+  if (activeMode !== "self-play") {
+    return;
+  }
   if (event.key === "ArrowLeft" && selfMoves.length > 0) {
     await undoSelfPlay();
   }

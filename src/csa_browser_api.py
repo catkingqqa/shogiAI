@@ -14,6 +14,8 @@ from typing import Any, Protocol
 from urllib.parse import parse_qs, unquote, urlparse
 
 import cshogi
+from ai_search import evaluate_material, search_best_move
+from policy_model import PolicyValuePredictor
 
 try:
     import pymysql
@@ -798,7 +800,9 @@ def repetition_key(board: cshogi.Board) -> str:
     return " ".join(board.sfen().split()[:3])
 
 
-def replay_usi_moves(moves_usi: list[str]) -> tuple[cshogi.Board, list[MoveRecord], int]:
+def replay_usi_moves(
+    moves_usi: list[str],
+) -> tuple[cshogi.Board, list[MoveRecord], dict[str, int], int]:
     # 從初始局面重播使用者自行對奕的主線，並拒絕非法手。
     board = cshogi.Board()
     records: list[MoveRecord] = []
@@ -815,7 +819,7 @@ def replay_usi_moves(moves_usi: list[str]) -> tuple[cshogi.Board, list[MoveRecor
         position_counts[key] = position_counts.get(key, 0) + 1
         max_repetition_count = max(max_repetition_count, position_counts[key])
 
-    return board, records, max_repetition_count
+    return board, records, position_counts, max_repetition_count
 
 
 def serialize_legal_move(board: cshogi.Board, move: int) -> dict[str, Any]:
@@ -869,6 +873,49 @@ def serialize_self_play_state(
         "repetitionCount": max_repetition_count,
         "isSennichite": max_repetition_count >= 4,
     }
+
+
+def serialize_ai_play_state(
+    board: cshogi.Board,
+    moves: list[MoveRecord],
+    max_repetition_count: int,
+    player_side: str,
+    search: dict[str, Any] | None = None,
+    resigned_side: str | None = None,
+    policy_candidates: list[dict[str, Any]] | None = None,
+    value_estimate: float | None = None,
+) -> dict[str, Any]:
+    state = serialize_self_play_state(board, moves, max_repetition_count)
+    state["game"] = {
+        **state["game"],
+        "id": "ai-play",
+        "name": "AI 對弈",
+        "black": "你" if player_side == "+" else "AI",
+        "white": "你" if player_side == "-" else "AI",
+    }
+    state["playerSide"] = player_side
+    state["aiSide"] = "-" if player_side == "+" else "+"
+    state["search"] = search
+    state["resignedSide"] = resigned_side
+    state["policyCandidates"] = policy_candidates or []
+    state["valueEstimate"] = value_estimate
+    state["isCheckmate"] = state["legalMovesCount"] == 0 and state["isCheck"]
+    state["isGameOver"] = bool(
+        state["isSennichite"] or state["isCheckmate"] or resigned_side is not None
+    )
+    if resigned_side is not None:
+        state["result"] = "resignation"
+        state["winner"] = "-" if resigned_side == "+" else "+"
+    elif state["isSennichite"]:
+        state["result"] = "sennichite"
+        state["winner"] = None
+    elif state["isCheckmate"]:
+        state["result"] = "checkmate"
+        state["winner"] = "-" if state["turn"] == "+" else "+"
+    else:
+        state["result"] = ""
+        state["winner"] = None
+    return state
 
 
 def csa_square_from_usi(square_text: str) -> str:
@@ -993,6 +1040,8 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     # HTTP 處理器：提供 API 路由，也負責把 web 資料夾中的前端檔案送出去。
     server_version = "CsaBrowser/0.2"
     source: GameSource
+    policy_predictor: PolicyValuePredictor | None = None
+    use_value_eval = False
 
     def do_GET(self) -> None:
         try:
@@ -1034,7 +1083,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/self-play/state":
             payload = self.read_json_body()
             moves = self.parse_moves_payload(payload)
-            board, records, max_repetition_count = replay_usi_moves(moves)
+            board, records, _, max_repetition_count = replay_usi_moves(moves)
             self.send_json(serialize_self_play_state(board, records, max_repetition_count))
             return
         if parsed.path == "/api/self-play/csa":
@@ -1047,6 +1096,100 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                 str(payload.get("result", "")).strip(),
             )
             self.send_json({"csa": csa})
+            return
+        if parsed.path == "/api/ai-play/state":
+            payload = self.read_json_body()
+            moves = self.parse_moves_payload(payload)
+            player_side = self.parse_player_side(payload)
+            resigned_side = self.parse_optional_side(payload.get("resignedSide"))
+            board, records, _, max_repetition_count = replay_usi_moves(moves)
+            policy_candidates = self.serialize_policy_candidates(board, limit=5)
+            value_estimate = self.value_estimate(board)
+            self.send_json(
+                serialize_ai_play_state(
+                    board,
+                    records,
+                    max_repetition_count,
+                    player_side=player_side,
+                    resigned_side=resigned_side,
+                    policy_candidates=policy_candidates,
+                    value_estimate=value_estimate,
+                )
+            )
+            return
+        if parsed.path == "/api/ai-play/move":
+            payload = self.read_json_body()
+            moves = self.parse_moves_payload(payload)
+            player_side = self.parse_player_side(payload)
+            board, records, position_counts, max_repetition_count = replay_usi_moves(moves)
+            ai_side = "-" if player_side == "+" else "+"
+            if ("+" if board.turn == cshogi.BLACK else "-") != ai_side:
+                raise ValueError("it is not the AI turn")
+            if max_repetition_count >= 4:
+                self.send_json(
+                    serialize_ai_play_state(
+                        board,
+                        records,
+                        max_repetition_count,
+                        player_side=player_side,
+                    )
+                )
+                return
+
+            depth = self.parse_search_depth(payload)
+            time_limit_ms = self.parse_time_limit_ms(payload)
+            result = search_best_move(
+                board,
+                position_counts,
+                depth,
+                time_limit_ms,
+                move_orderer=self.order_moves_with_policy if self.policy_predictor else None,
+                evaluator=self.evaluate_with_value_head
+                if self.policy_predictor and self.use_value_eval
+                else None,
+            )
+            search_payload = {
+                "score": result.score,
+                "depth": result.depth,
+                "nodes": result.nodes,
+                "timedOut": result.timed_out,
+                "pv": [cshogi.move_to_usi(move) for move in result.pv],
+            }
+            if result.move is not None:
+                records.append(move_record_from_usi(board, result.move, len(records) + 1))
+                board.push(result.move)
+                key = repetition_key(board)
+                position_counts[key] = position_counts.get(key, 0) + 1
+                max_repetition_count = max(max_repetition_count, position_counts[key])
+
+            policy_candidates = self.serialize_policy_candidates(board, limit=5)
+            value_estimate = self.value_estimate(board)
+            self.send_json(
+                serialize_ai_play_state(
+                    board,
+                    records,
+                    max_repetition_count,
+                    player_side=player_side,
+                    search=search_payload,
+                    policy_candidates=policy_candidates,
+                    value_estimate=value_estimate,
+                )
+            )
+            return
+        if parsed.path == "/api/policy/candidates":
+            payload = self.read_json_body()
+            moves = self.parse_moves_payload(payload)
+            board, _, _, _ = replay_usi_moves(moves)
+            self.send_json(
+                {
+                    "available": self.policy_predictor is not None,
+                    "valueEstimate": self.value_estimate(board),
+                    "candidates": self.serialize_policy_candidates(
+                        board,
+                        limit=self.parse_candidate_limit(payload),
+                    ),
+                }
+            )
             return
         raise FileNotFoundError(parsed.path)
 
@@ -1078,6 +1221,83 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         if not isinstance(moves, list) or not all(isinstance(move, str) for move in moves):
             raise ValueError("moves must be a list of USI strings")
         return moves
+
+    @staticmethod
+    def parse_player_side(payload: dict[str, Any]) -> str:
+        side = str(payload.get("playerSide", "+")).strip()
+        if side not in {"+", "-"}:
+            raise ValueError("playerSide must be '+' or '-'")
+        return side
+
+    @staticmethod
+    def parse_optional_side(value: Any) -> str | None:
+        if value in {None, ""}:
+            return None
+        side = str(value).strip()
+        if side not in {"+", "-"}:
+            raise ValueError("side must be '+' or '-'")
+        return side
+
+    @staticmethod
+    def parse_search_depth(payload: dict[str, Any]) -> int:
+        try:
+            depth = int(payload.get("depth", 3))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("depth must be an integer") from exc
+        if not 1 <= depth <= 5:
+            raise ValueError("depth must be between 1 and 5")
+        return depth
+
+    @staticmethod
+    def parse_time_limit_ms(payload: dict[str, Any]) -> int | None:
+        raw = payload.get("timeLimitMs", 1000)
+        if raw in {None, ""}:
+            return None
+        try:
+            value = int(raw)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("timeLimitMs must be an integer") from exc
+        if not 50 <= value <= 60_000:
+            raise ValueError("timeLimitMs must be between 50 and 60000")
+        return value
+
+    @staticmethod
+    def parse_candidate_limit(payload: dict[str, Any]) -> int:
+        try:
+            limit = int(payload.get("limit", 5))
+        except (TypeError, ValueError) as exc:
+            raise ValueError("limit must be an integer") from exc
+        if not 1 <= limit <= 20:
+            raise ValueError("limit must be between 1 and 20")
+        return limit
+
+    def order_moves_with_policy(self, board: cshogi.Board, legal_moves: Any) -> list[int]:
+        if self.policy_predictor is None:
+            return list(legal_moves)
+        return [candidate.move for candidate in self.policy_predictor.rank_legal_moves(board, legal_moves)]
+
+    def serialize_policy_candidates(self, board: cshogi.Board, limit: int = 5) -> list[dict[str, Any]]:
+        if self.policy_predictor is None:
+            return []
+        ranked = self.policy_predictor.rank_legal_moves(board)[:limit]
+        candidates = []
+        for candidate in ranked:
+            serialized = serialize_legal_move(board, candidate.move)
+            serialized["policyScore"] = candidate.score
+            serialized["probability"] = candidate.probability
+            candidates.append(serialized)
+        return candidates
+
+    def evaluate_with_value_head(self, board: cshogi.Board) -> int:
+        if self.policy_predictor is None:
+            return evaluate_material(board)
+        value_bonus = int(round(self.policy_predictor.value_for_board(board) * 1_000))
+        return evaluate_material(board) + value_bonus
+
+    def value_estimate(self, board: cshogi.Board) -> float | None:
+        if self.policy_predictor is None:
+            return None
+        return self.policy_predictor.value_for_board(board)
 
     def serve_static(self, request_path: str) -> None:
         # 提供 index.html、app.js、styles.css，並限制只能讀 web 資料夾內檔案。
@@ -1123,6 +1343,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db-user", default=os.getenv("MYSQL_USER"))
     parser.add_argument("--db-password", default=os.getenv("MYSQL_PASSWORD"))
     parser.add_argument("--db-name", default=os.getenv("MYSQL_DATABASE", "DB11211213"))
+    parser.add_argument("--policy-model", type=Path, default=ROOT / "out" / "policy_model.pt")
+    parser.add_argument("--use-value-eval", action="store_true", help="Use the value head in alpha-beta leaf evaluation")
     return parser.parse_args()
 
 
@@ -1150,6 +1372,10 @@ def main() -> int:
     # 程式入口：建立資料來源，啟動 ThreadingHTTPServer，等待瀏覽器請求。
     args = parse_args()
     CsaBrowserHandler.source = build_source(args)
+    CsaBrowserHandler.policy_predictor = (
+        PolicyValuePredictor(args.policy_model) if args.policy_model.is_file() else None
+    )
+    CsaBrowserHandler.use_value_eval = args.use_value_eval
     server = ThreadingHTTPServer((args.host, args.port), CsaBrowserHandler)
     print(f"CSA browser running at http://{args.host}:{args.port}")
     print(f"Data source: {args.source}")

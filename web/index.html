@@ -11,6 +11,7 @@
       <nav class="mode-tabs" aria-label="功能切換">
         <button id="browserTab" class="mode-tab active" type="button">棋譜瀏覽</button>
         <button id="selfPlayTab" class="mode-tab" type="button">自行對奕</button>
+        <button id="aiPlayTab" class="mode-tab" type="button">AI 對弈</button>
       </nav>
 
       <section class="workspace">
@@ -163,6 +164,102 @@
               <span id="selfMoveListCount">0 手</span>
             </div>
             <div id="selfMoveList" class="move-list"></div>
+          </section>
+        </section>
+
+        <section id="aiPlayView" class="mode-view">
+          <header class="topbar ai-play-topbar">
+            <div>
+              <h1>AI 對弈</h1>
+              <p id="aiPlayMeta">載入局面中...</p>
+            </div>
+            <div class="ai-play-actions">
+              <label>
+                <span>你執</span>
+                <select id="aiPlayerSide">
+                  <option value="+">先手</option>
+                  <option value="-">後手</option>
+                </select>
+              </label>
+              <label>
+                <span>最大深度</span>
+                <input id="aiDepth" type="number" min="1" max="5" value="3" />
+              </label>
+              <label>
+                <span>思考時間 (ms)</span>
+                <input id="aiTimeLimit" type="number" min="50" max="60000" step="50" value="1000" />
+              </label>
+              <button id="startAiPlayBtn" class="text-btn" type="button">開始新局</button>
+              <button id="resignAiPlayBtn" class="text-btn secondary" type="button">投了</button>
+            </div>
+          </header>
+
+          <section class="ai-stats" aria-label="AI 搜尋資訊">
+            <div>
+              <span>評分</span>
+              <strong id="aiScore">-</strong>
+            </div>
+            <div>
+              <span>深度</span>
+              <strong id="aiSearchDepth">-</strong>
+            </div>
+            <div>
+              <span>節點</span>
+              <strong id="aiNodes">-</strong>
+            </div>
+            <div>
+              <span>局面值</span>
+              <strong id="aiValue">-</strong>
+            </div>
+            <div>
+              <span>主變例</span>
+              <strong id="aiPv">-</strong>
+            </div>
+          </section>
+
+          <section class="policy-panel" aria-label="Policy 候選手">
+            <div class="move-list-head">
+              <h2>Policy 候選手</h2>
+              <span id="aiCandidateCount">0 手</span>
+            </div>
+            <div id="aiCandidateList" class="candidate-list"></div>
+          </section>
+
+          <section class="play-area">
+            <aside class="side-panel">
+              <div class="player player-white">
+                <span class="player-label">後手</span>
+                <strong id="aiWhiteLabel">AI</strong>
+                <div id="aiWhiteHands" class="hands interactive-hands"></div>
+              </div>
+            </aside>
+
+            <section class="board-wrap" aria-label="AI 對弈棋盤">
+              <div id="aiBoard" class="board interactive-board"></div>
+            </section>
+
+            <aside class="side-panel">
+              <div class="player player-black">
+                <span class="player-label">先手</span>
+                <strong id="aiBlackLabel">你</strong>
+                <div id="aiBlackHands" class="hands interactive-hands"></div>
+              </div>
+            </aside>
+          </section>
+
+          <footer class="controls ai-play-controls">
+            <div class="move-status">
+              <strong id="aiPlyStatus">0 手</strong>
+              <span id="aiLastMove">開始局面</span>
+            </div>
+          </footer>
+
+          <section class="move-list-panel" aria-label="AI 對弈手順">
+            <div class="move-list-head">
+              <h2>對弈手順</h2>
+              <span id="aiMoveListCount">0 手</span>
+            </div>
+            <div id="aiMoveList" class="move-list"></div>
           </section>
         </section>
       </section>

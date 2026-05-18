@@ -91,11 +91,13 @@ h1 {
   color: var(--muted);
 }
 
-.self-play-topbar {
+.self-play-topbar,
+.ai-play-topbar {
   align-items: end;
 }
 
-.self-play-actions {
+.self-play-actions,
+.ai-play-actions {
   display: flex;
   align-items: end;
   flex-wrap: wrap;
@@ -103,7 +105,8 @@ h1 {
   gap: 10px;
 }
 
-.self-play-actions label {
+.self-play-actions label,
+.ai-play-actions label {
   display: grid;
   gap: 6px;
   min-width: 120px;
@@ -111,8 +114,65 @@ h1 {
   font-size: 14px;
 }
 
-.self-play-actions select {
+.self-play-actions select,
+.ai-play-actions select {
   min-width: 120px;
+}
+
+.ai-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 0 4px;
+  border-top: 1px solid rgba(30, 35, 41, 0.12);
+}
+
+.ai-stats div {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ai-stats span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ai-stats strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.policy-panel {
+  margin-top: 18px;
+}
+
+.candidate-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.candidate-item {
+  display: grid;
+  gap: 4px;
+  min-height: 54px;
+  border: 1px solid rgba(31, 111, 120, 0.2);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: #fffdf6;
+}
+
+.candidate-item strong {
+  font-size: 15px;
+}
+
+.candidate-item span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 /* 棋譜選擇器：讓使用者從資料庫棋局清單切換目前播放的棋譜。 */
@@ -432,7 +492,8 @@ button:disabled {
   overflow: hidden;
 }
 
-#selfMoveList .move-row {
+#selfMoveList .move-row,
+#aiMoveList .move-row {
   grid-template-columns: 1fr;
 }
 
@@ -491,6 +552,10 @@ button:disabled {
   background: #49686d;
 }
 
+.ai-play-controls {
+  min-height: 48px;
+}
+
 /* 響應式調整：窄螢幕時將棋手資訊與棋盤改成上下排列。 */
 @media (max-width: 800px) {
   .app-shell {
@@ -500,7 +565,7 @@ button:disabled {
 
   .mode-tabs {
     position: static;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .mode-tab {
@@ -512,17 +577,24 @@ button:disabled {
     flex-direction: column;
   }
 
-  .self-play-topbar {
+  .self-play-topbar,
+  .ai-play-topbar {
     align-items: stretch;
   }
 
-  .self-play-actions {
+  .self-play-actions,
+  .ai-play-actions {
     justify-content: stretch;
   }
 
-  .self-play-actions label {
+  .self-play-actions label,
+  .ai-play-actions label {
     min-width: 0;
     flex: 1 1 140px;
+  }
+
+  .ai-stats {
+    grid-template-columns: 1fr 1fr;
   }
 
   .play-area {
