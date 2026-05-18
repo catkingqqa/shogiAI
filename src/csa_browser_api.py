@@ -36,7 +36,7 @@ BOARD_RANKS = range(1, 10)
 BOARD_FILES = range(9, 0, -1)
 
 PIECE_NAMES = {
-    "FU": "步",
+    "FU": "歩",
     "KY": "香",
     "KE": "桂",
     "GI": "銀",
@@ -45,11 +45,11 @@ PIECE_NAMES = {
     "HI": "飛",
     "OU": "玉",
     "TO": "と",
-    "NY": "成香",
-    "NK": "成桂",
-    "NG": "成銀",
+    "NY": "杏",
+    "NK": "圭",
+    "NG": "全",
     "UM": "馬",
-    "RY": "龍",
+    "RY": "竜",
 }
 
 TYPE_TO_KIND = {

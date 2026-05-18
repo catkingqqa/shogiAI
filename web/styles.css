@@ -9,6 +9,7 @@
   --accent: #1f6f78;
   --danger: #9a3d2f;
   --panel: #ffffff;
+  --piece-font: "DFKai-SB", "BiauKai", "KaiTi", "Noto Serif JP", serif;
   font-family: "Segoe UI", "Noto Sans TC", system-ui, sans-serif;
 }
 
@@ -333,7 +334,8 @@ input {
   background: #f4ddb2;
   color: var(--ink);
   clip-path: polygon(50% 0, 88% 18%, 82% 100%, 18% 100%, 12% 18%);
-  font-weight: 800;
+  font-family: var(--piece-font);
+  font-weight: 700;
   font-size: clamp(15px, 4.2vw, 32px);
   line-height: 1;
   text-align: center;
@@ -385,6 +387,7 @@ input {
   border: 1px solid #c8b37f;
   border-radius: 6px;
   background: #fff9e8;
+  font-family: var(--piece-font);
   font-weight: 700;
 }
 
