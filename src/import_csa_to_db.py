@@ -5,6 +5,7 @@ import getpass
 import hashlib
 import json
 import os
+import time
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -438,6 +439,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--create-tables", action="store_true", help="Create required tables if missing")
     parser.add_argument("--skip-existing", action="store_true", help="Skip games with the same original_file_name")
     parser.add_argument("--max-games", type=int, default=None, help="Stop after this many parsed games")
+    parser.add_argument("--pause-every", type=int, default=0, help="Pause after this many newly imported games")
+    parser.add_argument("--pause-seconds", type=float, default=65.0, help="Seconds to pause when --pause-every is reached")
     parser.add_argument("--dry-run", action="store_true", help="Parse CSA files but do not connect or write")
     return parser.parse_args()
 
@@ -528,6 +531,13 @@ def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
                     summary.imported_games += 1
                     summary.imported_moves += moves_inserted
                     summary.imported_positions += positions_inserted
+                    if args.pause_every > 0 and summary.imported_games % args.pause_every == 0:
+                        print(
+                            f"Imported {summary.imported_games} new games; sleeping {args.pause_seconds} seconds "
+                            "to avoid MySQL max_questions limit.",
+                            flush=True,
+                        )
+                        time.sleep(args.pause_seconds)
                 else:
                     summary.skipped_games += 1
 

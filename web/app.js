@@ -27,6 +27,12 @@ const playerFilter = document.querySelector("#playerFilter");
 const openingFilter = document.querySelector("#openingFilter");
 const searchBtn = document.querySelector("#searchBtn");
 const clearSearchBtn = document.querySelector("#clearSearchBtn");
+const dbSource = document.querySelector("#dbSource");
+const dbGameCount = document.querySelector("#dbGameCount");
+const dbPlayerCount = document.querySelector("#dbPlayerCount");
+const dbMoveCount = document.querySelector("#dbMoveCount");
+const dbPositionCount = document.querySelector("#dbPositionCount");
+const dbDuplicateCount = document.querySelector("#dbDuplicateCount");
 
 const selfPlayMeta = document.querySelector("#selfPlayMeta");
 const selfBoard = document.querySelector("#selfBoard");
@@ -116,6 +122,30 @@ async function postJson(url, payload) {
 
 function sideLabel(color) {
   return color === "+" ? "先手" : "後手";
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("zh-TW");
+}
+
+function renderDbStats(stats) {
+  dbSource.textContent = stats.database ? `${stats.source} / ${stats.database}` : stats.source;
+  dbGameCount.textContent = formatNumber(stats.games);
+  dbPlayerCount.textContent = formatNumber(stats.players);
+  dbMoveCount.textContent = formatNumber(stats.moves);
+  dbPositionCount.textContent = formatNumber(stats.positions);
+  dbDuplicateCount.textContent = formatNumber(stats.duplicateGroups);
+}
+
+async function loadDbStats() {
+  try {
+    const data = await fetchJson("/api/db/stats");
+    renderDbStats(data.stats);
+  } catch {
+    for (const el of [dbSource, dbGameCount, dbPlayerCount, dbMoveCount, dbPositionCount, dbDuplicateCount]) {
+      el.textContent = "-";
+    }
+  }
 }
 
 function formatMoveNotation(move) {
@@ -389,6 +419,7 @@ async function loadPosition(ply) {
 }
 
 async function loadGames() {
+  await loadDbStats();
   const params = searchParams();
   const url = params.toString() ? `/api/games?${params.toString()}` : "/api/games";
   const data = await fetchJson(url);

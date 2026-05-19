@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CSA 棋譜瀏覽器</title>
-    <link rel="stylesheet" href="/styles.css?v=20260518-2" />
+    <link rel="stylesheet" href="/styles.css?v=20260519-1" />
   </head>
   <body>
     <main class="app-shell">
@@ -51,6 +51,33 @@
             <div class="search-actions">
               <button id="searchBtn" class="text-btn" type="button">搜尋</button>
               <button id="clearSearchBtn" class="text-btn secondary" type="button">清除</button>
+            </div>
+          </section>
+
+          <section class="db-panel" aria-label="資料庫狀態">
+            <div>
+              <span>資料來源</span>
+              <strong id="dbSource">-</strong>
+            </div>
+            <div>
+              <span>棋局</span>
+              <strong id="dbGameCount">-</strong>
+            </div>
+            <div>
+              <span>棋手</span>
+              <strong id="dbPlayerCount">-</strong>
+            </div>
+            <div>
+              <span>手順</span>
+              <strong id="dbMoveCount">-</strong>
+            </div>
+            <div>
+              <span>局面</span>
+              <strong id="dbPositionCount">-</strong>
+            </div>
+            <div>
+              <span>重複檔名</span>
+              <strong id="dbDuplicateCount">-</strong>
             </div>
           </section>
 
@@ -265,6 +292,6 @@
       </section>
     </main>
 
-    <script src="/app.js?v=20260518-2"></script>
+    <script src="/app.js?v=20260519-1"></script>
   </body>
 </html>

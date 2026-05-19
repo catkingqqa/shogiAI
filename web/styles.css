@@ -248,6 +248,38 @@ input {
   color: var(--accent);
 }
 
+/* 資料庫狀態卡：顯示目前資料來源與資料表筆數，方便確認匯入結果。 */
+.db-panel {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+  padding: 12px 0 2px;
+  border-top: 1px solid rgba(30, 35, 41, 0.08);
+}
+
+.db-panel div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid rgba(31, 111, 120, 0.16);
+  border-radius: 6px;
+  background: #fffdf6;
+  padding: 10px 12px;
+}
+
+.db-panel span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.db-panel strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 對局主區：左右為雙方資訊，中間為棋盤。 */
 .play-area {
   display: grid;
@@ -611,6 +643,10 @@ button:disabled {
 
   .search-actions {
     grid-column: 1 / -1;
+  }
+
+  .db-panel {
+    grid-template-columns: 1fr 1fr;
   }
 
   .player {

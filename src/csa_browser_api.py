@@ -146,6 +146,9 @@ class GameSource(Protocol):
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
         ...
 
+    def stats(self) -> dict[str, Any]:
+        ...
+
 
 def clone_board(board: dict[str, Piece]) -> dict[str, Piece]:
     # 複製棋盤字典，避免重播時改到前一手的局面。
@@ -423,6 +426,20 @@ class CsaFileSource:
             raise ValueError(f"ply must be between 0 and {len(game.positions) - 1}")
         return serialize_position(game, game.positions[ply])
 
+    def stats(self) -> dict[str, Any]:
+        # 本機 CSA 檔模式沒有資料庫表，改回傳檔案模式可用的基本統計。
+        games = self.list_games()
+        playable_games = [game for game in games if not game.get("error")]
+        return {
+            "source": "csa",
+            "database": "",
+            "games": len(playable_games),
+            "players": 0,
+            "moves": sum(int(game.get("moves") or 0) for game in playable_games),
+            "positions": sum(int(game.get("moves") or 0) + 1 for game in playable_games),
+            "duplicateGroups": 0,
+        }
+
 
 @dataclass
 class MySqlConfig:
@@ -681,6 +698,45 @@ class MySqlSource:
             "opening": self.clean_text(row["opening"]),
             "result": self.clean_text(row["result"]),
             "startTime": row["played_at"].isoformat() if row["played_at"] else "",
+        }
+
+    def stats(self) -> dict[str, Any]:
+        # 統計資料庫目前棋局、棋手、手順與局面數量，供前端顯示資料庫狀態。
+        with self.connect() as conn:
+            with conn.cursor() as cursor:
+                counts: dict[str, int] = {}
+                for key, table in (
+                    ("games", "game_records"),
+                    ("players", "players"),
+                    ("moves", "moves"),
+                    ("positions", "positions"),
+                ):
+                    cursor.execute(f"SELECT COUNT(1) AS count_value FROM {table}")
+                    counts[key] = int(cursor.fetchone()["count_value"])
+
+                cursor.execute(
+                    """
+                    SELECT COUNT(1) AS count_value
+                    FROM (
+                        SELECT original_file_name
+                        FROM game_records
+                        WHERE source_format = 'CSA'
+                          AND original_file_name IS NOT NULL
+                        GROUP BY original_file_name
+                        HAVING COUNT(1) > 1
+                    ) duplicated
+                    """
+                )
+                duplicate_groups = int(cursor.fetchone()["count_value"])
+
+        return {
+            "source": "mysql",
+            "database": self.config.database,
+            "games": counts["games"],
+            "players": counts["players"],
+            "moves": counts["moves"],
+            "positions": counts["positions"],
+            "duplicateGroups": duplicate_groups,
         }
 
 
@@ -1071,6 +1127,9 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         if path == "/api/games":
             filters = {key: values[0] for key, values in parse_qs(parsed.query).items() if values and values[0].strip()}
             self.send_json({"games": self.source.list_games(filters)})
+            return
+        if path == "/api/db/stats":
+            self.send_json({"stats": self.source.stats()})
             return
         if path.startswith("/api/games/"):
             self.api_position(path.removeprefix("/api/games/"), parsed.query)
