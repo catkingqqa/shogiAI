@@ -51,7 +51,7 @@ class PolicyCandidate:
 
 
 class PolicyValuePredictor:
-    def __init__(self, model_path: Path, device: str | None = None) -> None:
+    def __init__(self, model_path: Path, device: str | None = None, cache_size: int = 20_000) -> None:
         self.model_path = Path(model_path)
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         checkpoint = torch.load(self.model_path, map_location=self.device, weights_only=True)
@@ -60,13 +60,25 @@ class PolicyValuePredictor:
         self.model.to(self.device)
         self.model.eval()
         self.orient_to_turn = bool(checkpoint.get("orient_to_turn", True))
+        self.cache_size = max(0, cache_size)
+        self._prediction_cache: dict[int, tuple[torch.Tensor, float]] = {}
 
     def predict_for_board(self, board: cshogi.Board) -> tuple[torch.Tensor, float]:
+        cache_key = int(board.zobrist_hash())
+        if self.cache_size > 0 and cache_key in self._prediction_cache:
+            return self._prediction_cache[cache_key]
+
         state = encode_state(board, orient_to_turn=self.orient_to_turn).astype(np.float32, copy=False)
         tensor = torch.from_numpy(state).unsqueeze(0).to(self.device)
         with torch.inference_mode():
             logits, value = self.model(tensor)
-            return logits[0].detach().cpu(), float(value[0].detach().cpu())
+            prediction = (logits[0].detach().cpu(), float(value[0].detach().cpu()))
+
+        if self.cache_size > 0:
+            if len(self._prediction_cache) >= self.cache_size:
+                self._prediction_cache.clear()
+            self._prediction_cache[cache_key] = prediction
+        return prediction
 
     def value_for_board(self, board: cshogi.Board) -> float:
         _, value = self.predict_for_board(board)

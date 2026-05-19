@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from collections import Counter
 from pathlib import Path
 
 import cshogi
@@ -35,8 +36,11 @@ def main() -> int:
     states: list[np.ndarray] = []
     moves: list[int] = []
     values: list[float] = []
+    value_masks: list[float] = []
     game_ids: list[int] = []
     metas: list[str] = []
+    result_counts: Counter[str] = Counter()
+    value_mask_counts: Counter[str] = Counter()
 
     connection = pymysql.connect(
         host=args.host,
@@ -88,8 +92,17 @@ def main() -> int:
                 raise ValueError("illegal move")
             states.append(encode_state(board, orient_to_turn=orient_to_turn))
             moves.append(encode_move(move, board.turn, orient_to_turn=orient_to_turn))
-            values.append(value_for_row(str(row["side_to_move"]), str(row["final_side_to_move"]), str(row["result"])))
+            result = clean_result(row["result"])
+            value, value_mask, winner = value_for_row(
+                str(row["side_to_move"]),
+                str(row["final_side_to_move"]),
+                result,
+            )
+            values.append(value)
+            value_masks.append(value_mask)
             game_ids.append(int(row["game_id"]))
+            result_counts[result or "UNKNOWN"] += 1
+            value_mask_counts["labeled" if value_mask else "unlabeled"] += 1
             metas.append(
                 json.dumps(
                     {
@@ -97,7 +110,10 @@ def main() -> int:
                         "ply": int(row["move_number"]) + 1,
                         "sfen": str(row["sfen"]),
                         "move_usi": str(row["usi_move"]),
-                        "value": values[-1],
+                        "result": result,
+                        "winner": winner,
+                        "value": value,
+                        "value_mask": value_mask,
                     },
                     ensure_ascii=False,
                 )
@@ -112,16 +128,22 @@ def main() -> int:
         states=states_array,
         moves=np.asarray(moves, dtype=np.int64),
         values=np.asarray(values, dtype=np.float32),
+        value_masks=np.asarray(value_masks, dtype=np.float32),
         game_ids=np.asarray(game_ids, dtype=np.int32),
         meta=np.asarray(metas),
         move_label_count=np.asarray(MOVE_LABELS, dtype=np.int32),
         orient_to_turn=np.asarray(orient_to_turn),
+        result_counts=np.asarray(json.dumps(result_counts, ensure_ascii=False)),
+        value_mask_counts=np.asarray(json.dumps(value_mask_counts, ensure_ascii=False)),
     )
     print(
         json.dumps(
             {
                 "samples": len(moves),
                 "games": len(set(game_ids)),
+                "value_labeled_samples": int(sum(value_masks)),
+                "value_unlabeled_samples": int(len(value_masks) - sum(value_masks)),
+                "result_counts": dict(result_counts),
                 "invalid_rows": invalid_rows,
                 "output": str(args.output),
             },
@@ -132,11 +154,25 @@ def main() -> int:
     return 0
 
 
-def value_for_row(side_to_move: str, final_side_to_move: str, result: str) -> float:
-    if result != "TORYO":
-        return 0.0
-    winner = "white" if final_side_to_move == "black" else "black"
-    return 1.0 if side_to_move == winner else -1.0
+def clean_result(value: object) -> str:
+    result = "" if value is None else str(value).strip().upper()
+    return "" if result in {"", "NONE", "NULL"} else result
+
+
+def value_for_row(side_to_move: str, final_side_to_move: str, result: str) -> tuple[float, float, str | None]:
+    winner: str | None
+    if result == "BLACK_WIN":
+        winner = "black"
+    elif result == "WHITE_WIN":
+        winner = "white"
+    elif result == "TORYO":
+        winner = "white" if final_side_to_move == "black" else "black"
+    elif result in {"DRAW", "SENNICHITE"}:
+        return 0.0, 1.0, None
+    else:
+        return 0.0, 0.0, None
+
+    return (1.0 if side_to_move == winner else -1.0), 1.0, winner
 
 
 if __name__ == "__main__":

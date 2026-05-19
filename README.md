@@ -157,18 +157,25 @@ python src\export_policy_dataset.py --output out\policy_dataset.npz --host 140.1
 再訓練小型 CNN：
 
 ```powershell
-python src\train_policy.py --input out\policy_dataset.npz --output out\policy_model.pt
+python src\train_policy.py --input out\policy_dataset.npz --output out\policy_model.pt --batch-size 256 --value-loss-weight 0.25
 ```
 
 啟動瀏覽器 API 時若 `out\policy_model.pt` 存在，AI 對弈頁面會自動顯示 policy 候選手與 value 估計；alpha-beta 搜尋會用 policy 分數做走法排序。
 
-若要讓 alpha-beta 的葉節點也使用 value head，可在啟動時加上：
+若要讓 alpha-beta 的根節點候選手使用 value head 加分，可在啟動時加上：
 
 ```powershell
---use-value-eval
+--value-weight 200
 ```
 
-這會增加推論成本；在目前資料量較小、CPU 推論為主時，預設仍先使用較快的子力評估。
+加速選項：
+```powershell
+--policy-order-ply 1
+```
+
+`--policy-order-ply` 控制 alpha-beta 搜尋前幾層使用 policy network 排序。`2` 是預設值；若 CPU 推論太慢，可改成 `1`，只在根節點附近用 policy，深層改用傳統 tactical / killer / history 排序。`0` 代表搜尋內完全不使用 policy 排序，但候選手顯示仍可單獨使用 policy。
+
+`--value-weight 0` 代表關閉 value 加分。建議先從 `100` 或 `200` 測起，避免 value head 蓋過手工評估；目前 value 只用在根節點候選手加分，比在所有葉節點都跑 CNN 快很多。
 
 
 想看 .npz 內容

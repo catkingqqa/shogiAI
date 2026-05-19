@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CSA 棋譜瀏覽器</title>
-    <link rel="stylesheet" href="/styles.css?v=20260519-1" />
+    <link rel="stylesheet" href="/styles.css?v=20260519-2" />
   </head>
   <body>
     <main class="app-shell">
@@ -91,7 +91,11 @@
             </aside>
 
             <section class="board-wrap" aria-label="將棋棋盤">
-              <div id="board" class="board"></div>
+              <div class="board-coordinates">
+                <div class="file-coordinates" aria-hidden="true"><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+                <div class="rank-coordinates" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span></div>
+                <div id="board" class="board"></div>
+              </div>
             </section>
 
             <aside class="side-panel">
@@ -162,7 +166,11 @@
             </aside>
 
             <section class="board-wrap" aria-label="自行對奕棋盤">
-              <div id="selfBoard" class="board interactive-board"></div>
+              <div class="board-coordinates">
+                <div class="file-coordinates" aria-hidden="true"><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+                <div class="rank-coordinates" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span></div>
+                <div id="selfBoard" class="board interactive-board"></div>
+              </div>
             </section>
 
             <aside class="side-panel">
@@ -262,7 +270,11 @@
             </aside>
 
             <section class="board-wrap" aria-label="AI 對弈棋盤">
-              <div id="aiBoard" class="board interactive-board"></div>
+              <div class="board-coordinates">
+                <div class="file-coordinates" aria-hidden="true"><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+                <div class="rank-coordinates" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span></div>
+                <div id="aiBoard" class="board interactive-board"></div>
+              </div>
             </section>
 
             <aside class="side-panel">
@@ -292,6 +304,6 @@
       </section>
     </main>
 
-    <script src="/app.js?v=20260519-1"></script>
+    <script src="/app.js?v=20260519-2"></script>
   </body>
 </html>

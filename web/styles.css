@@ -292,16 +292,50 @@ input {
 /* 棋盤外框：提供背景、邊框與固定比例容器。 */
 .board-wrap {
   width: 100%;
-  aspect-ratio: 1;
+}
+
+.board-coordinates {
+  --coord-size: clamp(18px, 3.2vw, 26px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--coord-size);
+  grid-template-rows: var(--coord-size) auto;
+  width: 100%;
+}
+
+.file-coordinates {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1;
+  grid-template-columns: repeat(9, 1fr);
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rank-coordinates {
+  display: grid;
+  grid-column: 2;
+  grid-row: 2;
+  grid-template-rows: repeat(9, 1fr);
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
 }
 
 /* 棋盤格線：使用 9 欄 grid 產生 9x9 將棋棋盤。 */
 .board {
   display: grid;
+  grid-column: 1;
+  grid-row: 2;
   grid-template-columns: repeat(9, 1fr);
   grid-template-rows: repeat(9, 1fr);
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1;
   border: 3px solid #5f4524;
   background: var(--wood);
   box-shadow: 0 16px 40px rgba(50, 43, 31, 0.18);

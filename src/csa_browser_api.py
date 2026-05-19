@@ -1097,7 +1097,8 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     server_version = "CsaBrowser/0.2"
     source: GameSource
     policy_predictor: PolicyValuePredictor | None = None
-    use_value_eval = False
+    value_weight = 0
+    policy_order_ply = 2
 
     def do_GET(self) -> None:
         try:
@@ -1203,9 +1204,10 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                 depth,
                 time_limit_ms,
                 move_orderer=self.order_moves_with_policy if self.policy_predictor else None,
-                evaluator=self.evaluate_with_value_head
-                if self.policy_predictor and self.use_value_eval
+                root_move_evaluator=self.root_value_bonus
+                if self.policy_predictor and self.value_weight > 0
                 else None,
+                move_orderer_max_ply=self.policy_order_ply,
             )
             search_payload = {
                 "score": result.score,
@@ -1350,8 +1352,13 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     def evaluate_with_value_head(self, board: cshogi.Board) -> int:
         if self.policy_predictor is None:
             return evaluate_position(board)
-        value_bonus = int(round(self.policy_predictor.value_for_board(board) * 1_000))
+        value_bonus = int(round(self.policy_predictor.value_for_board(board) * self.value_weight))
         return evaluate_position(board) + value_bonus
+
+    def root_value_bonus(self, board_after_ai_move: cshogi.Board) -> int:
+        if self.policy_predictor is None:
+            return 0
+        return int(round(-self.policy_predictor.value_for_board(board_after_ai_move) * self.value_weight))
 
     def value_estimate(self, board: cshogi.Board) -> float | None:
         if self.policy_predictor is None:
@@ -1403,7 +1410,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db-password", default=os.getenv("MYSQL_PASSWORD"))
     parser.add_argument("--db-name", default=os.getenv("MYSQL_DATABASE", "DB11211213"))
     parser.add_argument("--policy-model", type=Path, default=ROOT / "out" / "policy_model.pt")
-    parser.add_argument("--use-value-eval", action="store_true", help="Use the value head in alpha-beta leaf evaluation")
+    parser.add_argument(
+        "--value-weight",
+        type=int,
+        default=0,
+        help="Value-head bonus weight for root move scoring; 0 disables value scoring",
+    )
+    parser.add_argument(
+        "--policy-order-ply",
+        type=int,
+        default=2,
+        help="Use neural policy move ordering only before this search ply; lower values are faster",
+    )
     return parser.parse_args()
 
 
@@ -1434,7 +1452,8 @@ def main() -> int:
     CsaBrowserHandler.policy_predictor = (
         PolicyValuePredictor(args.policy_model) if args.policy_model.is_file() else None
     )
-    CsaBrowserHandler.use_value_eval = args.use_value_eval
+    CsaBrowserHandler.value_weight = max(0, args.value_weight)
+    CsaBrowserHandler.policy_order_ply = max(0, args.policy_order_ply)
     server = ThreadingHTTPServer((args.host, args.port), CsaBrowserHandler)
     print(f"CSA browser running at http://{args.host}:{args.port}")
     print(f"Data source: {args.source}")

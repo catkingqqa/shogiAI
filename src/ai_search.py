@@ -31,7 +31,8 @@ PIECE_VALUES = {
 }
 
 HAND_VALUES = [100, 300, 320, 450, 500, 700, 800]
-HAND_PRESSURE_VALUES = [2, 4, 6, 8, 10, 12, 14]
+HAND_PRESSURE_VALUES = [3, 5, 7, 11, 13, 18, 22]
+TEMPO_BONUS = 16
 
 GOLD_LIKE_TYPES = {
     cshogi.GOLD,
@@ -41,8 +42,21 @@ GOLD_LIKE_TYPES = {
     cshogi.PROM_SILVER,
 }
 SHELTER_TYPES = GOLD_LIKE_TYPES | {cshogi.SILVER}
+PROMOTABLE_TYPES = {
+    cshogi.PAWN,
+    cshogi.LANCE,
+    cshogi.KNIGHT,
+    cshogi.SILVER,
+    cshogi.BISHOP,
+    cshogi.ROOK,
+}
+MAJOR_TYPES = {cshogi.BISHOP, cshogi.ROOK, cshogi.PROM_BISHOP, cshogi.PROM_ROOK}
 MOBILITY_WEIGHTS = {
+    cshogi.PAWN: 1,
+    cshogi.LANCE: 1,
+    cshogi.KNIGHT: 1,
     cshogi.SILVER: 1,
+    cshogi.GOLD: 1,
     cshogi.BISHOP: 3,
     cshogi.ROOK: 3,
     cshogi.PROM_BISHOP: 2,
@@ -77,6 +91,8 @@ class SearchContext:
     deadline: float | None
     move_orderer: Callable[[cshogi.Board, Iterable[int]], Iterable[int]] | None
     evaluator: Callable[[cshogi.Board], int] | None
+    root_move_evaluator: Callable[[cshogi.Board], int] | None = None
+    move_orderer_max_ply: int = 2
     nodes: list[int] = field(default_factory=lambda: [0])
     tt: dict[tuple[int, int], TTEntry] = field(default_factory=dict)
     killers: dict[int, list[int]] = field(default_factory=dict)
@@ -145,6 +161,29 @@ def piece_square_bonus(square: int, piece_type: int, color: int) -> int:
     return 0
 
 
+def manhattan_distance(first: int, second: int) -> int:
+    first_file, first_rank = divmod(first, 9)
+    second_file, second_rank = divmod(second, 9)
+    return abs(first_file - second_file) + abs(first_rank - second_rank)
+
+
+def promotion_zone_bonus(square: int, piece_type: int, color: int) -> int:
+    _, rank_index = oriented_coords(square, color)
+    progress = 8 - rank_index
+    if piece_type in PROMOTABLE_TYPES and progress >= 6:
+        return 18 + (progress - 6) * 8
+    if piece_type in {cshogi.PROM_PAWN, cshogi.PROM_LANCE, cshogi.PROM_KNIGHT, cshogi.PROM_SILVER}:
+        return 16 + center_file_bonus(square, color)
+    if piece_type in {cshogi.PROM_BISHOP, cshogi.PROM_ROOK}:
+        return 28 + center_file_bonus(square, color) * 2
+    return 0
+
+
+def center_file_bonus(square: int, color: int) -> int:
+    file_index, _ = oriented_coords(square, color)
+    return 4 - abs(file_index - 4)
+
+
 def side_pseudo_moves(board: cshogi.Board, color: int) -> list[int]:
     if board.turn == color:
         return list(board.pseudo_legal_moves)
@@ -209,7 +248,58 @@ def king_safety_score(
         score -= 30
     if min(file_index, 8 - file_index) <= 2 and rank_index >= 6:
         score += shelter_count * 6
+    for target, piece in enumerate(board.pieces):
+        if piece_color(int(piece)) != color:
+            continue
+        piece_type = int(board.piece_type(target))
+        if piece_type not in SHELTER_TYPES:
+            continue
+        distance = manhattan_distance(square, target)
+        if distance == 2:
+            score += 10
+        elif distance == 3:
+            score += 4
+    score -= king_line_pressure(board, color)
     return score
+
+
+def ray_squares(square: int, file_delta: int, rank_delta: int) -> list[int]:
+    file_index, rank_index = divmod(square, 9)
+    ray = []
+    file_index += file_delta
+    rank_index += rank_delta
+    while 0 <= file_index < 9 and 0 <= rank_index < 9:
+        ray.append(file_index * 9 + rank_index)
+        file_index += file_delta
+        rank_index += rank_delta
+    return ray
+
+
+def king_line_pressure(board: cshogi.Board, color: int) -> int:
+    king = board.king_square(color)
+    enemy = cshogi.WHITE if color == cshogi.BLACK else cshogi.BLACK
+    pressure = 0
+    rook_dirs = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    bishop_dirs = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+    for directions, attackers in (
+        (rook_dirs, {cshogi.ROOK, cshogi.PROM_ROOK}),
+        (bishop_dirs, {cshogi.BISHOP, cshogi.PROM_BISHOP}),
+    ):
+        for file_delta, rank_delta in directions:
+            blockers = 0
+            for target in ray_squares(king, file_delta, rank_delta):
+                piece = int(board.pieces[target])
+                if piece == cshogi.NONE:
+                    continue
+                if piece_color(piece) == color:
+                    blockers += 1
+                    if blockers >= 2:
+                        break
+                    continue
+                if piece_color(piece) == enemy and int(board.piece_type(target)) in attackers:
+                    pressure += 42 if blockers == 0 else 18
+                break
+    return pressure
 
 
 def hanging_piece_score(
@@ -225,16 +315,52 @@ def hanging_piece_score(
         piece_type = int(board.piece_type(square))
         if piece_type == cshogi.KING:
             continue
+        value = PIECE_VALUES.get(piece_type, 0)
         if enemy_attacks[square] > 0 and own_attacks[square] == 0:
-            penalty += PIECE_VALUES.get(piece_type, 0) // 12
+            penalty += value // 8
+        elif enemy_attacks[square] > own_attacks[square]:
+            penalty += value // 18
+        elif enemy_attacks[square] == 0 and own_attacks[square] > 0 and piece_type in MAJOR_TYPES:
+            penalty -= value // 40
     return -penalty
 
 
 def hand_pressure_score(board: cshogi.Board, color: int) -> int:
     enemy_king = board.king_square(cshogi.WHITE if color == cshogi.BLACK else cshogi.BLACK)
-    open_ring_squares = sum(1 for square in king_ring(enemy_king) if board.pieces[square] == cshogi.NONE)
+    ring = king_ring(enemy_king)
+    open_ring_squares = sum(1 for square in ring if board.pieces[square] == cshogi.NONE)
+    weak_ring_squares = sum(
+        1
+        for square in ring
+        if board.pieces[square] == cshogi.NONE
+        or piece_color(int(board.pieces[square])) != color
+    )
     hands = board.pieces_in_hand[color]
-    return open_ring_squares * sum(int(count) * HAND_PRESSURE_VALUES[index] for index, count in enumerate(hands))
+    pressure = open_ring_squares * sum(int(count) * HAND_PRESSURE_VALUES[index] for index, count in enumerate(hands))
+    pressure += weak_ring_squares * (int(hands[3]) * 8 + int(hands[4]) * 10 + int(hands[5]) * 12 + int(hands[6]) * 14)
+    return pressure
+
+
+def piece_efficiency_score(
+    board: cshogi.Board,
+    color: int,
+    own_attacks: list[int],
+    enemy_attacks: list[int],
+) -> int:
+    enemy_king = board.king_square(cshogi.WHITE if color == cshogi.BLACK else cshogi.BLACK)
+    score = 0
+    for square, piece in enumerate(board.pieces):
+        if piece_color(int(piece)) != color:
+            continue
+        piece_type = int(board.piece_type(square))
+        if piece_type in MAJOR_TYPES:
+            distance = manhattan_distance(square, enemy_king)
+            score += max(0, 9 - distance) * 3
+        if piece_type in {cshogi.SILVER, cshogi.GOLD} and manhattan_distance(square, enemy_king) <= 3:
+            score += 12
+        if own_attacks[square] >= 2 and enemy_attacks[square] == 0 and piece_type != cshogi.KING:
+            score += 4
+    return score
 
 
 def evaluate_position(board: cshogi.Board) -> int:
@@ -249,7 +375,8 @@ def evaluate_position(board: cshogi.Board) -> int:
         piece_type = int(board.piece_type(square))
         value = PIECE_VALUES.get(piece_type, 0)
         positional = piece_square_bonus(square, piece_type, color)
-        signed = value + positional
+        promotion = promotion_zone_bonus(square, piece_type, color)
+        signed = value + positional + promotion
         score += signed if color == cshogi.BLACK else -signed
 
     black_hands, white_hands = board.pieces_in_hand
@@ -263,8 +390,11 @@ def evaluate_position(board: cshogi.Board) -> int:
     score -= king_safety_score(board, cshogi.WHITE, white_attacks, black_attacks)
     score += hanging_piece_score(board, cshogi.BLACK, black_attacks, white_attacks)
     score -= hanging_piece_score(board, cshogi.WHITE, white_attacks, black_attacks)
+    score += piece_efficiency_score(board, cshogi.BLACK, black_attacks, white_attacks)
+    score -= piece_efficiency_score(board, cshogi.WHITE, white_attacks, black_attacks)
     score += hand_pressure_score(board, cshogi.BLACK)
     score -= hand_pressure_score(board, cshogi.WHITE)
+    score += TEMPO_BONUS if board.turn == cshogi.BLACK else -TEMPO_BONUS
 
     return score if board.turn == cshogi.BLACK else -score
 
@@ -295,7 +425,7 @@ def ordered_moves(
     ply: int,
     tt_move: int | None,
 ) -> list[int]:
-    if context.move_orderer is not None:
+    if context.move_orderer is not None and ply < context.move_orderer_max_ply:
         preferred = list(context.move_orderer(board, legal_moves))
         policy_rank = {move: index for index, move in enumerate(preferred)}
     else:
@@ -439,6 +569,8 @@ def negamax(
             context,
         )
         score = -score
+        if ply == 0 and context.root_move_evaluator is not None:
+            score += context.root_move_evaluator(child)
         if score > best_score:
             best_score = score
             best_line = [move, *line]
@@ -467,6 +599,8 @@ def search_best_move(
     time_limit_ms: int | None,
     move_orderer: Callable[[cshogi.Board, Iterable[int]], Iterable[int]] | None = None,
     evaluator: Callable[[cshogi.Board], int] | None = None,
+    root_move_evaluator: Callable[[cshogi.Board], int] | None = None,
+    move_orderer_max_ply: int = 2,
 ) -> SearchResult:
     legal_moves = list(board.legal_moves)
     if not legal_moves:
@@ -491,6 +625,8 @@ def search_best_move(
         deadline=deadline,
         move_orderer=move_orderer,
         evaluator=evaluator,
+        root_move_evaluator=root_move_evaluator,
+        move_orderer_max_ply=max(0, move_orderer_max_ply),
     )
     for depth in range(1, max_depth + 1):
         start_nodes = context.nodes[0]
