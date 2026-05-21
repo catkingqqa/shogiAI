@@ -1,0 +1,749 @@
+\documentclass[12pt,a4paper,fontset=none]{ctexart}
+
+\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\setCJKmainfont{Microsoft JhengHei}
+\setCJKsansfont{Microsoft JhengHei}
+\setCJKmonofont{Microsoft JhengHei}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\lstdefinestyle{cmd}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible
+}
+
+\setlist[itemize]{leftmargin=2em}
+\setlist[enumerate]{leftmargin=2em}
+
+\title{\textbf{shogiAI 資料結構專題報告}\\
+\large 棋譜資料庫、程式資料模型、API JSON 與搜尋資料結構}
+\author{專案：shogiAI}
+\date{2026 年 5 月}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本報告針對 shogiAI 專案中的資料結構與資料庫架構進行完整說明。專案處理的資料從原始 CSA 棋譜開始，經過 Python 解析、MySQL 正規化儲存、NumPy 訓練資料集、PyTorch checkpoint、HTTP JSON API，最後在前端以棋盤與手順列表呈現。報告從資料結構角度分析：原始檔案格式如何被拆解、資料庫如何設計、每張表的功能與關聯、Python dataclass 如何表示棋子與局面、後端如何將資料序列化成 JSON、前端如何保存狀態，以及 AI 搜尋如何使用 transposition table、killer moves、history heuristic 等資料結構。此報告重點不是模型準確率，而是「資料如何被組織、保存、傳輸與操作」。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{資料結構在本專案中的角色}
+
+shogiAI 並不是只讀取棋譜並顯示棋盤，而是將不同層級的資料結構串成完整系統：
+
+\[
+\text{CSA 文字檔}
+\rightarrow
+\text{Python 物件}
+\rightarrow
+\text{MySQL 關聯表}
+\rightarrow
+\text{NumPy 陣列}
+\rightarrow
+\text{JSON API}
+\rightarrow
+\text{DOM 棋盤}
+\]
+
+因此本專案的資料結構可分成六類：
+
+\begin{enumerate}
+  \item 檔案層資料結構：CSA、USI、SFEN、NPZ、PT。
+  \item 資料庫層資料結構：users、players、game\_records、moves、positions。
+  \item Python 記憶體資料結構：dataclass、dict、list、cshogi.Board。
+  \item 機器學習資料結構：state tensor、move label、value label。
+  \item API 傳輸資料結構：JSON object、array、nested dictionary。
+  \item 搜尋演算法資料結構：transposition table、SearchContext、SearchResult、killer/history tables。
+\end{enumerate}
+
+\section{原始棋譜資料結構}
+
+\subsection{CSA 棋譜}
+
+CSA 是文字格式，每一行代表不同類型資料。常見內容包括：
+
+\begin{longtable}{p{0.25\textwidth}p{0.65\textwidth}}
+\toprule
+\textbf{CSA 行} & \textbf{意義}\\
+\midrule
+\endhead
+\texttt{N+} & 先手棋手名稱。\\
+\texttt{N-} & 後手棋手名稱。\\
+\texttt{\$EVENT} & 賽事名稱。\\
+\texttt{\$SITE} & 比賽地點。\\
+\texttt{\$START\_TIME} & 對局日期時間。\\
+\texttt{PI} & 標準初始局面。\\
+\texttt{P1} 到 \texttt{P9} & 棋盤每一列的棋子配置。\\
+\texttt{+7776FU} & 先手一手走法。\\
+\texttt{-3334FU} & 後手一手走法。\\
+\texttt{\%TORYO} & 終局結果，例如投了。\\
+\bottomrule
+\end{longtable}
+
+CSA 的優點是完整、可讀；缺點是不適合直接查詢。因此專案需要將 CSA 轉換成資料庫與物件結構。
+
+\subsection{USI 走法}
+
+USI 是程式內部與前後端溝通常用的走法格式，例如：
+
+\begin{itemize}
+  \item \texttt{7g7f}：從 7g 走到 7f。
+  \item \texttt{2b3c+}：從 2b 走到 3c 並升變。
+  \item \texttt{P*5e}：打一枚步到 5e。
+\end{itemize}
+
+USI 比 CSA 更適合程式處理，因為它是 \texttt{cshogi} 可直接解析的走法格式。
+
+\subsection{SFEN 局面}
+
+SFEN 是完整局面的文字表示。專案在資料庫 \texttt{positions.sfen} 中保存每一手後的 SFEN。這樣任何局面都可以用：
+
+\begin{lstlisting}[style=cmd]
+board = cshogi.Board(sfen)
+\end{lstlisting}
+
+直接重建。
+
+\section{資料庫資料結構}
+
+\subsection{設計目標}
+
+資料庫設計目標包含：
+
+\begin{itemize}
+  \item 將半結構化 CSA 文字轉成可查詢資料。
+  \item 避免棋手名稱與棋局資訊重複儲存。
+  \item 保存每手走法與每手後局面。
+  \item 讓前端可快速取得任意手數局面。
+  \item 讓數據科學流程可從資料庫匯出訓練樣本。
+\end{itemize}
+
+\subsection{五張主要資料表}
+
+資料庫由 \texttt{src/import\_csa\_to\_db.py} 建立，包含五張表。
+
+\subsubsection{\texttt{users}}
+
+\texttt{users} 表保存匯入者或未來上傳者資訊。
+
+\begin{longtable}{p{0.25\textwidth}p{0.25\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{說明}\\
+\midrule
+\endhead
+\texttt{user\_id} & INT PK & 使用者主鍵。\\
+\texttt{username} & VARCHAR & 使用者名稱。\\
+\texttt{email} & VARCHAR & 電子郵件，可唯一。\\
+\texttt{password\_hash} & VARCHAR & 保留登入功能擴充。\\
+\texttt{role} & VARCHAR & 使用者角色。\\
+\texttt{created\_at} & DATETIME & 建立時間。\\
+\bottomrule
+\end{longtable}
+
+\subsubsection{\texttt{players}}
+
+\texttt{players} 保存棋手資料。
+
+\begin{longtable}{p{0.25\textwidth}p{0.25\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{說明}\\
+\midrule
+\endhead
+\texttt{player\_id} & INT PK & 棋手主鍵。\\
+\texttt{player\_name} & VARCHAR & 棋手姓名。\\
+\texttt{rank\_name} & VARCHAR & 段位或稱號。\\
+\texttt{created\_at} & DATETIME & 建立時間。\\
+\bottomrule
+\end{longtable}
+
+將棋手獨立成表可避免每盤棋重複儲存棋手名稱，也方便日後統計某棋手對局。
+
+\subsubsection{\texttt{game\_records}}
+
+\texttt{game\_records} 是棋局主表。
+
+\begin{longtable}{p{0.27\textwidth}p{0.23\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{說明}\\
+\midrule
+\endhead
+\texttt{game\_id} & INT PK & 棋局主鍵。\\
+\texttt{uploader\_id} & INT FK & 匯入者。\\
+\texttt{black\_player\_id} & INT FK & 先手棋手。\\
+\texttt{white\_player\_id} & INT FK & 後手棋手。\\
+\texttt{event\_name} & VARCHAR & 賽事名稱。\\
+\texttt{site} & VARCHAR & 比賽地點。\\
+\texttt{opening} & VARCHAR & 開局或戰型。\\
+\texttt{result} & VARCHAR & 終局結果。\\
+\texttt{source\_format} & VARCHAR & 來源格式，目前為 CSA。\\
+\texttt{original\_file\_name} & VARCHAR & 原始檔案名稱，用於追蹤與去重。\\
+\texttt{played\_at} & DATE & 對局日期。\\
+\texttt{created\_at} & DATETIME & 建立時間。\\
+\bottomrule
+\end{longtable}
+
+\subsubsection{\texttt{moves}}
+
+\texttt{moves} 保存每一手棋。
+
+\begin{longtable}{p{0.25\textwidth}p{0.25\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{說明}\\
+\midrule
+\endhead
+\texttt{move\_id} & INT PK & 走法主鍵。\\
+\texttt{game\_id} & INT FK & 所屬棋局。\\
+\texttt{move\_number} & INT & 第幾手。\\
+\texttt{side\_to\_move} & ENUM & 先手或後手。\\
+\texttt{original\_move} & VARCHAR & 原始走法。\\
+\texttt{usi\_move} & VARCHAR & USI 格式走法。\\
+\texttt{move\_time} & VARCHAR & 用時資料。\\
+\texttt{comment} & TEXT & 棋譜註解。\\
+\bottomrule
+\end{longtable}
+
+\subsubsection{\texttt{positions}}
+
+\texttt{positions} 保存每一手後的完整局面。
+
+\begin{longtable}{p{0.25\textwidth}p{0.25\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{說明}\\
+\midrule
+\endhead
+\texttt{position\_id} & INT PK & 局面主鍵。\\
+\texttt{game\_id} & INT FK & 所屬棋局。\\
+\texttt{move\_number} & INT & 第幾手後的局面，0 為初始局面。\\
+\texttt{side\_to\_move} & ENUM & 此局面輪到哪一方下。\\
+\texttt{sfen} & TEXT & 完整局面表示。\\
+\texttt{sfen\_hash} & CHAR(64) & SFEN 的 SHA-256 hash。\\
+\texttt{is\_check} & BOOLEAN & 是否被將軍。\\
+\texttt{legal\_moves\_count} & INT & 合法手數量。\\
+\bottomrule
+\end{longtable}
+
+\subsection{資料表關係}
+
+關係如下：
+
+\begin{itemize}
+  \item 一個 user 可以上傳多個 game\_records。
+  \item 一個 player 可以出現在多個 game\_records。
+  \item 一個 game\_record 對應多個 moves。
+  \item 一個 game\_record 對應多個 positions。
+\end{itemize}
+
+概念圖：
+
+\[
+\text{users}
+\xrightarrow{1:N}
+\text{game\_records}
+\xleftarrow{N:1}
+\text{players}
+\]
+
+\[
+\text{game\_records}
+\xrightarrow{1:N}
+\text{moves}
+\qquad
+\text{game\_records}
+\xrightarrow{1:N}
+\text{positions}
+\]
+
+\subsection{為什麼 moves 和 positions 分開}
+
+\texttt{moves} 表表示「動作」，\texttt{positions} 表表示「狀態」。這是資料結構上很重要的分離：
+
+\[
+\text{Position}_{t}
+\xrightarrow{\text{Move}_{t+1}}
+\text{Position}_{t+1}
+\]
+
+若只保存 moves，查第 $N$ 手局面必須從初始局面 replay 到第 $N$ 手。若保存 positions，前端可以直接查：
+
+\begin{lstlisting}[style=cmd]
+SELECT sfen
+FROM positions
+WHERE game_id = ? AND move_number = ?
+\end{lstlisting}
+
+這是用儲存空間換取查詢速度。
+
+\section{Python 記憶體資料結構}
+
+\subsection{\texttt{cshogi.Board}}
+
+\texttt{cshogi.Board} 是專案最底層的規則資料結構。它保存：
+
+\begin{itemize}
+  \item 9x9 棋盤。
+  \item 雙方持駒。
+  \item 目前手番。
+  \item 合法手產生器。
+  \item SFEN 轉換。
+  \item Zobrist hash。
+\end{itemize}
+
+常用操作：
+
+\begin{lstlisting}[style=cmd]
+board = cshogi.Board()
+move = board.move_from_usi("7g7f")
+board.is_legal(move)
+board.push(move)
+board.sfen()
+board.legal_moves
+\end{lstlisting}
+
+專案不自行實作將棋規則，而是使用 \texttt{cshogi} 保證規則正確性。
+
+\subsection{API 中的 dataclass}
+
+\texttt{src/csa\_browser\_api.py} 定義多個 dataclass。
+
+\subsubsection{\texttt{Piece}}
+
+\begin{lstlisting}[style=cmd]
+Piece(color: str, kind: str)
+\end{lstlisting}
+
+表示前端棋盤上的一枚棋子：
+
+\begin{itemize}
+  \item \texttt{color}：\texttt{+} 或 \texttt{-}。
+  \item \texttt{kind}：CSA 棋子代碼，例如 \texttt{FU}、\texttt{HI}、\texttt{OU}。
+\end{itemize}
+
+\subsubsection{\texttt{MoveRecord}}
+
+\begin{lstlisting}[style=cmd]
+MoveRecord(
+  ply,
+  color,
+  from_square,
+  to_square,
+  piece,
+  usi_like,
+  captured
+)
+\end{lstlisting}
+
+保存一手棋的前端展示資訊。
+
+\subsubsection{\texttt{Position}}
+
+\begin{lstlisting}[style=cmd]
+Position(
+  ply,
+  turn,
+  board,
+  hands,
+  last_move
+)
+\end{lstlisting}
+
+保存某一手後的完整局面。
+
+\subsubsection{\texttt{Game}}
+
+\begin{lstlisting}[style=cmd]
+Game(
+  id,
+  name,
+  metadata,
+  positions,
+  moves
+)
+\end{lstlisting}
+
+本機 CSA 模式會將整盤棋解析成 \texttt{Game}，其中 \texttt{positions} 是局面序列。
+
+\section{前後端 JSON 資料結構}
+
+\subsection{棋局清單}
+
+\texttt{GET /api/games} 回傳：
+
+\begin{lstlisting}[style=cmd]
+{
+  "games": [
+    {
+      "id": "12",
+      "name": "2024 Event A vs B",
+      "moves": 105,
+      "black": "A",
+      "white": "B",
+      "event": "...",
+      "opening": "...",
+      "result": "TORYO",
+      "startTime": "2024-01-01"
+    }
+  ]
+}
+\end{lstlisting}
+
+\subsection{局面資料}
+
+\texttt{GET /api/games/<id>?ply=N} 回傳：
+
+\begin{lstlisting}[style=cmd]
+{
+  "game": {...},
+  "ply": 30,
+  "maxPly": 105,
+  "turn": "+",
+  "turnLabel": "先手",
+  "board": [[...], ...],
+  "hands": {
+    "+": {"FU": 1, "KA": 0},
+    "-": {"FU": 0, "KA": 1}
+  },
+  "handOrder": ["HI", "KA", "KI", "GI", "KE", "KY", "FU"],
+  "lastMove": {...},
+  "moves": [...],
+  "isCheck": false,
+  "legalMovesCount": 42
+}
+\end{lstlisting}
+
+其中 \texttt{board} 是 9x9 陣列，每格包含：
+
+\begin{lstlisting}[style=cmd]
+{
+  "square": "77",
+  "piece": {
+    "color": "+",
+    "kind": "FU",
+    "label": "步",
+    "promoted": false
+  }
+}
+\end{lstlisting}
+
+\subsection{自行對弈請求}
+
+前端送出：
+
+\begin{lstlisting}[style=cmd]
+{
+  "moves": ["7g7f", "3c3d", "2g2f"]
+}
+\end{lstlisting}
+
+後端使用 \texttt{replay\_usi\_moves} 重播整個走法序列，再回傳目前局面、合法手與結果。
+
+\subsection{AI 對弈請求}
+
+\begin{lstlisting}[style=cmd]
+{
+  "moves": ["7g7f", "3c3d"],
+  "playerSide": "+",
+  "depth": 3,
+  "timeLimitMs": 1000
+}
+\end{lstlisting}
+
+後端回傳 AI 搜尋資訊：
+
+\begin{lstlisting}[style=cmd]
+{
+  "search": {
+    "score": 120,
+    "depth": 3,
+    "nodes": 5342,
+    "timedOut": false,
+    "pv": ["2g2f", "8c8d"]
+  }
+}
+\end{lstlisting}
+
+\section{機器學習資料結構}
+
+\subsection{State Tensor}
+
+模型輸入：
+
+\[
+states \in \mathbb{R}^{N \times 43 \times 9 \times 9}
+\]
+
+這是四維陣列：
+
+\begin{itemize}
+  \item $N$：樣本數。
+  \item 43：特徵平面。
+  \item 9：棋盤列。
+  \item 9：棋盤行。
+\end{itemize}
+
+\subsection{Move Label}
+
+\[
+moves \in \mathbb{Z}^{N}
+\]
+
+每個值是 0 到 13688 之間的整數，代表 policy 分類標籤。
+
+\subsection{Value Label}
+
+\[
+values \in \mathbb{R}^{N}
+\]
+
+每個值是：
+
+\[
+-1,\quad 0,\quad 1
+\]
+
+\subsection{Metadata}
+
+\texttt{meta} 保存 JSON 字串，用於追蹤樣本來源：
+
+\begin{lstlisting}[style=cmd]
+{
+  "game_id": 12,
+  "ply": 31,
+  "sfen": "...",
+  "move_usi": "7g7f",
+  "result": "TORYO",
+  "winner": "black"
+}
+\end{lstlisting}
+
+這讓模型資料不是黑盒資料，而是可追蹤回原始棋局與手數。
+
+\section{搜尋演算法資料結構}
+
+\subsection{\texttt{SearchResult}}
+
+\begin{lstlisting}[style=cmd]
+SearchResult(
+  move,
+  score,
+  depth,
+  nodes,
+  pv,
+  timed_out
+)
+\end{lstlisting}
+
+保存一次 AI 搜尋的結果：
+
+\begin{itemize}
+  \item 最佳手。
+  \item 分數。
+  \item 完成深度。
+  \item 搜尋節點數。
+  \item principal variation。
+  \item 是否逾時。
+\end{itemize}
+
+\subsection{\texttt{SearchContext}}
+
+\texttt{SearchContext} 保存搜尋過程共享狀態：
+
+\begin{itemize}
+  \item \texttt{deadline}：時間限制。
+  \item \texttt{move\_orderer}：走法排序器，可接 policy model。
+  \item \texttt{evaluator}：局面評估函式。
+  \item \texttt{nodes}：已搜尋節點數。
+  \item \texttt{tt}：transposition table。
+  \item \texttt{killers}：killer move table。
+  \item \texttt{history}：history heuristic table。
+\end{itemize}
+
+\subsection{Transposition Table}
+
+資料結構：
+
+\begin{lstlisting}[style=cmd]
+dict[tuple[int, int], TTEntry]
+\end{lstlisting}
+
+key 包含：
+
+\begin{itemize}
+  \item board zobrist hash。
+  \item repetition count。
+\end{itemize}
+
+value 是：
+
+\begin{lstlisting}[style=cmd]
+TTEntry(depth, score, flag, best_move)
+\end{lstlisting}
+
+用途是避免重複搜尋同一局面。
+
+\subsection{Killer Moves}
+
+資料結構：
+
+\begin{lstlisting}[style=cmd]
+dict[int, list[int]]
+\end{lstlisting}
+
+key 是搜尋深度 ply，value 是該深度曾造成 beta cutoff 的安靜手。搜尋同一層其他分支時，這些手會被優先排序。
+
+\subsection{History Heuristic}
+
+資料結構：
+
+\begin{lstlisting}[style=cmd]
+dict[int, int]
+\end{lstlisting}
+
+key 是 move，value 是該 move 過去造成剪枝的累積分數。這是一種全域走法排序記憶。
+
+\section{前端狀態資料結構}
+
+前端 \texttt{web/app.js} 使用多組狀態變數。
+
+\subsection{棋譜瀏覽狀態}
+
+\begin{lstlisting}[style=cmd]
+currentGameId
+currentPly
+maxPly
+latestState
+\end{lstlisting}
+
+用途：
+
+\begin{itemize}
+  \item 記錄目前棋局。
+  \item 記錄目前播放到第幾手。
+  \item 保存後端回傳的最新局面 JSON。
+\end{itemize}
+
+\subsection{自行對弈狀態}
+
+\begin{lstlisting}[style=cmd]
+selfMoves
+selfRedoMoves
+selfState
+selectedSelfSource
+\end{lstlisting}
+
+用途：
+
+\begin{itemize}
+  \item \texttt{selfMoves}：已下走法序列。
+  \item \texttt{selfRedoMoves}：復原後可重做的走法。
+  \item \texttt{selfState}：目前後端回傳局面。
+  \item \texttt{selectedSelfSource}：目前選中的棋盤棋子或持駒。
+\end{itemize}
+
+\subsection{AI 對弈狀態}
+
+\begin{lstlisting}[style=cmd]
+aiMoves
+aiState
+aiSelectedSource
+aiThinking
+aiResignedSide
+\end{lstlisting}
+
+用途：
+
+\begin{itemize}
+  \item 保存 AI 對弈走法序列。
+  \item 控制 AI 思考中不可重複點擊。
+  \item 保存玩家是否投降。
+  \item 管理玩家點棋盤或持駒時的選取狀態。
+\end{itemize}
+
+\section{資料結構設計評估}
+
+\subsection{優點}
+
+\begin{enumerate}
+  \item \textbf{狀態與動作分離：} positions 保存狀態，moves 保存動作，符合棋局轉移模型。
+  \item \textbf{資料可追蹤：} 訓練樣本 metadata 可追蹤回 game id、ply、SFEN 與走法。
+  \item \textbf{前後端解耦：} 前端只依賴 JSON 格式，不依賴 MySQL 或 CSA 內部細節。
+  \item \textbf{資料來源抽象：} \texttt{GameSource} 使 MySQL 與本機 CSA 檔可替換。
+  \item \textbf{搜尋資料結構完整：} TT、killer、history 都能提升 alpha-beta 搜尋效率。
+\end{enumerate}
+
+\subsection{限制}
+
+\begin{enumerate}
+  \item positions 表會增加儲存空間，因為每手都保存 SFEN。
+  \item 前端狀態目前以全域變數管理，功能再擴充時可考慮更結構化狀態管理。
+  \item MySQL 尚未在程式中自動建立索引，資料量變大後需要索引優化。
+  \item JSON 傳輸每次回傳完整 moves 列表，超長棋局可再做分頁或快取。
+\end{enumerate}
+
+\section{建議索引設計}
+
+若資料量增加，建議加入：
+
+\begin{lstlisting}[style=cmd]
+CREATE INDEX idx_game_records_played_at
+ON game_records(played_at);
+
+CREATE INDEX idx_game_records_original_file_name
+ON game_records(original_file_name);
+
+CREATE INDEX idx_moves_game_number
+ON moves(game_id, move_number);
+
+CREATE INDEX idx_positions_game_number
+ON positions(game_id, move_number);
+
+CREATE INDEX idx_positions_sfen_hash
+ON positions(sfen_hash);
+\end{lstlisting}
+
+其中 \texttt{idx\_positions\_game\_number} 對前端查第 N 手局面最重要。
+
+\section{結論}
+
+shogiAI 的資料結構設計核心是將棋局拆成「棋局主資料、棋手、走法、局面、模型樣本、API JSON、前端狀態、搜尋快取」等不同層級。這種設計讓系統可以同時滿足資料庫查詢、棋譜瀏覽、模型訓練與 AI 搜尋需求。從資料結構角度看，本專案最重要的設計是 \texttt{moves} 與 \texttt{positions} 分離，因為它把棋類問題明確表示成狀態轉移模型：
+
+\[
+S_t + A_{t+1} \rightarrow S_{t+1}
+\]
+
+這個模型不只支援前端播放，也支援機器學習中的「局面到下一手」監督式學習。整體而言，shogiAI 是一個以資料結構為基礎，向資料庫、AI 模型與網頁應用延伸的完整系統。
+
+\appendix
+\section{附錄：主要資料流}
+
+\begin{lstlisting}[style=cmd]
+CSA file
+  -> CSA.Parser
+  -> cshogi.Board replay
+  -> MySQL game_records / moves / positions
+  -> export_policy_dataset.py
+  -> NumPy states / moves / values
+  -> PyTorch model
+  -> csa_browser_api.py JSON
+  -> web/app.js DOM render
+\end{lstlisting}
+
+\end{document}
