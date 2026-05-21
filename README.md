@@ -238,6 +238,53 @@ python src\csa_browser_api.py --source mysql --db-host 140.135.65.53 --db-port 3
 
 若資料庫暫時連不上，opening book 會自動停用，AI 會退回原本搜尋流程。
 
+
+AI Model Match
+
+若要比較舊模型與新模型棋力，可讓兩個模型在相同搜尋設定下自動對弈。預設使用：
+
+```text
+old: out\policy_model.prev.pt
+new: out\policy_model.pt
+```
+
+執行：
+
+```powershell
+python src\compare_ai_models.py --games 10 --depth 3 --time-limit-ms 1000 --output-jsonl out\model_match.jsonl
+```
+
+它會輪流交換先後手：
+
+```text
+第 1 局：new 先手，old 後手
+第 2 局：old 先手，new 後手
+```
+
+輸出會包含：
+
+```text
+new_wins
+old_wins
+draws
+new_score_rate
+average_plies
+每局完整 USI 走法
+```
+
+若要指定模型：
+
+```powershell
+python src\compare_ai_models.py --old-model out\policy_model.before_adamw_scheduler.pt --new-model out\policy_model.pt --games 20 --depth 3 --time-limit-ms 1000
+```
+
+若對局達到最大手數，預設會用傳統評估做保守裁定；一方優勢超過 `1000` 分才判勝，否則和棋。可調整或關閉：
+
+```powershell
+python src\compare_ai_models.py --games 20 --adjudicate-score 1500
+python src\compare_ai_models.py --games 20 --adjudicate-score 0
+```
+
 然後打開：
 
 notebooks\cshogi_jupyter_viewer.ipynb

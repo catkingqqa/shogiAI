@@ -445,6 +445,10 @@ def is_quiet_move(move: int) -> bool:
     return int(cshogi.move_cap(move)) == 0 and not cshogi.move_is_promotion(move)
 
 
+def should_reduce_late_move(move_index: int, depth: int, in_check: bool, gives_check: bool, move: int) -> bool:
+    return depth >= 3 and move_index >= 4 and not in_check and not gives_check and is_quiet_move(move)
+
+
 def ordered_moves(
     board: cshogi.Board,
     legal_moves: list[int],
@@ -553,6 +557,7 @@ def negamax(
     position_counts: dict[str, int],
     ply: int,
     context: SearchContext,
+    extension_count: int = 0,
 ) -> tuple[int, list[int]]:
     """功能：處理 negamax 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if context.deadline is not None and monotonic() >= context.deadline:
@@ -584,24 +589,58 @@ def negamax(
     best_score = -INF_SCORE
     best_line: list[int] = []
 
+    in_check = board.is_check()
     legal_moves = list(board.legal_moves)
-    for move in ordered_moves(board, legal_moves, context, ply, entry.best_move if entry else None):
+    for move_index, move in enumerate(ordered_moves(board, legal_moves, context, ply, entry.best_move if entry else None)):
         child = board.copy()
         child.push(move)
         child_counts = dict(position_counts)
         key = repetition_key(child)
         child_counts[key] = child_counts.get(key, 0) + 1
 
-        score, line = negamax(
-            child,
-            depth - 1,
-            -beta,
-            -alpha,
-            child_counts,
-            ply + 1,
-            context,
-        )
-        score = -score
+        gives_check = child.is_check()
+        extension = 1 if (in_check or gives_check) and extension_count < 2 else 0
+        next_depth = depth - 1 + extension
+        reduced = should_reduce_late_move(move_index, depth, in_check, gives_check, move)
+        search_depth = max(0, next_depth - 1) if reduced else next_depth
+        next_extension_count = extension_count + extension
+
+        if move_index == 0:
+            score, line = negamax(
+                child,
+                search_depth,
+                -beta,
+                -alpha,
+                child_counts,
+                ply + 1,
+                context,
+                next_extension_count,
+            )
+            score = -score
+        else:
+            score, line = negamax(
+                child,
+                search_depth,
+                -alpha - 1,
+                -alpha,
+                child_counts,
+                ply + 1,
+                context,
+                next_extension_count,
+            )
+            score = -score
+            if score > alpha and (reduced or score < beta):
+                score, line = negamax(
+                    child,
+                    next_depth,
+                    -beta,
+                    -alpha,
+                    child_counts,
+                    ply + 1,
+                    context,
+                    next_extension_count,
+                )
+                score = -score
         if ply == 0 and context.root_move_evaluator is not None:
             score += context.root_move_evaluator(child)
         if score > best_score:

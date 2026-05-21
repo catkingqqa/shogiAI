@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>CSA 棋譜瀏覽器</title>
-    <link rel="stylesheet" href="/styles.css?v=20260519-2" />
+    <link rel="stylesheet" href="/styles.css?v=20260521-3" />
   </head>
   <body>
     <!-- 功能：App shell：左側是模式切換，右側 workspace 依目前模式顯示不同功能。 -->
@@ -14,6 +14,7 @@
         <button id="browserTab" class="mode-tab active" type="button">棋譜瀏覽</button>
         <button id="selfPlayTab" class="mode-tab" type="button">自行對奕</button>
         <button id="aiPlayTab" class="mode-tab" type="button">AI 對弈</button>
+        <button id="modelMatchTab" class="mode-tab" type="button">模型對戰</button>
       </nav>
 
       <section class="workspace">
@@ -314,9 +315,185 @@
             <div id="aiMoveList" class="move-list"></div>
           </section>
         </section>
+
+        <section id="modelMatchView" class="mode-view">
+          <header class="topbar match-builder-head">
+            <div>
+              <h1>模型對戰</h1>
+              <p id="engineMatchMeta">設定兩組引擎參數，直接比較對奕過程與結果。</p>
+            </div>
+            <button id="runEngineMatchBtn" class="text-btn" type="button">開始對戰</button>
+          </header>
+
+          <section class="match-config" aria-label="模型對戰設定">
+            <section class="engine-config">
+              <h2>引擎 A</h2>
+              <label>
+                <span>名稱</span>
+                <input id="engineAName" type="text" value="Engine A" />
+              </label>
+              <label>
+                <span>模型</span>
+                <select id="engineAModelSelect"></select>
+              </label>
+              <label>
+                <span>Depth</span>
+                <input id="engineADepth" type="number" min="1" max="5" value="2" />
+              </label>
+              <label>
+                <span>每手時間(ms)</span>
+                <input id="engineATimeLimit" type="number" min="50" max="2000" step="50" value="300" />
+              </label>
+              <label>
+                <span>Policy排序層數</span>
+                <input id="engineAPolicyOrderPly" type="number" min="0" max="5" value="2" />
+              </label>
+            </section>
+
+            <section class="engine-config">
+              <h2>引擎 B</h2>
+              <label>
+                <span>名稱</span>
+                <input id="engineBName" type="text" value="Engine B" />
+              </label>
+              <label>
+                <span>模型</span>
+                <select id="engineBModelSelect"></select>
+              </label>
+              <label>
+                <span>Depth</span>
+                <input id="engineBDepth" type="number" min="1" max="5" value="2" />
+              </label>
+              <label>
+                <span>每手時間(ms)</span>
+                <input id="engineBTimeLimit" type="number" min="50" max="2000" step="50" value="300" />
+              </label>
+              <label>
+                <span>Policy排序層數</span>
+                <input id="engineBPolicyOrderPly" type="number" min="0" max="5" value="2" />
+              </label>
+            </section>
+
+            <section class="engine-config match-global-config">
+              <h2>對戰限制</h2>
+              <label>
+                <span>對戰盤數</span>
+                <input id="engineMatchGames" type="number" min="1" max="10" value="2" />
+              </label>
+              <label>
+                <span>最大手數</span>
+                <input id="engineMatchMaxPlies" type="number" min="10" max="256" value="120" />
+              </label>
+              <label>
+                <span>裁定分數</span>
+                <input id="engineMatchAdjudicateScore" type="number" min="0" max="10000" step="100" value="1000" />
+              </label>
+            </section>
+          </section>
+          <header class="topbar match-topbar">
+            <div>
+              <h1>模型對戰</h1>
+              <p id="modelMatchMeta">選擇兩個 policy model，讓它們自動對弈並回放結果。</p>
+            </div>
+            <div class="match-actions">
+              <label>
+                <span>舊模型</span>
+                <select id="oldModelSelect"></select>
+              </label>
+              <label>
+                <span>新模型</span>
+                <select id="newModelSelect"></select>
+              </label>
+              <label>
+                <span>盤數</span>
+                <input id="matchGames" type="number" min="1" max="10" value="2" />
+              </label>
+              <label>
+                <span>Depth</span>
+                <input id="matchDepth" type="number" min="1" max="5" value="2" />
+              </label>
+              <label>
+                <span>每手時間(ms)</span>
+                <input id="matchTimeLimit" type="number" min="50" max="2000" step="50" value="300" />
+              </label>
+              <label>
+                <span>Policy 層數</span>
+                <input id="matchPolicyOrderPly" type="number" min="0" max="5" value="2" />
+              </label>
+              <label>
+                <span>最大手數</span>
+                <input id="matchMaxPlies" type="number" min="10" max="256" value="120" />
+              </label>
+              <label>
+                <span>裁定分</span>
+                <input id="matchAdjudicateScore" type="number" min="0" max="10000" step="100" value="1000" />
+              </label>
+              <button id="runModelMatchBtn" class="text-btn" type="button">開始對戰</button>
+            </div>
+          </header>
+
+          <section class="match-summary" aria-label="模型對戰結果">
+            <div><span>新模型勝</span><strong id="matchNewWins">-</strong></div>
+            <div><span>舊模型勝</span><strong id="matchOldWins">-</strong></div>
+            <div><span>和棋</span><strong id="matchDraws">-</strong></div>
+            <div><span>新模型得分率</span><strong id="matchScoreRate">-</strong></div>
+            <div><span>平均手數</span><strong id="matchAveragePlies">-</strong></div>
+          </section>
+
+          <section class="match-results-layout">
+            <section class="match-games-panel">
+              <div class="move-list-head">
+                <h2>對局</h2>
+                <span id="matchGameCount">0 盤</span>
+              </div>
+              <div id="matchGameList" class="match-game-list"></div>
+            </section>
+
+            <section class="match-replay-panel">
+              <div class="match-replay-head">
+                <strong id="matchReplayTitle">尚未選擇對局</strong>
+                <span id="matchReplayStatus">0 / 0</span>
+              </div>
+              <section class="play-area match-play-area">
+                <aside class="side-panel">
+                  <div class="player player-white">
+                    <span class="player-label">後手</span>
+                    <strong id="matchWhiteLabel">-</strong>
+                    <div id="matchWhiteHands" class="hands"></div>
+                  </div>
+                </aside>
+                <section class="board-wrap" aria-label="模型對戰棋盤">
+                  <div class="board-coordinates">
+                    <div class="file-coordinates" aria-hidden="true"><span>9</span><span>8</span><span>7</span><span>6</span><span>5</span><span>4</span><span>3</span><span>2</span><span>1</span></div>
+                    <div class="rank-coordinates" aria-hidden="true"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>七</span><span>八</span><span>九</span></div>
+                    <div id="matchBoard" class="board"></div>
+                  </div>
+                </section>
+                <aside class="side-panel">
+                  <div class="player player-black">
+                    <span class="player-label">先手</span>
+                    <strong id="matchBlackLabel">-</strong>
+                    <div id="matchBlackHands" class="hands"></div>
+                  </div>
+                </aside>
+              </section>
+              <footer class="controls">
+                <button id="matchFirstBtn" class="control-btn" type="button">|&lt;</button>
+                <button id="matchPrevBtn" class="control-btn" type="button">&lt;</button>
+                <div class="move-status">
+                  <strong id="matchPlyStatus">0 / 0</strong>
+                  <span id="matchLastMove">尚未開始</span>
+                </div>
+                <button id="matchNextBtn" class="control-btn" type="button">&gt;</button>
+                <button id="matchLastBtn" class="control-btn" type="button">&gt;|</button>
+              </footer>
+              <div id="matchMoveList" class="move-list"></div>
+            </section>
+          </section>
+        </section>
       </section>
     </main>
 
-    <script src="/app.js?v=20260521-1"></script>
+    <script src="/app.js?v=20260521-3"></script>
   </body>
 </html>

@@ -17,6 +17,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 import cshogi
 from ai_search import evaluate_position, search_best_move
+from compare_ai_models import load_engine, play_game, summarize
 from policy_model import PolicyValuePredictor
 
 try:
@@ -1223,6 +1224,9 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         if path == "/api/db/stats":
             self.send_json({"stats": self.source.stats()})
             return
+        if path == "/api/model-match/models":
+            self.send_json({"models": self.model_match_models()})
+            return
         if path.startswith("/api/games/"):
             self.api_position(path.removeprefix("/api/games/"), parsed.query)
             return
@@ -1361,6 +1365,10 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                 }
             )
             return
+        if parsed.path == "/api/model-match/run":
+            payload = self.read_json_body()
+            self.send_json({"match": self.run_model_match(payload)})
+            return
         raise FileNotFoundError(parsed.path)
 
     def api_position(self, game_id: str, query: str) -> None:
@@ -1485,6 +1493,143 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         if self.policy_predictor is None:
             return None
         return self.policy_predictor.value_for_board(board)
+
+    def model_match_models(self) -> list[dict[str, Any]]:
+        models = []
+        for path in sorted((ROOT / "out").glob("policy_model*.pt")):
+            if not path.is_file():
+                continue
+            stat = path.stat()
+            models.append(
+                {
+                    "path": str(path.relative_to(ROOT)).replace("\\", "/"),
+                    "name": path.name,
+                    "size": stat.st_size,
+                    "modified": stat.st_mtime,
+                }
+            )
+        return models
+
+    def resolve_model_path(self, value: Any) -> Path:
+        text = str(value or "").strip().replace("\\", "/")
+        if not text:
+            raise ValueError("model path is required")
+        path = (ROOT / text).resolve()
+        out_root = (ROOT / "out").resolve()
+        if out_root != path.parent and out_root not in path.parents:
+            raise ValueError("model path must be inside out/")
+        if not path.is_file() or not path.name.startswith("policy_model") or path.suffix.lower() != ".pt":
+            raise ValueError(f"invalid policy model: {text}")
+        return path
+
+    def resolve_optional_model_path(self, value: Any) -> Path | None:
+        text = str(value or "").strip()
+        if not text:
+            return None
+        return self.resolve_model_path(text)
+
+    def run_model_match(self, payload: dict[str, Any]) -> dict[str, Any]:
+        engine_a_payload = payload.get("engineA") if isinstance(payload.get("engineA"), dict) else {}
+        engine_b_payload = payload.get("engineB") if isinstance(payload.get("engineB"), dict) else {}
+        games = self.clamp_int(payload.get("games", 2), 1, 10, "games")
+        max_plies = self.clamp_int(payload.get("maxPlies", 120), 10, 256, "maxPlies")
+        adjudicate_score = self.clamp_int(payload.get("adjudicateScore", 1000), 0, 10000, "adjudicateScore")
+        new_model = self.resolve_optional_model_path(engine_a_payload.get("model", payload.get("newModel")))
+        old_model = self.resolve_optional_model_path(engine_b_payload.get("model", payload.get("oldModel")))
+        new_name = str(engine_a_payload.get("name") or payload.get("newName") or "Engine A").strip() or "Engine A"
+        old_name = str(engine_b_payload.get("name") or payload.get("oldName") or "Engine B").strip() or "Engine B"
+        new_depth = self.clamp_int(engine_a_payload.get("depth", payload.get("depth", 2)), 1, 5, "engineA.depth")
+        old_depth = self.clamp_int(engine_b_payload.get("depth", payload.get("depth", 2)), 1, 5, "engineB.depth")
+        new_time_limit_ms = self.clamp_int(
+            engine_a_payload.get("timeLimitMs", payload.get("timeLimitMs", 300)),
+            50,
+            2000,
+            "engineA.timeLimitMs",
+        )
+        old_time_limit_ms = self.clamp_int(
+            engine_b_payload.get("timeLimitMs", payload.get("timeLimitMs", 300)),
+            50,
+            2000,
+            "engineB.timeLimitMs",
+        )
+        new_policy_order_ply = self.clamp_int(
+            engine_a_payload.get("policyOrderPly", payload.get("policyOrderPly", 2)),
+            0,
+            5,
+            "engineA.policyOrderPly",
+        )
+        old_policy_order_ply = self.clamp_int(
+            engine_b_payload.get("policyOrderPly", payload.get("policyOrderPly", 2)),
+            0,
+            5,
+            "engineB.policyOrderPly",
+        )
+
+        old_engine = load_engine(
+            old_name,
+            old_model,
+            old_model is None,
+            depth=old_depth,
+            time_limit_ms=old_time_limit_ms,
+            policy_order_ply=old_policy_order_ply,
+        )
+        new_engine = load_engine(
+            new_name,
+            new_model,
+            new_model is None,
+            depth=new_depth,
+            time_limit_ms=new_time_limit_ms,
+            policy_order_ply=new_policy_order_ply,
+        )
+        results = []
+        for game_index in range(1, games + 1):
+            if game_index % 2 == 1:
+                black_engine, white_engine = new_engine, old_engine
+            else:
+                black_engine, white_engine = old_engine, new_engine
+            results.append(
+                play_game(
+                    game_index=game_index,
+                    black_engine=black_engine,
+                    white_engine=white_engine,
+                    new_name=new_name,
+                    old_name=old_name,
+                    max_plies=max_plies,
+                    adjudicate_score=adjudicate_score,
+                )
+            )
+        return {
+            **summarize(results, new_name, old_name),
+            "settings": {
+                "engineA": {
+                    "name": new_name,
+                    "model": str(new_model.relative_to(ROOT)).replace("\\", "/") if new_model else "",
+                    "depth": new_depth,
+                    "timeLimitMs": new_time_limit_ms,
+                    "policyOrderPly": new_policy_order_ply,
+                },
+                "engineB": {
+                    "name": old_name,
+                    "model": str(old_model.relative_to(ROOT)).replace("\\", "/") if old_model else "",
+                    "depth": old_depth,
+                    "timeLimitMs": old_time_limit_ms,
+                    "policyOrderPly": old_policy_order_ply,
+                },
+                "games": games,
+                "maxPlies": max_plies,
+                "adjudicateScore": adjudicate_score,
+            },
+        }
+
+    @staticmethod
+    def clamp_int(value: Any, minimum: int, maximum: int, name: str) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{name} must be an integer") from exc
+        if not minimum <= parsed <= maximum:
+            raise ValueError(f"{name} must be between {minimum} and {maximum}")
+        return parsed
 
     def serve_static(self, request_path: str) -> None:
         """功能：處理 serve_static 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""

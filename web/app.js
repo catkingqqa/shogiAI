@@ -2,9 +2,11 @@
 const browserTab = document.querySelector("#browserTab");
 const selfPlayTab = document.querySelector("#selfPlayTab");
 const aiPlayTab = document.querySelector("#aiPlayTab");
+const modelMatchTab = document.querySelector("#modelMatchTab");
 const browserView = document.querySelector("#browserView");
 const selfPlayView = document.querySelector("#selfPlayView");
 const aiPlayView = document.querySelector("#aiPlayView");
+const modelMatchView = document.querySelector("#modelMatchView");
 
 // 功能：棋譜瀏覽模式的 DOM 元件：棋局選單、棋盤、手數控制、持駒與搜尋條件。
 const gameSelect = document.querySelector("#gameSelect");
@@ -81,6 +83,53 @@ const aiLastMove = document.querySelector("#aiLastMove");
 const aiMoveList = document.querySelector("#aiMoveList");
 const aiMoveListCount = document.querySelector("#aiMoveListCount");
 
+const modelMatchMeta = document.querySelector("#modelMatchMeta");
+const engineMatchMeta = document.querySelector("#engineMatchMeta");
+const engineAName = document.querySelector("#engineAName");
+const engineBName = document.querySelector("#engineBName");
+const engineAModelSelect = document.querySelector("#engineAModelSelect");
+const engineBModelSelect = document.querySelector("#engineBModelSelect");
+const engineADepth = document.querySelector("#engineADepth");
+const engineBDepth = document.querySelector("#engineBDepth");
+const engineATimeLimit = document.querySelector("#engineATimeLimit");
+const engineBTimeLimit = document.querySelector("#engineBTimeLimit");
+const engineAPolicyOrderPly = document.querySelector("#engineAPolicyOrderPly");
+const engineBPolicyOrderPly = document.querySelector("#engineBPolicyOrderPly");
+const engineMatchGames = document.querySelector("#engineMatchGames");
+const engineMatchMaxPlies = document.querySelector("#engineMatchMaxPlies");
+const engineMatchAdjudicateScore = document.querySelector("#engineMatchAdjudicateScore");
+const runEngineMatchBtn = document.querySelector("#runEngineMatchBtn");
+const oldModelSelect = document.querySelector("#oldModelSelect");
+const newModelSelect = document.querySelector("#newModelSelect");
+const matchGames = document.querySelector("#matchGames");
+const matchDepth = document.querySelector("#matchDepth");
+const matchTimeLimit = document.querySelector("#matchTimeLimit");
+const matchPolicyOrderPly = document.querySelector("#matchPolicyOrderPly");
+const matchMaxPlies = document.querySelector("#matchMaxPlies");
+const matchAdjudicateScore = document.querySelector("#matchAdjudicateScore");
+const runModelMatchBtn = document.querySelector("#runModelMatchBtn");
+const matchNewWins = document.querySelector("#matchNewWins");
+const matchOldWins = document.querySelector("#matchOldWins");
+const matchDraws = document.querySelector("#matchDraws");
+const matchScoreRate = document.querySelector("#matchScoreRate");
+const matchAveragePlies = document.querySelector("#matchAveragePlies");
+const matchGameCount = document.querySelector("#matchGameCount");
+const matchGameList = document.querySelector("#matchGameList");
+const matchReplayTitle = document.querySelector("#matchReplayTitle");
+const matchReplayStatus = document.querySelector("#matchReplayStatus");
+const matchBoard = document.querySelector("#matchBoard");
+const matchBlackLabel = document.querySelector("#matchBlackLabel");
+const matchWhiteLabel = document.querySelector("#matchWhiteLabel");
+const matchBlackHands = document.querySelector("#matchBlackHands");
+const matchWhiteHands = document.querySelector("#matchWhiteHands");
+const matchFirstBtn = document.querySelector("#matchFirstBtn");
+const matchPrevBtn = document.querySelector("#matchPrevBtn");
+const matchNextBtn = document.querySelector("#matchNextBtn");
+const matchLastBtn = document.querySelector("#matchLastBtn");
+const matchPlyStatus = document.querySelector("#matchPlyStatus");
+const matchLastMove = document.querySelector("#matchLastMove");
+const matchMoveList = document.querySelector("#matchMoveList");
+
 // 功能：全域 UI 狀態。瀏覽棋譜、自行對弈與 AI 對弈各自保存目前局面與選取狀態。
 let activeMode = "browser";
 let currentGameId = "";
@@ -102,6 +151,12 @@ let aiSelectedSource = null;
 let aiPlayLoaded = false;
 let aiThinking = false;
 let aiResignedSide = null;
+
+let modelMatchLoaded = false;
+let modelMatchRunning = false;
+let modelMatchResult = null;
+let selectedMatchGameIndex = -1;
+let matchReplayPly = 0;
 
 // 功能：處理 fetchJson 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function fetchJson(url) {
@@ -183,9 +238,11 @@ function setActiveMode(mode) {
   browserTab.classList.toggle("active", mode === "browser");
   selfPlayTab.classList.toggle("active", mode === "self-play");
   aiPlayTab.classList.toggle("active", mode === "ai-play");
+  modelMatchTab.classList.toggle("active", mode === "model-match");
   browserView.classList.toggle("active", mode === "browser");
   selfPlayView.classList.toggle("active", mode === "self-play");
   aiPlayView.classList.toggle("active", mode === "ai-play");
+  modelMatchView.classList.toggle("active", mode === "model-match");
 }
 
 // 功能：處理 markerStorageKey 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
@@ -866,6 +923,200 @@ function isFormControl(element) {
 }
 
 // 功能：事件綁定區：把使用者在分頁、棋盤、持駒、按鈕與鍵盤上的操作轉成狀態更新或 API 呼叫。
+function fillModelSelect(select, models, preferredName) {
+  if (!select) {
+    return;
+  }
+  select.innerHTML = "";
+  const noneOption = document.createElement("option");
+  noneOption.value = "";
+  noneOption.textContent = "不使用模型";
+  select.appendChild(noneOption);
+  for (const model of models) {
+    const option = document.createElement("option");
+    option.value = model.path;
+    option.textContent = model.name;
+    select.appendChild(option);
+  }
+  const preferred = models.find((model) => model.name === preferredName);
+  if (preferred) {
+    select.value = preferred.path;
+  }
+}
+
+async function loadModelMatchModels() {
+  const data = await fetchJson("/api/model-match/models");
+  const models = data.models || [];
+  fillModelSelect(oldModelSelect, models, "policy_model.prev.pt");
+  fillModelSelect(newModelSelect, models, "policy_model.pt");
+  fillModelSelect(engineAModelSelect, models, "policy_model.pt");
+  fillModelSelect(engineBModelSelect, models, "");
+  modelMatchLoaded = true;
+  if (engineMatchMeta) {
+    engineMatchMeta.textContent = models.length
+      ? `已找到 ${models.length} 個 policy model，也可以選擇不使用模型。`
+      : "目前沒有 policy model，可先用純傳統搜尋參數互打。";
+  }
+  modelMatchMeta.textContent = models.length
+    ? `已找到 ${models.length} 個 policy model。`
+    : "找不到 out/policy_model*.pt。";
+}
+
+function renderMatchSummary(match) {
+  matchNewWins.textContent = String(match?.new_wins ?? "-");
+  matchOldWins.textContent = String(match?.old_wins ?? "-");
+  matchDraws.textContent = String(match?.draws ?? "-");
+  matchScoreRate.textContent = match ? `${Math.round(match.new_score_rate * 1000) / 10}%` : "-";
+  matchAveragePlies.textContent = match ? Math.round(match.average_plies * 10) / 10 : "-";
+}
+
+function resultText(game) {
+  if (!game) {
+    return "";
+  }
+  return game.winner ? `${game.winner} 勝` : "和棋";
+}
+
+function engineResultText(game) {
+  if (!game) {
+    return "";
+  }
+  return game.winner ? `${game.winner} 勝` : "和棋";
+}
+
+function renderMatchGameList() {
+  const games = modelMatchResult?.results || [];
+  matchGameCount.textContent = `${games.length} 盤`;
+  matchGameCount.textContent = `${games.length} 盤`;
+  matchGameList.innerHTML = "";
+  games.forEach((game, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "match-game-row";
+    if (index === selectedMatchGameIndex) {
+      button.classList.add("active");
+    }
+    button.dataset.index = String(index);
+    button.innerHTML = `
+      <strong>第 ${game.game} 盤：${resultText(game)}</strong>
+      <span>${game.black} 先手 / ${game.white} 後手</span>
+      <span>${game.plies} 手，${game.reason}</span>
+    `;
+    button.innerHTML = `
+      <strong>第 ${game.game} 盤：${engineResultText(game)}</strong>
+      <span>先手 ${game.black} / 後手 ${game.white}</span>
+      <span>${game.plies} 手，${game.reason}</span>
+    `;
+    matchGameList.appendChild(button);
+  });
+}
+
+async function renderMatchReplay() {
+  const game = modelMatchResult?.results?.[selectedMatchGameIndex];
+  if (!game) {
+    matchBoard.innerHTML = "";
+    matchBlackHands.innerHTML = "";
+    matchWhiteHands.innerHTML = "";
+    matchReplayTitle.textContent = "尚未選擇對局";
+    matchReplayStatus.textContent = "0 / 0";
+    matchPlyStatus.textContent = "0 / 0";
+    matchLastMove.textContent = "尚未開始";
+    matchMoveList.innerHTML = "";
+    return;
+  }
+  matchReplayPly = Math.max(0, Math.min(matchReplayPly, game.moves.length));
+  const state = await postJson("/api/self-play/state", {
+    moves: game.moves.slice(0, matchReplayPly),
+  });
+  matchReplayTitle.textContent = `第 ${game.game} 盤：${engineResultText(game)}`;
+  matchReplayStatus.textContent = `${matchReplayPly} / ${game.moves.length}`;
+  matchBlackLabel.textContent = game.black;
+  matchWhiteLabel.textContent = game.white;
+  renderBoardInto(matchBoard, state);
+  renderHandsInto(matchBlackHands, state.hands["+"] || {}, state);
+  renderHandsInto(matchWhiteHands, state.hands["-"] || {}, state);
+  matchPlyStatus.textContent = `${matchReplayPly} / ${game.moves.length}`;
+  matchLastMove.textContent = state.lastMove ? formatMoveNotation(state.lastMove) : "初始局面";
+  matchFirstBtn.disabled = matchReplayPly === 0;
+  matchPrevBtn.disabled = matchReplayPly === 0;
+  matchNextBtn.disabled = matchReplayPly >= game.moves.length;
+  matchLastBtn.disabled = matchReplayPly >= game.moves.length;
+  matchMoveList.innerHTML = "";
+  state.moves.forEach((move) => {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "move-row";
+    row.dataset.ply = String(move.ply);
+    row.innerHTML = `<span class="move-jump">${formatMoveNotation(move)}</span>`;
+    matchMoveList.appendChild(row);
+  });
+}
+
+function setMatchRunButtons(disabled, text) {
+  for (const button of [runModelMatchBtn, runEngineMatchBtn]) {
+    if (!button) {
+      continue;
+    }
+    button.disabled = disabled;
+    button.textContent = text;
+  }
+}
+
+async function runModelMatch() {
+  if (modelMatchRunning) {
+    return;
+  }
+  modelMatchRunning = true;
+  setMatchRunButtons(true, "對戰中...");
+  if (engineMatchMeta) {
+    engineMatchMeta.textContent = "正在讓兩組引擎對奕，盤數或時間較高時會需要稍等。";
+  }
+  runModelMatchBtn.disabled = true;
+  runModelMatchBtn.textContent = "對戰中...";
+  modelMatchMeta.textContent = "模型正在對弈，盤數與每手時間越高會越久。";
+  try {
+    const data = await postJson("/api/model-match/run", {
+      engineA: {
+        name: engineAName.value,
+        model: engineAModelSelect.value,
+        depth: Number(engineADepth.value),
+        timeLimitMs: Number(engineATimeLimit.value),
+        policyOrderPly: Number(engineAPolicyOrderPly.value),
+      },
+      engineB: {
+        name: engineBName.value,
+        model: engineBModelSelect.value,
+        depth: Number(engineBDepth.value),
+        timeLimitMs: Number(engineBTimeLimit.value),
+        policyOrderPly: Number(engineBPolicyOrderPly.value),
+      },
+      games: Number(engineMatchGames.value),
+      maxPlies: Number(engineMatchMaxPlies.value),
+      adjudicateScore: Number(engineMatchAdjudicateScore.value),
+    });
+    modelMatchResult = data.match;
+    selectedMatchGameIndex = modelMatchResult.results.length ? 0 : -1;
+    matchReplayPly = 0;
+    renderMatchSummary(modelMatchResult);
+    renderMatchGameList();
+    await renderMatchReplay();
+    if (engineMatchMeta) {
+      engineMatchMeta.textContent = `完成 ${modelMatchResult.games} 盤對戰。`;
+    }
+    modelMatchMeta.textContent = `完成 ${modelMatchResult.games} 盤。`;
+  } catch (error) {
+    if (engineMatchMeta) {
+      engineMatchMeta.textContent = error.message;
+    }
+    modelMatchMeta.textContent = error.message;
+  } finally {
+    modelMatchRunning = false;
+    setMatchRunButtons(false, "開始對戰");
+    runModelMatchBtn.disabled = false;
+    runModelMatchBtn.textContent = "開始對戰";
+  }
+}
+
 browserTab.addEventListener("click", () => {
   setActiveMode("browser");
 });
@@ -882,6 +1133,13 @@ aiPlayTab.addEventListener("click", async () => {
   if (!aiPlayLoaded) {
     await loadAiPlayState();
     await maybeRequestAiMove();
+  }
+});
+
+modelMatchTab.addEventListener("click", async () => {
+  setActiveMode("model-match");
+  if (!modelMatchLoaded) {
+    await loadModelMatchModels();
   }
 });
 
@@ -1113,6 +1371,57 @@ resignAiPlayBtn.addEventListener("click", async () => {
   await loadAiPlayState();
 });
 
+runModelMatchBtn.addEventListener("click", async () => {
+  await runModelMatch();
+});
+
+if (runEngineMatchBtn) {
+  runEngineMatchBtn.addEventListener("click", async () => {
+    await runModelMatch();
+  });
+}
+
+matchGameList.addEventListener("click", async (event) => {
+  const row = event.target.closest(".match-game-row");
+  if (!row) {
+    return;
+  }
+  selectedMatchGameIndex = Number(row.dataset.index);
+  matchReplayPly = 0;
+  renderMatchGameList();
+  await renderMatchReplay();
+});
+
+matchMoveList.addEventListener("click", async (event) => {
+  const row = event.target.closest(".move-row");
+  if (!row) {
+    return;
+  }
+  matchReplayPly = Number(row.dataset.ply);
+  await renderMatchReplay();
+});
+
+matchFirstBtn.addEventListener("click", async () => {
+  matchReplayPly = 0;
+  await renderMatchReplay();
+});
+
+matchPrevBtn.addEventListener("click", async () => {
+  matchReplayPly -= 1;
+  await renderMatchReplay();
+});
+
+matchNextBtn.addEventListener("click", async () => {
+  matchReplayPly += 1;
+  await renderMatchReplay();
+});
+
+matchLastBtn.addEventListener("click", async () => {
+  const game = modelMatchResult?.results?.[selectedMatchGameIndex];
+  matchReplayPly = game ? game.moves.length : 0;
+  await renderMatchReplay();
+});
+
 document.addEventListener("keydown", async (event) => {
   if (isFormControl(event.target)) {
     return;
@@ -1129,6 +1438,30 @@ document.addEventListener("keydown", async (event) => {
     }
     if (event.key === "End") {
       await loadPosition(maxPly);
+    }
+    return;
+  }
+
+  if (activeMode === "model-match") {
+    const game = modelMatchResult?.results?.[selectedMatchGameIndex];
+    if (!game) {
+      return;
+    }
+    if (event.key === "ArrowLeft" && matchReplayPly > 0) {
+      matchReplayPly -= 1;
+      await renderMatchReplay();
+    }
+    if (event.key === "ArrowRight" && matchReplayPly < game.moves.length) {
+      matchReplayPly += 1;
+      await renderMatchReplay();
+    }
+    if (event.key === "Home") {
+      matchReplayPly = 0;
+      await renderMatchReplay();
+    }
+    if (event.key === "End") {
+      matchReplayPly = game.moves.length;
+      await renderMatchReplay();
     }
     return;
   }
