@@ -17,7 +17,14 @@ from urllib.parse import parse_qs, unquote, urlparse
 
 import cshogi
 from ai_search import evaluate_position, search_best_move
-from compare_ai_models import load_engine, play_game, summarize
+from compare_ai_models import (
+    MatchEngine,
+    adjudicate_max_plies,
+    load_engine,
+    play_game,
+    summarize,
+    terminal_result,
+)
 from policy_model import PolicyValuePredictor
 
 try:
@@ -1187,6 +1194,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     source: GameSource
     policy_predictor: PolicyValuePredictor | None = None
     opening_book: OpeningBook | None = None
+    match_engine_cache: dict[tuple[str, str, int, int, int], MatchEngine] = {}
     value_weight = 0
     policy_order_ply = 2
 
@@ -1365,6 +1373,10 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                 }
             )
             return
+        if parsed.path == "/api/model-match/step":
+            payload = self.read_json_body()
+            self.send_json(self.run_model_match_step(payload))
+            return
         if parsed.path == "/api/model-match/run":
             payload = self.read_json_body()
             self.send_json({"match": self.run_model_match(payload)})
@@ -1528,28 +1540,23 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             return None
         return self.resolve_model_path(text)
 
-    def run_model_match(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def parse_model_match_config(self, payload: dict[str, Any]) -> dict[str, Any]:
         engine_a_payload = payload.get("engineA") if isinstance(payload.get("engineA"), dict) else {}
         engine_b_payload = payload.get("engineB") if isinstance(payload.get("engineB"), dict) else {}
-        games = self.clamp_int(payload.get("games", 2), 1, 10, "games")
-        max_plies = self.clamp_int(payload.get("maxPlies", 120), 10, 256, "maxPlies")
-        adjudicate_score = self.clamp_int(payload.get("adjudicateScore", 1000), 0, 10000, "adjudicateScore")
         new_model = self.resolve_optional_model_path(engine_a_payload.get("model", payload.get("newModel")))
         old_model = self.resolve_optional_model_path(engine_b_payload.get("model", payload.get("oldModel")))
         new_name = str(engine_a_payload.get("name") or payload.get("newName") or "Engine A").strip() or "Engine A"
         old_name = str(engine_b_payload.get("name") or payload.get("oldName") or "Engine B").strip() or "Engine B"
         new_depth = self.clamp_int(engine_a_payload.get("depth", payload.get("depth", 2)), 1, 5, "engineA.depth")
         old_depth = self.clamp_int(engine_b_payload.get("depth", payload.get("depth", 2)), 1, 5, "engineB.depth")
-        new_time_limit_ms = self.clamp_int(
+        new_time_limit_ms = self.min_int(
             engine_a_payload.get("timeLimitMs", payload.get("timeLimitMs", 300)),
             50,
-            2000,
             "engineA.timeLimitMs",
         )
-        old_time_limit_ms = self.clamp_int(
+        old_time_limit_ms = self.min_int(
             engine_b_payload.get("timeLimitMs", payload.get("timeLimitMs", 300)),
             50,
-            2000,
             "engineB.timeLimitMs",
         )
         new_policy_order_ply = self.clamp_int(
@@ -1564,25 +1571,195 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             5,
             "engineB.policyOrderPly",
         )
+        return {
+            "games": self.clamp_int(payload.get("games", 2), 1, 10, "games"),
+            "max_plies": self.clamp_int(payload.get("maxPlies", 120), 10, 256, "maxPlies"),
+            "adjudicate_score": self.clamp_int(payload.get("adjudicateScore", 1000), 0, 10000, "adjudicateScore"),
+            "new_name": new_name,
+            "old_name": old_name,
+            "new_model": new_model,
+            "old_model": old_model,
+            "new_depth": new_depth,
+            "old_depth": old_depth,
+            "new_time_limit_ms": new_time_limit_ms,
+            "old_time_limit_ms": old_time_limit_ms,
+            "new_policy_order_ply": new_policy_order_ply,
+            "old_policy_order_ply": old_policy_order_ply,
+        }
 
-        old_engine = load_engine(
-            old_name,
-            old_model,
-            old_model is None,
-            depth=old_depth,
-            time_limit_ms=old_time_limit_ms,
-            policy_order_ply=old_policy_order_ply,
+    def cached_match_engine(
+        self,
+        name: str,
+        model: Path | None,
+        depth: int,
+        time_limit_ms: int,
+        policy_order_ply: int,
+    ) -> MatchEngine:
+        key = (name, str(model or ""), depth, time_limit_ms, policy_order_ply)
+        engine = self.match_engine_cache.get(key)
+        if engine is None:
+            engine = load_engine(
+                name,
+                model,
+                model is None,
+                depth=depth,
+                time_limit_ms=time_limit_ms,
+                policy_order_ply=policy_order_ply,
+            )
+            self.match_engine_cache[key] = engine
+        return engine
+
+    def model_match_settings_payload(self, config: dict[str, Any]) -> dict[str, Any]:
+        new_model = config["new_model"]
+        old_model = config["old_model"]
+        return {
+            "engineA": {
+                "name": config["new_name"],
+                "model": str(new_model.relative_to(ROOT)).replace("\\", "/") if new_model else "",
+                "depth": config["new_depth"],
+                "timeLimitMs": config["new_time_limit_ms"],
+                "policyOrderPly": config["new_policy_order_ply"],
+            },
+            "engineB": {
+                "name": config["old_name"],
+                "model": str(old_model.relative_to(ROOT)).replace("\\", "/") if old_model else "",
+                "depth": config["old_depth"],
+                "timeLimitMs": config["old_time_limit_ms"],
+                "policyOrderPly": config["old_policy_order_ply"],
+            },
+            "games": config["games"],
+            "maxPlies": config["max_plies"],
+            "adjudicateScore": config["adjudicate_score"],
+        }
+
+    def run_model_match_step(self, payload: dict[str, Any]) -> dict[str, Any]:
+        config = self.parse_model_match_config(payload)
+        game_index = self.clamp_int(payload.get("game", 1), 1, config["games"], "game")
+        moves = self.parse_moves_payload(payload)
+        if len(moves) > config["max_plies"]:
+            raise ValueError("moves exceeds maxPlies")
+
+        new_engine = self.cached_match_engine(
+            config["new_name"],
+            config["new_model"],
+            config["new_depth"],
+            config["new_time_limit_ms"],
+            config["new_policy_order_ply"],
         )
-        new_engine = load_engine(
-            new_name,
-            new_model,
-            new_model is None,
-            depth=new_depth,
-            time_limit_ms=new_time_limit_ms,
-            policy_order_ply=new_policy_order_ply,
+        old_engine = self.cached_match_engine(
+            config["old_name"],
+            config["old_model"],
+            config["old_depth"],
+            config["old_time_limit_ms"],
+            config["old_policy_order_ply"],
+        )
+        if game_index % 2 == 1:
+            black_engine, white_engine = new_engine, old_engine
+        else:
+            black_engine, white_engine = old_engine, new_engine
+
+        raw_scores = payload.get("scores") if isinstance(payload.get("scores"), dict) else {}
+        scores = {
+            config["new_name"]: float(raw_scores.get(config["new_name"], 0) or 0),
+            config["old_name"]: float(raw_scores.get(config["old_name"], 0) or 0),
+        }
+        board, records, position_counts, max_repetition_count = replay_usi_moves(moves)
+
+        result = "running"
+        reason = "playing"
+        winner_side: str | None = None
+        search_payload: dict[str, Any] | None = None
+
+        terminal = terminal_result(board)
+        if terminal is not None:
+            result, winner_side, _, reason = terminal
+        elif max_repetition_count >= 4:
+            result = "draw"
+            reason = "sennichite"
+        elif len(moves) >= config["max_plies"]:
+            result, winner_side, reason = adjudicate_max_plies(board, config["adjudicate_score"])
+        else:
+            engine = black_engine if board.turn == cshogi.BLACK else white_engine
+            search = search_best_move(
+                board,
+                position_counts,
+                engine.depth,
+                engine.time_limit_ms,
+                move_orderer=engine.order_moves if engine.predictor is not None else None,
+                move_orderer_max_ply=engine.policy_order_ply,
+            )
+            search_payload = {
+                "engine": engine.name,
+                "score": search.score,
+                "depth": search.depth,
+                "nodes": search.nodes,
+                "timedOut": search.timed_out,
+                "pv": [cshogi.move_to_usi(move) for move in search.pv],
+            }
+            if search.move is None:
+                result = "draw"
+                reason = "no selected move"
+            else:
+                scores[engine.name] = scores.get(engine.name, 0.0) + search.score
+                moves = [*moves, cshogi.move_to_usi(search.move)]
+                records.append(move_record_from_usi(board, search.move, len(records) + 1))
+                board.push(search.move)
+                key = repetition_key(board)
+                position_counts[key] = position_counts.get(key, 0) + 1
+                max_repetition_count = max(max_repetition_count, position_counts[key])
+
+                terminal = terminal_result(board)
+                if terminal is not None:
+                    result, winner_side, _, reason = terminal
+                elif max_repetition_count >= 4:
+                    result = "draw"
+                    reason = "sennichite"
+                elif len(moves) >= config["max_plies"]:
+                    result, winner_side, reason = adjudicate_max_plies(board, config["adjudicate_score"])
+
+        winner_name = None
+        if winner_side is not None:
+            winner_name = black_engine.name if winner_side == "black" else white_engine.name
+
+        game = {
+            "game": game_index,
+            "black": black_engine.name,
+            "white": white_engine.name,
+            "result": result,
+            "winner": winner_name,
+            "winner_side": winner_side,
+            "plies": len(moves),
+            "reason": reason,
+            "moves": moves,
+            "new_score": scores.get(config["new_name"], 0.0),
+            "old_score": scores.get(config["old_name"], 0.0),
+        }
+        return {
+            "game": game,
+            "state": serialize_self_play_state(board, records, max_repetition_count),
+            "done": result != "running",
+            "scores": scores,
+            "search": search_payload,
+        }
+
+    def run_model_match(self, payload: dict[str, Any]) -> dict[str, Any]:
+        config = self.parse_model_match_config(payload)
+        old_engine = self.cached_match_engine(
+            config["old_name"],
+            config["old_model"],
+            config["old_depth"],
+            config["old_time_limit_ms"],
+            config["old_policy_order_ply"],
+        )
+        new_engine = self.cached_match_engine(
+            config["new_name"],
+            config["new_model"],
+            config["new_depth"],
+            config["new_time_limit_ms"],
+            config["new_policy_order_ply"],
         )
         results = []
-        for game_index in range(1, games + 1):
+        for game_index in range(1, config["games"] + 1):
             if game_index % 2 == 1:
                 black_engine, white_engine = new_engine, old_engine
             else:
@@ -1592,33 +1769,15 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                     game_index=game_index,
                     black_engine=black_engine,
                     white_engine=white_engine,
-                    new_name=new_name,
-                    old_name=old_name,
-                    max_plies=max_plies,
-                    adjudicate_score=adjudicate_score,
+                    new_name=config["new_name"],
+                    old_name=config["old_name"],
+                    max_plies=config["max_plies"],
+                    adjudicate_score=config["adjudicate_score"],
                 )
             )
         return {
-            **summarize(results, new_name, old_name),
-            "settings": {
-                "engineA": {
-                    "name": new_name,
-                    "model": str(new_model.relative_to(ROOT)).replace("\\", "/") if new_model else "",
-                    "depth": new_depth,
-                    "timeLimitMs": new_time_limit_ms,
-                    "policyOrderPly": new_policy_order_ply,
-                },
-                "engineB": {
-                    "name": old_name,
-                    "model": str(old_model.relative_to(ROOT)).replace("\\", "/") if old_model else "",
-                    "depth": old_depth,
-                    "timeLimitMs": old_time_limit_ms,
-                    "policyOrderPly": old_policy_order_ply,
-                },
-                "games": games,
-                "maxPlies": max_plies,
-                "adjudicateScore": adjudicate_score,
-            },
+            **summarize(results, config["new_name"], config["old_name"]),
+            "settings": self.model_match_settings_payload(config),
         }
 
     @staticmethod
@@ -1629,6 +1788,16 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             raise ValueError(f"{name} must be an integer") from exc
         if not minimum <= parsed <= maximum:
             raise ValueError(f"{name} must be between {minimum} and {maximum}")
+        return parsed
+
+    @staticmethod
+    def min_int(value: Any, minimum: int, name: str) -> int:
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{name} must be an integer") from exc
+        if parsed < minimum:
+            raise ValueError(f"{name} must be at least {minimum}")
         return parsed
 
     def serve_static(self, request_path: str) -> None:

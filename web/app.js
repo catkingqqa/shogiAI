@@ -981,7 +981,56 @@ function engineResultText(game) {
   if (!game) {
     return "";
   }
+  if (game.result === "running") {
+    return "對戰中";
+  }
   return game.winner ? `${game.winner} 勝` : "和棋";
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function buildModelMatchPayload() {
+  return {
+    engineA: {
+      name: engineAName.value.trim() || "Engine A",
+      model: engineAModelSelect.value,
+      depth: Number(engineADepth.value),
+      timeLimitMs: Number(engineATimeLimit.value),
+      policyOrderPly: Number(engineAPolicyOrderPly.value),
+    },
+    engineB: {
+      name: engineBName.value.trim() || "Engine B",
+      model: engineBModelSelect.value,
+      depth: Number(engineBDepth.value),
+      timeLimitMs: Number(engineBTimeLimit.value),
+      policyOrderPly: Number(engineBPolicyOrderPly.value),
+    },
+    games: Number(engineMatchGames.value),
+    maxPlies: Number(engineMatchMaxPlies.value),
+    adjudicateScore: Number(engineMatchAdjudicateScore.value),
+  };
+}
+
+function refreshLiveMatchSummary() {
+  if (!modelMatchResult) {
+    return;
+  }
+  const completed = modelMatchResult.results.filter((game) => game.result !== "running");
+  const newWins = completed.filter((game) => game.winner === modelMatchResult.new).length;
+  const oldWins = completed.filter((game) => game.winner === modelMatchResult.old).length;
+  const draws = completed.filter((game) => game.result === "draw").length;
+  modelMatchResult.new_wins = newWins;
+  modelMatchResult.old_wins = oldWins;
+  modelMatchResult.draws = draws;
+  modelMatchResult.new_score_rate = completed.length
+    ? (newWins + draws * 0.5) / completed.length
+    : 0;
+  modelMatchResult.average_plies = completed.length
+    ? completed.reduce((total, game) => total + game.plies, 0) / completed.length
+    : 0;
+  renderMatchSummary(modelMatchResult);
 }
 
 function renderMatchGameList() {
@@ -1066,45 +1115,94 @@ async function runModelMatch() {
   if (modelMatchRunning) {
     return;
   }
+  const matchPayload = buildModelMatchPayload();
+  const engineA = matchPayload.engineA.name;
+  const engineB = matchPayload.engineB.name;
   modelMatchRunning = true;
   setMatchRunButtons(true, "對戰中...");
   if (engineMatchMeta) {
-    engineMatchMeta.textContent = "正在讓兩組引擎對奕，盤數或時間較高時會需要稍等。";
+    engineMatchMeta.textContent = "正在讓兩組引擎對奕，棋盤會逐手更新。";
   }
   runModelMatchBtn.disabled = true;
   runModelMatchBtn.textContent = "對戰中...";
-  modelMatchMeta.textContent = "模型正在對弈，盤數與每手時間越高會越久。";
+  modelMatchMeta.textContent = "模型正在對弈，棋盤會同步顯示目前局面。";
+  modelMatchResult = {
+    games: matchPayload.games,
+    new: engineA,
+    old: engineB,
+    new_wins: 0,
+    old_wins: 0,
+    draws: 0,
+    new_score_rate: 0,
+    average_plies: 0,
+    results: [],
+    settings: matchPayload,
+  };
+  selectedMatchGameIndex = -1;
+  matchReplayPly = 0;
+  refreshLiveMatchSummary();
+  renderMatchGameList();
+  await renderMatchReplay();
   try {
-    const data = await postJson("/api/model-match/run", {
-      engineA: {
-        name: engineAName.value,
-        model: engineAModelSelect.value,
-        depth: Number(engineADepth.value),
-        timeLimitMs: Number(engineATimeLimit.value),
-        policyOrderPly: Number(engineAPolicyOrderPly.value),
-      },
-      engineB: {
-        name: engineBName.value,
-        model: engineBModelSelect.value,
-        depth: Number(engineBDepth.value),
-        timeLimitMs: Number(engineBTimeLimit.value),
-        policyOrderPly: Number(engineBPolicyOrderPly.value),
-      },
-      games: Number(engineMatchGames.value),
-      maxPlies: Number(engineMatchMaxPlies.value),
-      adjudicateScore: Number(engineMatchAdjudicateScore.value),
-    });
-    modelMatchResult = data.match;
-    selectedMatchGameIndex = modelMatchResult.results.length ? 0 : -1;
-    matchReplayPly = 0;
-    renderMatchSummary(modelMatchResult);
-    renderMatchGameList();
-    await renderMatchReplay();
-    if (engineMatchMeta) {
-      engineMatchMeta.textContent = `完成 ${modelMatchResult.games} 盤對戰。`;
+    for (let gameIndex = 1; gameIndex <= matchPayload.games; gameIndex += 1) {
+      const black = gameIndex % 2 === 1 ? engineA : engineB;
+      const white = gameIndex % 2 === 1 ? engineB : engineA;
+      let game = {
+        game: gameIndex,
+        black,
+        white,
+        result: "running",
+        winner: null,
+        winner_side: null,
+        plies: 0,
+        reason: "playing",
+        moves: [],
+        new_score: 0,
+        old_score: 0,
+      };
+      let scores = { [engineA]: 0, [engineB]: 0 };
+      modelMatchResult.results.push(game);
+      const resultIndex = modelMatchResult.results.length - 1;
+      selectedMatchGameIndex = resultIndex;
+      matchReplayPly = 0;
+      refreshLiveMatchSummary();
+      renderMatchGameList();
+      await renderMatchReplay();
+
+      while (game.result === "running") {
+        const data = await postJson("/api/model-match/step", {
+          ...matchPayload,
+          game: gameIndex,
+          moves: game.moves,
+          scores,
+        });
+        game = data.game;
+        scores = data.scores || scores;
+        modelMatchResult.results[resultIndex] = game;
+        selectedMatchGameIndex = resultIndex;
+        matchReplayPly = game.moves.length;
+        refreshLiveMatchSummary();
+        renderMatchGameList();
+        await renderMatchReplay();
+        if (engineMatchMeta) {
+          engineMatchMeta.textContent = `第 ${gameIndex} / ${matchPayload.games} 盤，第 ${game.plies} 手：${game.reason}`;
+        }
+        modelMatchMeta.textContent = `第 ${gameIndex} / ${matchPayload.games} 盤，第 ${game.plies} 手。`;
+        await sleep(80);
+      }
     }
-    modelMatchMeta.textContent = `完成 ${modelMatchResult.games} 盤。`;
+    if (engineMatchMeta) {
+      engineMatchMeta.textContent = `完成 ${modelMatchResult.results.length} 盤對戰。`;
+    }
+    modelMatchMeta.textContent = `完成 ${modelMatchResult.results.length} 盤。`;
   } catch (error) {
+    if (error.message === "not found") {
+      if (engineMatchMeta) {
+        engineMatchMeta.textContent = "目前執行中的後端是舊版，沒有逐手對戰 API。請關掉黑窗後重新開 start_csa_browser.bat。";
+      }
+      modelMatchMeta.textContent = "後端尚未載入即時對戰功能，所以棋盤只會停在初始局面。";
+      return;
+    }
     if (engineMatchMeta) {
       engineMatchMeta.textContent = error.message;
     }
