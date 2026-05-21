@@ -1,3 +1,4 @@
+"""功能：訓練 policy/value network，包含資料集、切分、驗證與 checkpoint 儲存流程。"""
 from __future__ import annotations
 
 import argparse
@@ -15,6 +16,7 @@ from policy_model import SmallPolicyValueNet
 
 
 class PolicyValueDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]):
+    """功能：定義 PolicyValueDataset 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     def __init__(
         self,
         states: np.ndarray,
@@ -23,6 +25,7 @@ class PolicyValueDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor,
         value_masks: np.ndarray,
         indices: np.ndarray,
     ) -> None:
+        """功能：初始化物件狀態與必要資源。"""
         self.states = states
         self.moves = moves
         self.values = values
@@ -30,9 +33,11 @@ class PolicyValueDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor,
         self.indices = indices
 
     def __len__(self) -> int:
+        """功能：處理 __len__ 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         return int(self.indices.size)
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """功能：處理 __getitem__ 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         sample_index = int(self.indices[index])
         state = torch.from_numpy(self.states[sample_index].astype(np.float32, copy=False))
         move = torch.tensor(int(self.moves[sample_index]), dtype=torch.long)
@@ -42,6 +47,7 @@ class PolicyValueDataset(Dataset[tuple[torch.Tensor, torch.Tensor, torch.Tensor,
 
 
 def parse_args() -> argparse.Namespace:
+    """功能：解析命令列參數，讓使用者可以調整輸入、輸出與執行選項。"""
     parser = argparse.ArgumentParser(description="Train a small policy/value network.")
     parser.add_argument("--input", required=True, type=Path, help="Policy dataset .npz")
     parser.add_argument("--output", required=True, type=Path, help="Model checkpoint path")
@@ -56,6 +62,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def split_by_game(game_ids: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """功能：處理 split_by_game 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     unique_games = sorted({int(game_id) for game_id in game_ids})
     rng = random.Random(seed)
     rng.shuffle(unique_games)
@@ -75,6 +82,7 @@ def split_by_game(game_ids: np.ndarray, seed: int) -> tuple[np.ndarray, np.ndarr
 
 
 def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dict[str, float]:
+    """功能：處理 evaluate 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if len(loader.dataset) == 0:
         return {
             "policy_loss": 0.0,
@@ -129,6 +137,7 @@ def evaluate(model: nn.Module, loader: DataLoader, device: torch.device) -> dict
 
 
 def main() -> int:
+    """功能：串接本檔案的主要執行流程。"""
     args = parse_args()
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)

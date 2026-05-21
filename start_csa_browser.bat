@@ -13,6 +13,7 @@ echo AI settings:
 echo   policy model: out\policy_model.pt
 echo   value weight: 0
 echo   policy order ply: 2
+echo   opening book: first 30 plies, min count 2
 echo.
 echo If the browser does not open automatically, visit:
 echo http://127.0.0.1:8000
@@ -30,7 +31,7 @@ REM Open the browser shortly after the server starts.
 start "" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Sleep -Seconds 1; Start-Process 'http://127.0.0.1:8000'"
 
 REM Start the Python API server and use MySQL as the game source.
-"%PYTHON_EXE%" src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source mysql --db-host 140.135.65.53 --db-port 3306 --db-user 11211213 --db-name DB11211213 --policy-model out\policy_model.pt --value-weight 0 --policy-order-ply 2
+"%PYTHON_EXE%" src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source mysql --db-host 140.135.65.53 --db-port 3306 --db-user 11211213 --db-password "%MYSQL_PASSWORD%" --db-name DB11211213 --policy-model out\policy_model.pt --value-weight 0 --policy-order-ply 2 --opening-book-ply 30 --opening-book-min-count 2
 
 echo.
 echo Server stopped.

@@ -1,3 +1,4 @@
+// 功能：快取三個模式分頁與主要畫面容器，後續切換模式時直接更新 class。
 const browserTab = document.querySelector("#browserTab");
 const selfPlayTab = document.querySelector("#selfPlayTab");
 const aiPlayTab = document.querySelector("#aiPlayTab");
@@ -5,6 +6,7 @@ const browserView = document.querySelector("#browserView");
 const selfPlayView = document.querySelector("#selfPlayView");
 const aiPlayView = document.querySelector("#aiPlayView");
 
+// 功能：棋譜瀏覽模式的 DOM 元件：棋局選單、棋盤、手數控制、持駒與搜尋條件。
 const gameSelect = document.querySelector("#gameSelect");
 const boardEl = document.querySelector("#board");
 const firstBtn = document.querySelector("#firstBtn");
@@ -34,6 +36,7 @@ const dbMoveCount = document.querySelector("#dbMoveCount");
 const dbPositionCount = document.querySelector("#dbPositionCount");
 const dbDuplicateCount = document.querySelector("#dbDuplicateCount");
 
+// 功能：自行對弈模式的 DOM 元件：棋盤、玩家名稱、結果、復原/重做與 CSA 下載。
 const selfPlayMeta = document.querySelector("#selfPlayMeta");
 const selfBoard = document.querySelector("#selfBoard");
 const selfBlackName = document.querySelector("#selfBlackName");
@@ -54,6 +57,7 @@ const selfMoveListCount = document.querySelector("#selfMoveListCount");
 const downloadCsaBtn = document.querySelector("#downloadCsaBtn");
 const resetSelfPlayBtn = document.querySelector("#resetSelfPlayBtn");
 
+// 功能：AI 對弈模式的 DOM 元件：玩家方、搜尋參數、搜尋統計、候選手與棋盤。
 const aiPlayMeta = document.querySelector("#aiPlayMeta");
 const aiPlayerSide = document.querySelector("#aiPlayerSide");
 const aiDepth = document.querySelector("#aiDepth");
@@ -77,6 +81,7 @@ const aiLastMove = document.querySelector("#aiLastMove");
 const aiMoveList = document.querySelector("#aiMoveList");
 const aiMoveListCount = document.querySelector("#aiMoveListCount");
 
+// 功能：全域 UI 狀態。瀏覽棋譜、自行對弈與 AI 對弈各自保存目前局面與選取狀態。
 let activeMode = "browser";
 let currentGameId = "";
 let currentPly = 0;
@@ -98,6 +103,7 @@ let aiPlayLoaded = false;
 let aiThinking = false;
 let aiResignedSide = null;
 
+// 功能：處理 fetchJson 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function fetchJson(url) {
   const response = await fetch(url);
   const data = await response.json();
@@ -107,6 +113,7 @@ async function fetchJson(url) {
   return data;
 }
 
+// 功能：處理 postJson 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function postJson(url, payload) {
   const response = await fetch(url, {
     method: "POST",
@@ -120,14 +127,17 @@ async function postJson(url, payload) {
   return data;
 }
 
+// 功能：處理 sideLabel 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function sideLabel(color) {
   return color === "+" ? "先手" : "後手";
 }
 
+// 功能：處理 formatNumber 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function formatNumber(value) {
   return Number(value || 0).toLocaleString("zh-TW");
 }
 
+// 功能：處理 renderDbStats 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderDbStats(stats) {
   dbSource.textContent = stats.database ? `${stats.source} / ${stats.database}` : stats.source;
   dbGameCount.textContent = formatNumber(stats.games);
@@ -137,6 +147,7 @@ function renderDbStats(stats) {
   dbDuplicateCount.textContent = formatNumber(stats.duplicateGroups);
 }
 
+// 功能：處理 loadDbStats 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function loadDbStats() {
   try {
     const data = await fetchJson("/api/db/stats");
@@ -148,6 +159,7 @@ async function loadDbStats() {
   }
 }
 
+// 功能：處理 formatMoveNotation 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function formatMoveNotation(move) {
   if (!move || !move.to || !move.label) {
     return move?.text || "";
@@ -156,6 +168,7 @@ function formatMoveNotation(move) {
   return `${move.ply}手目 ${sideLabel(move.color)}${move.to}${move.label}(${origin})`;
 }
 
+// 功能：處理 pieceClass 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function pieceClass(piece) {
   const classes = ["piece", piece.color === "+" ? "black" : "white"];
   if (piece.promoted) {
@@ -164,6 +177,7 @@ function pieceClass(piece) {
   return classes.join(" ");
 }
 
+// 功能：處理 setActiveMode 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function setActiveMode(mode) {
   activeMode = mode;
   browserTab.classList.toggle("active", mode === "browser");
@@ -174,10 +188,12 @@ function setActiveMode(mode) {
   aiPlayView.classList.toggle("active", mode === "ai-play");
 }
 
+// 功能：處理 markerStorageKey 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function markerStorageKey() {
   return `csa-browser-markers:${currentGameId}`;
 }
 
+// 功能：處理 getMarkedPlies 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function getMarkedPlies() {
   try {
     const raw = localStorage.getItem(markerStorageKey());
@@ -188,10 +204,12 @@ function getMarkedPlies() {
   }
 }
 
+// 功能：處理 saveMarkedPlies 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function saveMarkedPlies(markedPlies) {
   localStorage.setItem(markerStorageKey(), JSON.stringify([...markedPlies].sort((a, b) => a - b)));
 }
 
+// 功能：處理 toggleMarkedPly 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function toggleMarkedPly(ply) {
   const markedPlies = getMarkedPlies();
   if (markedPlies.has(ply)) {
@@ -205,6 +223,7 @@ function toggleMarkedPly(ply) {
   }
 }
 
+// 功能：處理 searchParams 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function searchParams() {
   const params = new URLSearchParams();
   const filters = [
@@ -223,6 +242,7 @@ function searchParams() {
   return params;
 }
 
+// 功能：處理 clearBoardState 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function clearBoardState(message) {
   currentGameId = "";
   currentPly = 0;
@@ -244,6 +264,7 @@ function clearBoardState(message) {
   lastBtn.disabled = true;
 }
 
+// 功能：處理 renderBoardInto 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderBoardInto(container, state, options = {}) {
   const selectedSquare = options.selectedSource?.type === "board" ? options.selectedSource.square : null;
   const legalTargets = new Set(options.legalTargets || []);
@@ -279,6 +300,7 @@ function renderBoardInto(container, state, options = {}) {
   }
 }
 
+// 功能：處理 renderHandsInto 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderHandsInto(container, hands, state, options = {}) {
   container.innerHTML = "";
   const legalDropPieces = new Set(options.legalDropPieces || []);
@@ -312,6 +334,7 @@ function renderHandsInto(container, hands, state, options = {}) {
   }
 }
 
+// 功能：處理 renderMeta 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderMeta(state) {
   const game = state.game;
   blackName.textContent = game.black || "先手";
@@ -321,6 +344,7 @@ function renderMeta(state) {
     .join(" · ") || game.name;
 }
 
+// 功能：處理 renderStatus 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderStatus(state) {
   currentPly = state.ply;
   maxPly = state.maxPly;
@@ -339,6 +363,7 @@ function renderStatus(state) {
   lastBtn.disabled = currentPly >= maxPly;
 }
 
+// 功能：處理 createMoveListItem 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function createMoveListItem(move, markedPlies) {
   const ply = Number(move.ply);
   const row = document.createElement("div");
@@ -370,6 +395,7 @@ function createMoveListItem(move, markedPlies) {
   return row;
 }
 
+// 功能：處理 keepActiveMoveVisible 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function keepActiveMoveVisible(container, activeItem) {
   if (!activeItem) {
     return;
@@ -388,6 +414,7 @@ function keepActiveMoveVisible(container, activeItem) {
   }
 }
 
+// 功能：處理 renderMoveList 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderMoveList(state) {
   moveList.innerHTML = "";
   const markedPlies = getMarkedPlies();
@@ -399,6 +426,7 @@ function renderMoveList(state) {
   keepActiveMoveVisible(moveList, moveList.querySelector(".move-row.active"));
 }
 
+// 功能：處理 renderState 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderState(state) {
   latestState = state;
   renderMeta(state);
@@ -409,6 +437,7 @@ function renderState(state) {
   renderMoveList(state);
 }
 
+// 功能：處理 loadPosition 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function loadPosition(ply) {
   if (!currentGameId) {
     return;
@@ -418,6 +447,7 @@ async function loadPosition(ply) {
   renderState(state);
 }
 
+// 功能：處理 loadGames 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function loadGames() {
   await loadDbStats();
   const params = searchParams();
@@ -449,6 +479,7 @@ async function loadGames() {
   await loadPosition(0);
 }
 
+// 功能：處理 legalMovesForSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function legalMovesForSelection() {
   if (!selfState || !selectedSelfSource) {
     return [];
@@ -459,6 +490,7 @@ function legalMovesForSelection() {
   return selfState.legalMoves.filter((move) => move.isDrop && move.piece === selectedSelfSource.piece);
 }
 
+// 功能：處理 legalDropPiecesForColor 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function legalDropPiecesForColor(color) {
   if (!selfState || selfState.turn !== color) {
     return [];
@@ -466,6 +498,7 @@ function legalDropPiecesForColor(color) {
   return selfState.legalMoves.filter((move) => move.isDrop).map((move) => move.piece);
 }
 
+// 功能：處理 aiLegalMovesForSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function aiLegalMovesForSelection() {
   if (!aiState || !aiSelectedSource) {
     return [];
@@ -476,6 +509,7 @@ function aiLegalMovesForSelection() {
   return aiState.legalMoves.filter((move) => move.isDrop && move.piece === aiSelectedSource.piece);
 }
 
+// 功能：處理 aiLegalDropPiecesForColor 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function aiLegalDropPiecesForColor(color) {
   if (!aiState || aiState.turn !== color || aiState.turn !== aiState.playerSide || aiThinking || aiState.isGameOver) {
     return [];
@@ -483,6 +517,7 @@ function aiLegalDropPiecesForColor(color) {
   return aiState.legalMoves.filter((move) => move.isDrop).map((move) => move.piece);
 }
 
+// 功能：處理 renderSelfPlayState 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderSelfPlayState(state) {
   selfState = state;
   syncAutomaticSelfPlayResult(state);
@@ -526,6 +561,7 @@ function renderSelfPlayState(state) {
   renderSelfMoveList(state);
 }
 
+// 功能：處理 aiResultLabel 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function aiResultLabel(state) {
   if (state.result === "checkmate") {
     return `${sideLabel(state.winner)}勝 · 將死`;
@@ -539,14 +575,22 @@ function aiResultLabel(state) {
   return "";
 }
 
+// 功能：處理 renderAiSearch 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderAiSearch(search, valueEstimate) {
-  aiScore.textContent = search ? String(search.score) : "-";
-  aiSearchDepth.textContent = search ? String(search.depth) : "-";
-  aiNodes.textContent = search ? String(search.nodes) : "-";
+  if (search?.source === "openingBook") {
+    aiScore.textContent = `Book ${Math.round((search.bookRate || 0) * 100)}%`;
+    aiSearchDepth.textContent = "Book";
+    aiNodes.textContent = `${search.bookCount || 0}/${search.bookTotal || 0}`;
+  } else {
+    aiScore.textContent = search ? String(search.score) : "-";
+    aiSearchDepth.textContent = search ? String(search.depth) : "-";
+    aiNodes.textContent = search ? String(search.nodes) : "-";
+  }
   aiValue.textContent = valueEstimate == null ? "-" : valueEstimate.toFixed(3);
   aiPv.textContent = search?.pv?.length ? search.pv.join(" ") : "-";
 }
 
+// 功能：處理 renderAiCandidates 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderAiCandidates(candidates) {
   aiCandidateList.innerHTML = "";
   aiCandidateCount.textContent = `${candidates.length} 手`;
@@ -570,6 +614,7 @@ function renderAiCandidates(candidates) {
   }
 }
 
+// 功能：處理 renderAiPlayState 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderAiPlayState(state) {
   aiState = state;
   const legalMoves = aiLegalMovesForSelection();
@@ -608,6 +653,7 @@ function renderAiPlayState(state) {
   renderAiMoveList(state);
 }
 
+// 功能：處理 syncAutomaticSelfPlayResult 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function syncAutomaticSelfPlayResult(state) {
   if (state.isSennichite && !selfResultManuallySet) {
     selfResult.value = "SENNICHITE";
@@ -620,6 +666,7 @@ function syncAutomaticSelfPlayResult(state) {
   }
 }
 
+// 功能：處理 createPlainMoveListItem 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function createPlainMoveListItem(move, ply, activePly) {
   const row = document.createElement("div");
   row.className = "move-row";
@@ -636,6 +683,7 @@ function createPlainMoveListItem(move, ply, activePly) {
   return row;
 }
 
+// 功能：處理 renderSelfMoveList 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderSelfMoveList(state) {
   selfMoveList.innerHTML = "";
   selfMoveListCount.textContent = `${selfMoves.length} 手 · 可還原 ${selfRedoMoves.length}`;
@@ -646,6 +694,7 @@ function renderSelfMoveList(state) {
   keepActiveMoveVisible(selfMoveList, selfMoveList.querySelector(".move-row.active"));
 }
 
+// 功能：處理 renderAiMoveList 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderAiMoveList(state) {
   aiMoveList.innerHTML = "";
   aiMoveListCount.textContent = `${aiMoves.length} 手`;
@@ -656,6 +705,7 @@ function renderAiMoveList(state) {
   keepActiveMoveVisible(aiMoveList, aiMoveList.querySelector(".move-row.active"));
 }
 
+// 功能：處理 loadSelfPlayState 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function loadSelfPlayState() {
   const state = await postJson("/api/self-play/state", { moves: selfMoves });
   selectedSelfSource = null;
@@ -663,6 +713,7 @@ async function loadSelfPlayState() {
   renderSelfPlayState(state);
 }
 
+// 功能：處理 loadAiPlayState 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function loadAiPlayState() {
   const state = await postJson("/api/ai-play/state", {
     moves: aiMoves,
@@ -674,6 +725,7 @@ async function loadAiPlayState() {
   renderAiPlayState(state);
 }
 
+// 功能：處理 undoSelfPlay 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function undoSelfPlay(count = 1) {
   for (let index = 0; index < count && selfMoves.length > 0; index += 1) {
     selfRedoMoves.unshift(selfMoves.pop());
@@ -681,6 +733,7 @@ async function undoSelfPlay(count = 1) {
   await loadSelfPlayState();
 }
 
+// 功能：處理 redoSelfPlay 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function redoSelfPlay(count = 1) {
   for (let index = 0; index < count && selfRedoMoves.length > 0; index += 1) {
     selfMoves.push(selfRedoMoves.shift());
@@ -688,17 +741,20 @@ async function redoSelfPlay(count = 1) {
   await loadSelfPlayState();
 }
 
+// 功能：處理 rewindSelfPlayTo 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function rewindSelfPlayTo(ply) {
   const targetPly = Math.max(0, Math.min(selfMoves.length, ply));
   await undoSelfPlay(selfMoves.length - targetPly);
 }
 
+// 功能：處理 commitSelfMove 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function commitSelfMove(usi) {
   selfMoves.push(usi);
   selfRedoMoves = [];
   await loadSelfPlayState();
 }
 
+// 功能：處理 maybeRequestAiMove 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function maybeRequestAiMove() {
   if (!aiState || aiState.isGameOver || aiState.turn === aiState.playerSide || aiThinking) {
     return;
@@ -721,6 +777,7 @@ async function maybeRequestAiMove() {
   renderAiPlayState(aiState);
 }
 
+// 功能：處理 commitAiMove 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 async function commitAiMove(usi) {
   aiMoves.push(usi);
   aiSelectedSource = null;
@@ -728,6 +785,7 @@ async function commitAiMove(usi) {
   await maybeRequestAiMove();
 }
 
+// 功能：處理 chooseMoveCandidate 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function chooseMoveCandidate(candidates) {
   if (candidates.length <= 1) {
     return candidates[0] || null;
@@ -740,6 +798,7 @@ function chooseMoveCandidate(candidates) {
   return candidates[0];
 }
 
+// 功能：處理 selfBoardPieceAt 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function selfBoardPieceAt(square) {
   if (!selfState) {
     return null;
@@ -753,6 +812,7 @@ function selfBoardPieceAt(square) {
   return null;
 }
 
+// 功能：處理 aiBoardPieceAt 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function aiBoardPieceAt(square) {
   if (!aiState) {
     return null;
@@ -766,18 +826,21 @@ function aiBoardPieceAt(square) {
   return null;
 }
 
+// 功能：處理 renderSelfSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderSelfSelection() {
   if (selfState) {
     renderSelfPlayState(selfState);
   }
 }
 
+// 功能：處理 renderAiSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderAiSelection() {
   if (aiState) {
     renderAiPlayState(aiState);
   }
 }
 
+// 功能：處理 downloadTextFile 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function downloadTextFile(fileName, text) {
   const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -788,18 +851,21 @@ function downloadTextFile(fileName, text) {
   URL.revokeObjectURL(url);
 }
 
+// 功能：處理 selfPlayFileName 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function selfPlayFileName() {
   const now = new Date();
   const pad = (value) => String(value).padStart(2, "0");
   return `self-play-${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.csa`;
 }
 
+// 功能：處理 isFormControl 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function isFormControl(element) {
   return element instanceof HTMLInputElement
     || element instanceof HTMLTextAreaElement
     || element instanceof HTMLSelectElement;
 }
 
+// 功能：事件綁定區：把使用者在分頁、棋盤、持駒、按鈕與鍵盤上的操作轉成狀態更新或 API 呼叫。
 browserTab.addEventListener("click", () => {
   setActiveMode("browser");
 });

@@ -1,3 +1,4 @@
+"""功能：實作將棋 AI 搜尋核心，結合局面評估、alpha-beta 剪枝與走法排序。"""
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
@@ -65,11 +66,13 @@ MOBILITY_WEIGHTS = {
 
 
 class SearchTimeout(Exception):
+    """功能：定義 SearchTimeout 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     pass
 
 
 @dataclass(frozen=True)
 class SearchResult:
+    """功能：定義 SearchResult 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     move: int | None
     score: int
     depth: int
@@ -80,6 +83,7 @@ class SearchResult:
 
 @dataclass(frozen=True)
 class TTEntry:
+    """功能：定義 TTEntry 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     depth: int
     score: int
     flag: int
@@ -88,6 +92,7 @@ class TTEntry:
 
 @dataclass
 class SearchContext:
+    """功能：定義 SearchContext 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     deadline: float | None
     move_orderer: Callable[[cshogi.Board, Iterable[int]], Iterable[int]] | None
     evaluator: Callable[[cshogi.Board], int] | None
@@ -100,10 +105,12 @@ class SearchContext:
 
 
 def repetition_key(board: cshogi.Board) -> str:
+    """功能：處理 repetition_key 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return " ".join(board.sfen().split()[:3])
 
 
 def evaluate_material(board: cshogi.Board) -> int:
+    """功能：處理 evaluate_material 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     score = 0
     for square, piece in enumerate(board.pieces):
         if piece == cshogi.NONE:
@@ -120,12 +127,14 @@ def evaluate_material(board: cshogi.Board) -> int:
 
 
 def piece_color(piece: int) -> int | None:
+    """功能：處理 piece_color 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if piece == cshogi.NONE:
         return None
     return cshogi.WHITE if piece >= 17 else cshogi.BLACK
 
 
 def oriented_coords(square: int, color: int) -> tuple[int, int]:
+    """功能：處理 oriented_coords 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     file_index, rank_index = divmod(square, 9)
     if color == cshogi.WHITE:
         return 8 - file_index, 8 - rank_index
@@ -133,6 +142,7 @@ def oriented_coords(square: int, color: int) -> tuple[int, int]:
 
 
 def piece_square_bonus(square: int, piece_type: int, color: int) -> int:
+    """功能：處理 piece_square_bonus 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     file_index, rank_index = oriented_coords(square, color)
     progress = 8 - rank_index
     center = 4 - abs(file_index - 4)
@@ -162,12 +172,14 @@ def piece_square_bonus(square: int, piece_type: int, color: int) -> int:
 
 
 def manhattan_distance(first: int, second: int) -> int:
+    """功能：處理 manhattan_distance 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     first_file, first_rank = divmod(first, 9)
     second_file, second_rank = divmod(second, 9)
     return abs(first_file - second_file) + abs(first_rank - second_rank)
 
 
 def promotion_zone_bonus(square: int, piece_type: int, color: int) -> int:
+    """功能：處理 promotion_zone_bonus 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     _, rank_index = oriented_coords(square, color)
     progress = 8 - rank_index
     if piece_type in PROMOTABLE_TYPES and progress >= 6:
@@ -180,11 +192,13 @@ def promotion_zone_bonus(square: int, piece_type: int, color: int) -> int:
 
 
 def center_file_bonus(square: int, color: int) -> int:
+    """功能：處理 center_file_bonus 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     file_index, _ = oriented_coords(square, color)
     return 4 - abs(file_index - 4)
 
 
 def side_pseudo_moves(board: cshogi.Board, color: int) -> list[int]:
+    """功能：處理 side_pseudo_moves 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if board.turn == color:
         return list(board.pseudo_legal_moves)
     copy = board.copy()
@@ -193,6 +207,7 @@ def side_pseudo_moves(board: cshogi.Board, color: int) -> list[int]:
 
 
 def attack_counts(board: cshogi.Board, color: int) -> list[int]:
+    """功能：處理 attack_counts 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     attacks = [0] * 81
     for move in side_pseudo_moves(board, color):
         if cshogi.move_is_drop(move):
@@ -202,6 +217,7 @@ def attack_counts(board: cshogi.Board, color: int) -> list[int]:
 
 
 def mobility_score(board: cshogi.Board, color: int) -> int:
+    """功能：處理 mobility_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     score = 0
     for move in side_pseudo_moves(board, color):
         if cshogi.move_is_drop(move):
@@ -212,6 +228,7 @@ def mobility_score(board: cshogi.Board, color: int) -> int:
 
 
 def king_ring(square: int) -> list[int]:
+    """功能：處理 king_ring 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     file_index, rank_index = divmod(square, 9)
     ring = []
     for file_delta in (-1, 0, 1):
@@ -231,6 +248,7 @@ def king_safety_score(
     own_attacks: list[int],
     enemy_attacks: list[int],
 ) -> int:
+    """功能：處理 king_safety_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     square = board.king_square(color)
     file_index, rank_index = oriented_coords(square, color)
     score = 0
@@ -264,6 +282,7 @@ def king_safety_score(
 
 
 def ray_squares(square: int, file_delta: int, rank_delta: int) -> list[int]:
+    """功能：處理 ray_squares 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     file_index, rank_index = divmod(square, 9)
     ray = []
     file_index += file_delta
@@ -276,6 +295,7 @@ def ray_squares(square: int, file_delta: int, rank_delta: int) -> list[int]:
 
 
 def king_line_pressure(board: cshogi.Board, color: int) -> int:
+    """功能：處理 king_line_pressure 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     king = board.king_square(color)
     enemy = cshogi.WHITE if color == cshogi.BLACK else cshogi.BLACK
     pressure = 0
@@ -308,6 +328,7 @@ def hanging_piece_score(
     own_attacks: list[int],
     enemy_attacks: list[int],
 ) -> int:
+    """功能：處理 hanging_piece_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     penalty = 0
     for square, piece in enumerate(board.pieces):
         if piece_color(int(piece)) != color:
@@ -326,6 +347,7 @@ def hanging_piece_score(
 
 
 def hand_pressure_score(board: cshogi.Board, color: int) -> int:
+    """功能：處理 hand_pressure_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     enemy_king = board.king_square(cshogi.WHITE if color == cshogi.BLACK else cshogi.BLACK)
     ring = king_ring(enemy_king)
     open_ring_squares = sum(1 for square in ring if board.pieces[square] == cshogi.NONE)
@@ -347,6 +369,7 @@ def piece_efficiency_score(
     own_attacks: list[int],
     enemy_attacks: list[int],
 ) -> int:
+    """功能：處理 piece_efficiency_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     enemy_king = board.king_square(cshogi.WHITE if color == cshogi.BLACK else cshogi.BLACK)
     score = 0
     for square, piece in enumerate(board.pieces):
@@ -364,6 +387,7 @@ def piece_efficiency_score(
 
 
 def evaluate_position(board: cshogi.Board) -> int:
+    """功能：處理 evaluate_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     black_attacks = attack_counts(board, cshogi.BLACK)
     white_attacks = attack_counts(board, cshogi.WHITE)
 
@@ -400,10 +424,12 @@ def evaluate_position(board: cshogi.Board) -> int:
 
 
 def evaluate(board: cshogi.Board, evaluator: Callable[[cshogi.Board], int] | None) -> int:
+    """功能：處理 evaluate 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return evaluator(board) if evaluator is not None else evaluate_position(board)
 
 
 def tactical_score(board: cshogi.Board, move: int) -> int:
+    """功能：處理 tactical_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     score = 0
     captured_type = int(cshogi.move_cap(move))
     if captured_type:
@@ -415,6 +441,7 @@ def tactical_score(board: cshogi.Board, move: int) -> int:
 
 
 def is_quiet_move(move: int) -> bool:
+    """功能：處理 is_quiet_move 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return int(cshogi.move_cap(move)) == 0 and not cshogi.move_is_promotion(move)
 
 
@@ -425,6 +452,7 @@ def ordered_moves(
     ply: int,
     tt_move: int | None,
 ) -> list[int]:
+    """功能：處理 ordered_moves 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if context.move_orderer is not None and ply < context.move_orderer_max_ply:
         preferred = list(context.move_orderer(board, legal_moves))
         policy_rank = {move: index for index, move in enumerate(preferred)}
@@ -446,6 +474,7 @@ def ordered_moves(
 
 
 def terminal_score(board: cshogi.Board, ply: int) -> int | None:
+    """功能：處理 terminal_score 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     legal_moves = list(board.legal_moves)
     if legal_moves:
         return None
@@ -455,10 +484,12 @@ def terminal_score(board: cshogi.Board, ply: int) -> int | None:
 
 
 def tt_key(board: cshogi.Board, position_counts: dict[str, int]) -> tuple[int, int]:
+    """功能：處理 tt_key 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return board.zobrist_hash(), min(position_counts.get(repetition_key(board), 0), 3)
 
 
 def record_killer(context: SearchContext, ply: int, move: int) -> None:
+    """功能：處理 record_killer 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     killers = context.killers.setdefault(ply, [])
     if move in killers:
         return
@@ -474,6 +505,7 @@ def quiescence(
     context: SearchContext,
     ply: int,
 ) -> int:
+    """功能：處理 quiescence 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if context.deadline is not None and monotonic() >= context.deadline:
         raise SearchTimeout
 
@@ -522,6 +554,7 @@ def negamax(
     ply: int,
     context: SearchContext,
 ) -> tuple[int, list[int]]:
+    """功能：處理 negamax 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if context.deadline is not None and monotonic() >= context.deadline:
         raise SearchTimeout
 
@@ -602,6 +635,7 @@ def search_best_move(
     root_move_evaluator: Callable[[cshogi.Board], int] | None = None,
     move_orderer_max_ply: int = 2,
 ) -> SearchResult:
+    """功能：處理 search_best_move 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     legal_moves = list(board.legal_moves)
     if not legal_moves:
         return SearchResult(
