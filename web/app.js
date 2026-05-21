@@ -577,9 +577,15 @@ function aiResultLabel(state) {
 
 // 功能：處理 renderAiSearch 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
 function renderAiSearch(search, valueEstimate) {
-  aiScore.textContent = search ? String(search.score) : "-";
-  aiSearchDepth.textContent = search ? String(search.depth) : "-";
-  aiNodes.textContent = search ? String(search.nodes) : "-";
+  if (search?.source === "openingBook") {
+    aiScore.textContent = `Book ${Math.round((search.bookRate || 0) * 100)}%`;
+    aiSearchDepth.textContent = "Book";
+    aiNodes.textContent = `${search.bookCount || 0}/${search.bookTotal || 0}`;
+  } else {
+    aiScore.textContent = search ? String(search.score) : "-";
+    aiSearchDepth.textContent = search ? String(search.depth) : "-";
+    aiNodes.textContent = search ? String(search.nodes) : "-";
+  }
   aiValue.textContent = valueEstimate == null ? "-" : valueEstimate.toFixed(3);
   aiPv.textContent = search?.pv?.length ? search.pv.join(" ") : "-";
 }

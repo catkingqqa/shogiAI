@@ -7,6 +7,7 @@ import json
 import mimetypes
 import os
 import re
+from collections import defaultdict
 from dataclasses import dataclass, field
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -457,6 +458,79 @@ class MySqlConfig:
     user: str
     password: str
     database: str
+
+
+@dataclass(frozen=True)
+class BookMove:
+    move_usi: str
+    count: int
+    total: int
+
+    @property
+    def rate(self) -> float:
+        return self.count / self.total if self.total else 0.0
+
+
+class OpeningBook:
+    def __init__(self, entries: dict[str, list[BookMove]], max_ply: int, min_count: int) -> None:
+        self.entries = entries
+        self.max_ply = max_ply
+        self.min_count = min_count
+
+    @classmethod
+    def from_mysql(cls, config: MySqlConfig, max_ply: int, min_count: int) -> "OpeningBook":
+        if pymysql is None:
+            raise RuntimeError("PyMySQL is required for MySQL opening book.")
+        raw: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        connection = pymysql.connect(
+            host=config.host,
+            port=config.port,
+            user=config.user,
+            password=config.password,
+            database=config.database,
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            connect_timeout=5,
+        )
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT p.sfen, m.usi_move
+                    FROM positions p
+                    JOIN moves m
+                      ON m.game_id = p.game_id
+                     AND m.move_number = p.move_number + 1
+                    WHERE p.move_number < %s
+                    ORDER BY p.game_id, p.move_number
+                    """,
+                    (max_ply,),
+                )
+                for row in cursor.fetchall():
+                    raw[str(row["sfen"])][str(row["usi_move"])] += 1
+
+        entries: dict[str, list[BookMove]] = {}
+        for sfen, moves in raw.items():
+            total = sum(moves.values())
+            ranked = [
+                BookMove(move_usi=move_usi, count=count, total=total)
+                for move_usi, count in moves.items()
+                if count >= min_count
+            ]
+            ranked.sort(key=lambda item: (item.count, item.move_usi), reverse=True)
+            if ranked:
+                entries[sfen] = ranked
+        return cls(entries, max_ply=max_ply, min_count=min_count)
+
+    def find(self, board: cshogi.Board) -> BookMove | None:
+        candidates = self.entries.get(board.sfen())
+        if not candidates:
+            return None
+        for candidate in candidates:
+            move = board.move_from_usi(candidate.move_usi)
+            if board.is_legal(move):
+                return candidate
+        return None
 
 
 class MySqlSource:
@@ -1111,6 +1185,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     server_version = "CsaBrowser/0.2"
     source: GameSource
     policy_predictor: PolicyValuePredictor | None = None
+    opening_book: OpeningBook | None = None
     value_weight = 0
     policy_order_ply = 2
 
@@ -1212,29 +1287,47 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                 )
                 return
 
-            depth = self.parse_search_depth(payload)
-            time_limit_ms = self.parse_time_limit_ms(payload)
-            result = search_best_move(
-                board,
-                position_counts,
-                depth,
-                time_limit_ms,
-                move_orderer=self.order_moves_with_policy if self.policy_predictor else None,
-                root_move_evaluator=self.root_value_bonus
-                if self.policy_predictor and self.value_weight > 0
-                else None,
-                move_orderer_max_ply=self.policy_order_ply,
-            )
-            search_payload = {
-                "score": result.score,
-                "depth": result.depth,
-                "nodes": result.nodes,
-                "timedOut": result.timed_out,
-                "pv": [cshogi.move_to_usi(move) for move in result.pv],
-            }
-            if result.move is not None:
-                records.append(move_record_from_usi(board, result.move, len(records) + 1))
-                board.push(result.move)
+            book_move = self.opening_book.find(board) if self.opening_book is not None else None
+            selected_move: int | None = None
+            if book_move is not None:
+                selected_move = board.move_from_usi(book_move.move_usi)
+                search_payload = {
+                    "source": "openingBook",
+                    "score": 0,
+                    "depth": 0,
+                    "nodes": 0,
+                    "timedOut": False,
+                    "pv": [book_move.move_usi],
+                    "bookCount": book_move.count,
+                    "bookTotal": book_move.total,
+                    "bookRate": book_move.rate,
+                }
+            else:
+                depth = self.parse_search_depth(payload)
+                time_limit_ms = self.parse_time_limit_ms(payload)
+                result = search_best_move(
+                    board,
+                    position_counts,
+                    depth,
+                    time_limit_ms,
+                    move_orderer=self.order_moves_with_policy if self.policy_predictor else None,
+                    root_move_evaluator=self.root_value_bonus
+                    if self.policy_predictor and self.value_weight > 0
+                    else None,
+                    move_orderer_max_ply=self.policy_order_ply,
+                )
+                selected_move = result.move
+                search_payload = {
+                    "source": "search",
+                    "score": result.score,
+                    "depth": result.depth,
+                    "nodes": result.nodes,
+                    "timedOut": result.timed_out,
+                    "pv": [cshogi.move_to_usi(move) for move in result.pv],
+                }
+            if selected_move is not None:
+                records.append(move_record_from_usi(board, selected_move, len(records) + 1))
+                board.push(selected_move)
                 key = repetition_key(board)
                 position_counts[key] = position_counts.get(key, 0) + 1
                 max_repetition_count = max(max_repetition_count, position_counts[key])
@@ -1451,36 +1544,68 @@ def parse_args() -> argparse.Namespace:
         default=2,
         help="Use neural policy move ordering only before this search ply; lower values are faster",
     )
+    parser.add_argument(
+        "--opening-book-ply",
+        type=int,
+        default=30,
+        help="Use database opening book before this ply; 0 disables opening book",
+    )
+    parser.add_argument(
+        "--opening-book-min-count",
+        type=int,
+        default=2,
+        help="Minimum database frequency required for a book move",
+    )
     return parser.parse_args()
 
 
-def build_source(args: argparse.Namespace) -> GameSource:
+def build_mysql_config(args: argparse.Namespace) -> MySqlConfig:
     """功能：處理 build_source 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-    if args.source == "csa":
-        return CsaFileSource()
     if not args.db_user:
         raise SystemExit("Missing --db-user or MYSQL_USER.")
     password = args.db_password
     if password is None:
         password = getpass.getpass(f"MySQL password for {args.db_user}@{args.db_host}: ")
-    return MySqlSource(
-        MySqlConfig(
-            host=args.db_host,
-            port=args.db_port,
-            user=args.db_user,
-            password=password,
-            database=args.db_name,
-        )
+    return MySqlConfig(
+        host=args.db_host,
+        port=args.db_port,
+        user=args.db_user,
+        password=password,
+        database=args.db_name,
     )
+
+
+def build_source(args: argparse.Namespace, mysql_config: MySqlConfig | None = None) -> GameSource:
+    """?嚗???build_source 瘚?嚗?撓?亥??銵敹?頛荔?銝血??喳?蝥?撘?閬?蝯???"""
+    if args.source == "csa":
+        return CsaFileSource()
+    return MySqlSource(mysql_config or build_mysql_config(args))
 
 
 def main() -> int:
     """功能：串接本檔案的主要執行流程。"""
     args = parse_args()
-    CsaBrowserHandler.source = build_source(args)
+    mysql_config = build_mysql_config(args) if args.source == "mysql" else None
+    CsaBrowserHandler.source = build_source(args, mysql_config)
     CsaBrowserHandler.policy_predictor = (
         PolicyValuePredictor(args.policy_model) if args.policy_model.is_file() else None
     )
+    CsaBrowserHandler.opening_book = None
+    if mysql_config is not None and args.opening_book_ply > 0:
+        try:
+            CsaBrowserHandler.opening_book = OpeningBook.from_mysql(
+                mysql_config,
+                max_ply=max(0, args.opening_book_ply),
+                min_count=max(1, args.opening_book_min_count),
+            )
+            print(
+                "Opening book loaded: "
+                f"{len(CsaBrowserHandler.opening_book.entries)} positions, "
+                f"max ply {CsaBrowserHandler.opening_book.max_ply}, "
+                f"min count {CsaBrowserHandler.opening_book.min_count}"
+            )
+        except Exception as exc:
+            print(f"Opening book disabled: {exc}")
     CsaBrowserHandler.value_weight = max(0, args.value_weight)
     CsaBrowserHandler.policy_order_ply = max(0, args.policy_order_ply)
     server = ThreadingHTTPServer((args.host, args.port), CsaBrowserHandler)
