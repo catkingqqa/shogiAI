@@ -1,3 +1,4 @@
+"""功能：定義將棋 policy/value CNN 與推論封裝，用於排序合法手與估計局面價值。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -13,7 +14,9 @@ from csa_preprocess import MOVE_LABELS, encode_move, encode_state
 
 
 class SmallPolicyValueNet(nn.Module):
+    """功能：定義 SmallPolicyValueNet 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     def __init__(self, move_label_count: int = MOVE_LABELS) -> None:
+        """功能：初始化物件狀態與必要資源。"""
         super().__init__()
         self.features = nn.Sequential(
             nn.Conv2d(43, 64, kernel_size=3, padding=1),
@@ -38,12 +41,14 @@ class SmallPolicyValueNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """功能：定義模型前向傳播流程，從輸入張量產生預測結果。"""
         features = self.features(x)
         return self.policy_head(features), self.value_head(features).squeeze(1)
 
 
 @dataclass(frozen=True)
 class PolicyCandidate:
+    """功能：定義 PolicyCandidate 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     move: int
     label: int
     score: float
@@ -51,7 +56,9 @@ class PolicyCandidate:
 
 
 class PolicyValuePredictor:
+    """功能：定義 PolicyValuePredictor 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     def __init__(self, model_path: Path, device: str | None = None, cache_size: int = 20_000) -> None:
+        """功能：初始化物件狀態與必要資源。"""
         self.model_path = Path(model_path)
         self.device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
         checkpoint = torch.load(self.model_path, map_location=self.device, weights_only=True)
@@ -64,6 +71,7 @@ class PolicyValuePredictor:
         self._prediction_cache: dict[int, tuple[torch.Tensor, float]] = {}
 
     def predict_for_board(self, board: cshogi.Board) -> tuple[torch.Tensor, float]:
+        """功能：處理 predict_for_board 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         cache_key = int(board.zobrist_hash())
         if self.cache_size > 0 and cache_key in self._prediction_cache:
             return self._prediction_cache[cache_key]
@@ -81,6 +89,7 @@ class PolicyValuePredictor:
         return prediction
 
     def value_for_board(self, board: cshogi.Board) -> float:
+        """功能：處理 value_for_board 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         _, value = self.predict_for_board(board)
         return value
 
@@ -89,6 +98,7 @@ class PolicyValuePredictor:
         board: cshogi.Board,
         legal_moves: Iterable[int] | None = None,
     ) -> list[PolicyCandidate]:
+        """功能：處理 rank_legal_moves 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         moves = list(board.legal_moves if legal_moves is None else legal_moves)
         if not moves:
             return []

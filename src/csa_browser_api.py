@@ -1,3 +1,4 @@
+"""功能：提供 CSA 棋譜瀏覽、資料庫查詢、自行對弈與 AI 對弈的 HTTP API。"""
 from __future__ import annotations
 
 import argparse
@@ -23,14 +24,10 @@ except ImportError:
     pymysql = None
 
 
-# 專案路徑與棋盤基本設定：
-# API 會從 data 讀取本機 CSA，也會從 web 提供前端靜態檔案。
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 WEB_DIR = ROOT / "web"
 
-# CSA/USI 棋子代號轉換表：
-# 後端內部用英文字代號處理棋子，回傳前端時再轉成將棋文字。
 MOVE_RE = re.compile(r"^[+-][0-9]{4}[A-Z]{2}$")
 BOARD_RANKS = range(1, 10)
 BOARD_FILES = range(9, 0, -1)
@@ -101,14 +98,14 @@ UNPROMOTE = {
 
 @dataclass
 class Piece:
-    # 棋盤上一顆棋子的狀態：屬於哪一方、是哪種棋子。
+    """功能：定義 Piece 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     color: str
     kind: str
 
 
 @dataclass
 class MoveRecord:
-    # 一手棋的顯示資料，包含起點、終點、棋子與原始走法文字。
+    """功能：定義 MoveRecord 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     ply: int
     color: str
     from_square: str | None
@@ -120,7 +117,7 @@ class MoveRecord:
 
 @dataclass
 class Position:
-    # 某一手之後的完整局面，包含棋盤、手駒、輪到哪一方與最後一步。
+    """功能：定義 Position 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     ply: int
     turn: str
     board: dict[str, Piece]
@@ -130,7 +127,7 @@ class Position:
 
 @dataclass
 class Game:
-    # 一盤棋的完整記憶體資料；CSA 檔模式會直接使用這個結構重播。
+    """功能：定義 Game 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     id: str
     name: str
     metadata: dict[str, str] = field(default_factory=dict)
@@ -139,40 +136,47 @@ class Game:
 
 
 class GameSource(Protocol):
-    # 共同資料來源介面：不論資料來自 CSA 檔或 MySQL，都提供相同 API。
+    """功能：定義 GameSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         ...
 
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
+        """功能：處理 get_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         ...
 
     def stats(self) -> dict[str, Any]:
+        """功能：處理 stats 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         ...
 
 
 def clone_board(board: dict[str, Piece]) -> dict[str, Piece]:
-    # 複製棋盤字典，避免重播時改到前一手的局面。
+    """功能：處理 clone_board 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return {square: Piece(piece.color, piece.kind) for square, piece in board.items()}
 
 
 def clone_hands(hands: dict[str, dict[str, int]]) -> dict[str, dict[str, int]]:
+    """功能：處理 clone_hands 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return {color: dict(counts) for color, counts in hands.items()}
 
 
 def square_name(file_digit: str, rank_digit: str) -> str:
+    """功能：處理 square_name 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return f"{file_digit}{rank_digit}"
 
 
 def opponent(color: str) -> str:
+    """功能：處理 opponent 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return "-" if color == "+" else "+"
 
 
 def empty_hands() -> dict[str, dict[str, int]]:
-    # 建立雙方空手駒區，後續吃子或打入會更新這裡。
+    """功能：處理 empty_hands 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return {"+": {piece: 0 for piece in HAND_ORDER}, "-": {piece: 0 for piece in HAND_ORDER}}
 
 
 def add_hand(hands: dict[str, dict[str, int]], color: str, piece: str, delta: int) -> None:
+    """功能：處理 add_hand 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     base_piece = UNPROMOTE.get(piece, piece)
     hands[color].setdefault(base_piece, 0)
     hands[color][base_piece] += delta
@@ -181,7 +185,7 @@ def add_hand(hands: dict[str, dict[str, int]], color: str, piece: str, delta: in
 
 
 def initial_board() -> dict[str, Piece]:
-    # 建立標準將棋初始局面；CSA 沒有明確盤面時會用這個起點。
+    """功能：處理 initial_board 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     rows = {
         1: ["-KY", "-KE", "-GI", "-KI", "-OU", "-KI", "-GI", "-KE", "-KY"],
         2: [" * ", "-HI", " * ", " * ", " * ", " * ", " * ", "-KA", " * "],
@@ -200,7 +204,7 @@ def initial_board() -> dict[str, Piece]:
 
 
 def apply_board_row(board: dict[str, Piece], rank: int, content: str) -> None:
-    # 解析 CSA 的 P1~P9 棋盤列資料，放到內部棋盤座標。
+    """功能：處理 apply_board_row 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if len(content) < 27:
         raise ValueError(f"rank P{rank} is too short")
 
@@ -219,7 +223,7 @@ def apply_board_row(board: dict[str, Piece], rank: int, content: str) -> None:
 
 
 def apply_hand_line(hands: dict[str, dict[str, int]], color: str, content: str) -> None:
-    # 解析 CSA 的手駒資料，累計雙方持有的棋子數量。
+    """功能：處理 apply_hand_line 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     compact = content.replace(" ", "")
     for index in range(0, len(compact), 4):
         token = compact[index : index + 4]
@@ -231,7 +235,7 @@ def apply_hand_line(hands: dict[str, dict[str, int]], color: str, content: str) 
 
 
 def parse_metadata(line: str, metadata: dict[str, str]) -> None:
-    # 解析 CSA 的棋局資訊，例如棋手、賽事、日期、戰型和結果。
+    """功能：處理 parse_metadata 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if line.startswith("N+") or line.startswith("N-"):
         metadata["black" if line[1] == "+" else "white"] = line[2:].strip()
     elif line.startswith("$") and ":" in line:
@@ -240,10 +244,12 @@ def parse_metadata(line: str, metadata: dict[str, str]) -> None:
 
 
 def compact_move_text(line: str) -> str:
+    """功能：處理 compact_move_text 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return line[0] + line[1:5] + line[5:7]
 
 
 def csa_move_to_usi_like(color: str, from_square: str | None, to_square: str, piece: str) -> str:
+    """功能：處理 csa_move_to_usi_like 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if from_square is None:
         return f"{PIECE_NAMES.get(piece, piece)}*{to_square}"
     return f"{from_square}-{to_square}{PIECE_NAMES.get(piece, piece)}"
@@ -255,7 +261,7 @@ def apply_move(
     ply: int,
     line: str,
 ) -> MoveRecord:
-    # 對目前局面套用一手 CSA 走法，處理移動、吃子、打入與升變。
+    """功能：處理 apply_move 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     color = line[0]
     from_square = square_name(line[1], line[2])
     to_square = square_name(line[3], line[4])
@@ -294,7 +300,7 @@ def apply_move(
 
 
 def read_csa_text(path: Path) -> str:
-    # 讀取 CSA 文字並嘗試常見編碼，避免 UTF-8 BOM 或日文編碼造成解析失敗。
+    """功能：處理 read_csa_text 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     raw = path.read_bytes()
     for encoding in ("utf-8-sig", "utf-8", "cp932", "shift_jis"):
         try:
@@ -305,7 +311,7 @@ def read_csa_text(path: Path) -> str:
 
 
 def parse_csa(path: Path, game_id: str) -> Game:
-    # 解析單一 CSA 檔，逐手產生 positions，供「本機檔案模式」使用。
+    """功能：處理 parse_csa 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     board: dict[str, Piece] = {}
     hands = empty_hands()
     turn = "+"
@@ -365,12 +371,12 @@ def parse_csa(path: Path, game_id: str) -> Game:
 
 
 def text_matches(value: str, needle: str) -> bool:
-    # 本機檔案模式的模糊搜尋，比對時忽略大小寫與空字串。
+    """功能：處理 text_matches 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return needle.lower() in (value or "").lower()
 
 
 def filter_file_games(games: list[dict[str, Any]], filters: dict[str, str]) -> list[dict[str, Any]]:
-    # 本機 CSA 檔模式的搜尋邏輯，盡量與 MySQL 模式使用相同欄位名稱。
+    """功能：處理 filter_file_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     event = filters.get("event", "").strip()
     date_from = filters.get("date_from", "").strip()
     date_to = filters.get("date_to", "").strip()
@@ -398,8 +404,9 @@ def filter_file_games(games: list[dict[str, Any]], filters: dict[str, str]) -> l
 
 
 class CsaFileSource:
-    # 從 data 資料夾直接讀 CSA 檔的資料來源，適合沒有資料庫時展示。
+    """功能：定義 CsaFileSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+        """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         games = []
         if not DATA_DIR.exists():
             return games
@@ -413,6 +420,7 @@ class CsaFileSource:
         return filter_file_games(games, filters or {})
 
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
+        """功能：處理 get_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         decoded = unquote(game_id).replace("\\", "/")
         path = (DATA_DIR / decoded).resolve()
         data_root = DATA_DIR.resolve()
@@ -427,7 +435,7 @@ class CsaFileSource:
         return serialize_position(game, game.positions[ply])
 
     def stats(self) -> dict[str, Any]:
-        # 本機 CSA 檔模式沒有資料庫表，改回傳檔案模式可用的基本統計。
+        """功能：處理 stats 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         games = self.list_games()
         playable_games = [game for game in games if not game.get("error")]
         return {
@@ -443,7 +451,7 @@ class CsaFileSource:
 
 @dataclass
 class MySqlConfig:
-    # MySQL 連線設定，由命令列參數或環境變數帶入。
+    """功能：定義 MySqlConfig 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     host: str
     port: int
     user: str
@@ -452,14 +460,15 @@ class MySqlConfig:
 
 
 class MySqlSource:
-    # 從 MySQL 讀棋局清單、局面與手順，是目前網頁正式使用的資料來源。
+    """功能：定義 MySqlSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     def __init__(self, config: MySqlConfig):
+        """功能：初始化物件狀態與必要資源。"""
         if pymysql is None:
             raise RuntimeError("PyMySQL is not installed. Run `python -m pip install -r requirements.txt`.")
         self.config = config
 
     def connect(self) -> Any:
-        # 建立資料庫連線；每次 API 查詢短連線處理，避免長時間佔用連線。
+        """功能：處理 connect 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         return pymysql.connect(
             host=self.config.host,
             port=self.config.port,
@@ -473,7 +482,7 @@ class MySqlSource:
 
     @staticmethod
     def clean_text(value: Any) -> str:
-        # 將資料庫中的 None、空字串或字面上的 null 統一轉成空字串。
+        """功能：處理 clean_text 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if value is None:
             return ""
         text = str(value).strip()
@@ -481,7 +490,7 @@ class MySqlSource:
 
     @classmethod
     def display_name(cls, row: dict[str, Any]) -> str:
-        # 棋局下拉選單顯示名稱：日期、賽事、雙方名稱有資料才顯示。
+        """功能：處理 display_name 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         played_at = row.get("played_at")
         date_text = played_at.isoformat() if played_at else ""
         event_text = cls.clean_text(row.get("event_name"))
@@ -500,10 +509,11 @@ class MySqlSource:
 
     @staticmethod
     def like_param(value: str) -> str:
+        """功能：處理 like_param 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         return f"%{value.strip()}%"
 
     def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
-        # 讀取棋局列表，並依搜尋條件加上 WHERE；預設依日期由新到舊排序。
+        """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         filters = filters or {}
         where_sql, params = self.build_filters(filters)
         with self.connect() as conn:
@@ -552,7 +562,7 @@ class MySqlSource:
         return games
 
     def build_filters(self, filters: dict[str, str]) -> tuple[str, list[Any]]:
-        # 將前端送來的搜尋欄位轉成 SQL WHERE 子句與參數，避免字串拼接 SQL。
+        """功能：處理 build_filters 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         clauses: list[str] = []
         params: list[Any] = []
 
@@ -586,7 +596,7 @@ class MySqlSource:
         return "WHERE " + " AND ".join(clauses), params
 
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
-        # 從 positions 讀出指定手數的 SFEN，再轉成前端棋盤需要的 JSON。
+        """功能：處理 get_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         try:
             game_pk = int(game_id)
         except ValueError as exc:
@@ -663,7 +673,7 @@ class MySqlSource:
         }
 
     def fetch_game(self, cursor: Any, game_pk: int) -> dict[str, Any] | None:
-        # 讀取單一棋局基本資料，供局面 API 回傳標題、棋手、賽事與手數。
+        """功能：處理 fetch_game 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         cursor.execute(
             """
             SELECT
@@ -701,7 +711,7 @@ class MySqlSource:
         }
 
     def stats(self) -> dict[str, Any]:
-        # 統計資料庫目前棋局、棋手、手順與局面數量，供前端顯示資料庫狀態。
+        """功能：處理 stats 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         with self.connect() as conn:
             with conn.cursor() as cursor:
                 counts: dict[str, int] = {}
@@ -741,12 +751,13 @@ class MySqlSource:
 
 
 def cshogi_square_to_browser(square_name_text: str) -> str:
-    # cshogi 的座標使用 1a 這類格式，前端顯示時改成 11~99。
+    """功能：處理 cshogi_square_to_browser 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     rank = ord(square_name_text[1]) - ord("a") + 1
     return f"{square_name_text[0]}{rank}"
 
 
 def usi_square_to_browser(square_name_text: str) -> str:
+    """功能：處理 usi_square_to_browser 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if len(square_name_text) != 2:
         return square_name_text
     rank = ord(square_name_text[1]) - ord("a") + 1
@@ -754,7 +765,7 @@ def usi_square_to_browser(square_name_text: str) -> str:
 
 
 def board_from_cshogi(board_obj: cshogi.Board) -> tuple[dict[str, Piece], dict[str, dict[str, int]]]:
-    # 將 cshogi.Board 轉成前端自訂的棋盤與手駒資料結構。
+    """功能：處理 board_from_cshogi 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     board: dict[str, Piece] = {}
     for square_index, piece in enumerate(board_obj.pieces):
         if piece == cshogi.NONE:
@@ -774,7 +785,7 @@ def board_from_cshogi(board_obj: cshogi.Board) -> tuple[dict[str, Piece], dict[s
 
 
 def move_from_db_row(row: dict[str, Any] | None, board_after_move: dict[str, Piece] | None) -> MoveRecord | None:
-    # 將資料庫 moves 的 USI 走法轉成前端可標示來源格與目標格的 MoveRecord。
+    """功能：處理 move_from_db_row 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if row is None:
         return None
     usi = row.get("usi_move") or row.get("original_move") or ""
@@ -802,7 +813,7 @@ def move_from_db_row(row: dict[str, Any] | None, board_after_move: dict[str, Pie
 
 
 def move_records_from_db_rows(initial_sfen: str, rows: list[dict[str, Any]]) -> list[MoveRecord]:
-    # 由初始局面重播資料庫 USI 手順，補齊每一手移動後的棋子種類。
+    """功能：處理 move_records_from_db_rows 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     board = cshogi.Board(initial_sfen)
     records: list[MoveRecord] = []
 
@@ -823,11 +834,12 @@ def move_records_from_db_rows(initial_sfen: str, rows: list[dict[str, Any]]) -> 
 
 
 def browser_square_from_usi(square_text: str) -> str:
+    """功能：處理 browser_square_from_usi 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return usi_square_to_browser(square_text)
 
 
 def move_record_from_usi(board_before_move: cshogi.Board, move: int, ply: int) -> MoveRecord:
-    # 自行對奕模式使用的 MoveRecord，資料格式與瀏覽既有棋局時保持一致。
+    """功能：處理 move_record_from_usi 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     usi = cshogi.move_to_usi(move)
     board_after_move = board_before_move.copy()
     board_after_move.push(move)
@@ -852,14 +864,14 @@ def move_record_from_usi(board_before_move: cshogi.Board, move: int, ply: int) -
 
 
 def repetition_key(board: cshogi.Board) -> str:
-    # SFEN 最後一欄是手數，千日手判定只看局面、輪到誰走與持駒。
+    """功能：處理 repetition_key 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return " ".join(board.sfen().split()[:3])
 
 
 def replay_usi_moves(
     moves_usi: list[str],
 ) -> tuple[cshogi.Board, list[MoveRecord], dict[str, int], int]:
-    # 從初始局面重播使用者自行對奕的主線，並拒絕非法手。
+    """功能：處理 replay_usi_moves 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     board = cshogi.Board()
     records: list[MoveRecord] = []
     position_counts = {repetition_key(board): 1}
@@ -879,7 +891,7 @@ def replay_usi_moves(
 
 
 def serialize_legal_move(board: cshogi.Board, move: int) -> dict[str, Any]:
-    # 提供前端點擊棋盤時所需的來源格、目標格、棋子與是否升變資訊。
+    """功能：處理 serialize_legal_move 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     usi = cshogi.move_to_usi(move)
     record = move_record_from_usi(board, move, 1)
     return {
@@ -898,7 +910,7 @@ def serialize_self_play_state(
     moves: list[MoveRecord],
     max_repetition_count: int,
 ) -> dict[str, Any]:
-    # 自行對奕模式的局面格式，沿用瀏覽器已經會渲染的欄位，再加上合法走法。
+    """功能：處理 serialize_self_play_state 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     board_data, hands = board_from_cshogi(board)
     legal_moves = list(board.legal_moves)
     return {
@@ -941,6 +953,7 @@ def serialize_ai_play_state(
     policy_candidates: list[dict[str, Any]] | None = None,
     value_estimate: float | None = None,
 ) -> dict[str, Any]:
+    """功能：處理 serialize_ai_play_state 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     state = serialize_self_play_state(board, moves, max_repetition_count)
     state["game"] = {
         **state["game"],
@@ -975,12 +988,13 @@ def serialize_ai_play_state(
 
 
 def csa_square_from_usi(square_text: str) -> str:
+    """功能：處理 csa_square_from_usi 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     rank = ord(square_text[1]) - ord("a") + 1
     return f"{square_text[0]}{rank}"
 
 
 def move_to_csa_line(board_before_move: cshogi.Board, move: int) -> str:
-    # 由 USI 走法與走後棋子種類產生一行 CSA 記譜。
+    """功能：處理 move_to_csa_line 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     usi = cshogi.move_to_usi(move)
     color = "+" if board_before_move.turn == cshogi.BLACK else "-"
     from_square = "00" if "*" in usi else csa_square_from_usi(usi[0:2])
@@ -996,7 +1010,7 @@ CSA_RESULT_CODES = {"", "TORYO", "SENNICHITE", "JISHOGI"}
 
 
 def build_csa_text(moves_usi: list[str], black_name: str, white_name: str, result_code: str = "") -> str:
-    # 下載用 CSA：採標準初始局面與使用者目前保留的主線。
+    """功能：處理 build_csa_text 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if result_code not in CSA_RESULT_CODES:
         raise ValueError("unsupported result code")
     board = cshogi.Board()
@@ -1022,7 +1036,7 @@ def build_csa_text(moves_usi: list[str], black_name: str, white_name: str, resul
 
 
 def serialize_piece(piece: Piece | None) -> dict[str, str] | None:
-    # 把內部棋子物件轉成 JSON，可直接給前端渲染。
+    """功能：處理 serialize_piece 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if piece is None:
         return None
     return {
@@ -1034,7 +1048,7 @@ def serialize_piece(piece: Piece | None) -> dict[str, str] | None:
 
 
 def serialize_move(move: MoveRecord | None) -> dict[str, Any] | None:
-    # 把內部手順物件轉成 JSON，包含手數、先後手、座標與顯示文字。
+    """功能：處理 serialize_move 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if move is None:
         return None
     return {
@@ -1050,7 +1064,7 @@ def serialize_move(move: MoveRecord | None) -> dict[str, Any] | None:
 
 
 def board_grid(board: dict[str, Piece]) -> list[list[dict[str, Any]]]:
-    # 依前端需要的顯示順序輸出 9x9 棋盤格。
+    """功能：處理 board_grid 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     rows = []
     for rank in BOARD_RANKS:
         row = []
@@ -1062,7 +1076,7 @@ def board_grid(board: dict[str, Piece]) -> list[list[dict[str, Any]]]:
 
 
 def serialize_position(game: Game, position: Position) -> dict[str, Any]:
-    # 本機 CSA 檔模式的局面序列化，欄位格式與 MySQL 模式保持一致。
+    """功能：處理 serialize_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return {
         "game": serialize_game_summary(game),
         "ply": position.ply,
@@ -1079,7 +1093,7 @@ def serialize_position(game: Game, position: Position) -> dict[str, Any]:
 
 
 def serialize_game_summary(game: Game) -> dict[str, Any]:
-    # 本機 CSA 檔模式的棋局摘要，供 /api/games 清單使用。
+    """功能：處理 serialize_game_summary 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return {
         "id": game.id,
         "name": game.name,
@@ -1093,7 +1107,7 @@ def serialize_game_summary(game: Game) -> dict[str, Any]:
 
 
 class CsaBrowserHandler(BaseHTTPRequestHandler):
-    # HTTP 處理器：提供 API 路由，也負責把 web 資料夾中的前端檔案送出去。
+    """功能：定義 CsaBrowserHandler 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     server_version = "CsaBrowser/0.2"
     source: GameSource
     policy_predictor: PolicyValuePredictor | None = None
@@ -1101,6 +1115,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     policy_order_ply = 2
 
     def do_GET(self) -> None:
+        """功能：處理 do_GET 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         try:
             self.route_get()
         except FileNotFoundError:
@@ -1111,6 +1126,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def do_POST(self) -> None:
+        """功能：處理 do_POST 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         try:
             self.route_post()
         except FileNotFoundError:
@@ -1121,7 +1137,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             self.send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
 
     def route_get(self) -> None:
-        # GET 路由分派：棋局清單、指定局面，其他路徑視為靜態檔案。
+        """功能：處理 route_get 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         parsed = urlparse(self.path)
         path = parsed.path
 
@@ -1138,7 +1154,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         self.serve_static(path)
 
     def route_post(self) -> None:
-        # POST 路由分派：自行對奕局面與 CSA 匯出。
+        """功能：處理 route_post 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         parsed = urlparse(self.path)
         if parsed.path == "/api/self-play/state":
             payload = self.read_json_body()
@@ -1255,7 +1271,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         raise FileNotFoundError(parsed.path)
 
     def api_position(self, game_id: str, query: str) -> None:
-        # /api/games/<id>?ply=N：取得指定棋局指定手數的局面。
+        """功能：處理 api_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         params = parse_qs(query)
         ply_text = params.get("ply", ["0"])[0]
         try:
@@ -1266,6 +1282,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         self.send_json(self.source.get_position(unquote(game_id), ply))
 
     def read_json_body(self) -> dict[str, Any]:
+        """功能：處理 read_json_body 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         content_length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(content_length) if content_length > 0 else b"{}"
         try:
@@ -1278,6 +1295,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def parse_moves_payload(payload: dict[str, Any]) -> list[str]:
+        """功能：處理 parse_moves_payload 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         moves = payload.get("moves", [])
         if not isinstance(moves, list) or not all(isinstance(move, str) for move in moves):
             raise ValueError("moves must be a list of USI strings")
@@ -1285,6 +1303,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def parse_player_side(payload: dict[str, Any]) -> str:
+        """功能：處理 parse_player_side 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         side = str(payload.get("playerSide", "+")).strip()
         if side not in {"+", "-"}:
             raise ValueError("playerSide must be '+' or '-'")
@@ -1292,6 +1311,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def parse_optional_side(value: Any) -> str | None:
+        """功能：處理 parse_optional_side 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if value in {None, ""}:
             return None
         side = str(value).strip()
@@ -1301,6 +1321,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def parse_search_depth(payload: dict[str, Any]) -> int:
+        """功能：處理 parse_search_depth 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         try:
             depth = int(payload.get("depth", 3))
         except (TypeError, ValueError) as exc:
@@ -1311,6 +1332,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def parse_time_limit_ms(payload: dict[str, Any]) -> int | None:
+        """功能：處理 parse_time_limit_ms 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         raw = payload.get("timeLimitMs", 1000)
         if raw in {None, ""}:
             return None
@@ -1324,6 +1346,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
 
     @staticmethod
     def parse_candidate_limit(payload: dict[str, Any]) -> int:
+        """功能：處理 parse_candidate_limit 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         try:
             limit = int(payload.get("limit", 5))
         except (TypeError, ValueError) as exc:
@@ -1333,11 +1356,13 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         return limit
 
     def order_moves_with_policy(self, board: cshogi.Board, legal_moves: Any) -> list[int]:
+        """功能：處理 order_moves_with_policy 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if self.policy_predictor is None:
             return list(legal_moves)
         return [candidate.move for candidate in self.policy_predictor.rank_legal_moves(board, legal_moves)]
 
     def serialize_policy_candidates(self, board: cshogi.Board, limit: int = 5) -> list[dict[str, Any]]:
+        """功能：處理 serialize_policy_candidates 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if self.policy_predictor is None:
             return []
         ranked = self.policy_predictor.rank_legal_moves(board)[:limit]
@@ -1350,23 +1375,26 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         return candidates
 
     def evaluate_with_value_head(self, board: cshogi.Board) -> int:
+        """功能：處理 evaluate_with_value_head 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if self.policy_predictor is None:
             return evaluate_position(board)
         value_bonus = int(round(self.policy_predictor.value_for_board(board) * self.value_weight))
         return evaluate_position(board) + value_bonus
 
     def root_value_bonus(self, board_after_ai_move: cshogi.Board) -> int:
+        """功能：處理 root_value_bonus 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if self.policy_predictor is None:
             return 0
         return int(round(-self.policy_predictor.value_for_board(board_after_ai_move) * self.value_weight))
 
     def value_estimate(self, board: cshogi.Board) -> float | None:
+        """功能：處理 value_estimate 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if self.policy_predictor is None:
             return None
         return self.policy_predictor.value_for_board(board)
 
     def serve_static(self, request_path: str) -> None:
-        # 提供 index.html、app.js、styles.css，並限制只能讀 web 資料夾內檔案。
+        """功能：處理 serve_static 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if request_path in {"", "/"}:
             request_path = "/index.html"
         relative = unquote(request_path.lstrip("/")).replace("\\", "/")
@@ -1386,7 +1414,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def send_json(self, payload: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
-        # 統一 JSON 回應格式，使用 UTF-8 保留中文棋手與賽事名稱。
+        """功能：處理 send_json 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         body = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -1395,11 +1423,12 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def log_message(self, format: str, *args: Any) -> None:
+        """功能：處理 log_message 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         print(f"{self.address_string()} - {format % args}")
 
 
 def parse_args() -> argparse.Namespace:
-    # 後端啟動參數：可選 CSA 檔模式或 MySQL 模式，以及伺服器 port。
+    """功能：解析命令列參數，讓使用者可以調整輸入、輸出與執行選項。"""
     parser = argparse.ArgumentParser(description="Serve a CSA game browser and JSON API.")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
@@ -1426,7 +1455,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def build_source(args: argparse.Namespace) -> GameSource:
-    # 依 --source 建立資料來源；正式展示通常使用 mysql。
+    """功能：處理 build_source 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if args.source == "csa":
         return CsaFileSource()
     if not args.db_user:
@@ -1446,7 +1475,7 @@ def build_source(args: argparse.Namespace) -> GameSource:
 
 
 def main() -> int:
-    # 程式入口：建立資料來源，啟動 ThreadingHTTPServer，等待瀏覽器請求。
+    """功能：串接本檔案的主要執行流程。"""
     args = parse_args()
     CsaBrowserHandler.source = build_source(args)
     CsaBrowserHandler.policy_predictor = (

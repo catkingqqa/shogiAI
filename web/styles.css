@@ -1,4 +1,4 @@
-/* 全站變數：集中設定顏色、陰影與背景，方便統一調整視覺風格。 */
+/* 功能：全站變數：集中定義顏色、陰影、字體與背景，便於統一調整視覺風格。 */
 :root {
   --bg: #f5f3ec;
   --ink: #1e2329;
@@ -17,7 +17,7 @@
   box-sizing: border-box;
 }
 
-/* 頁面基礎樣式：設定字體、背景與整體留白。 */
+/* 功能：頁面基礎樣式：設定字體、背景與整體留白。 */
 body {
   margin: 0;
   min-height: 100vh;
@@ -25,7 +25,7 @@ body {
   color: var(--ink);
 }
 
-/* 主容器：限制最大寬度，讓棋盤與側欄在大螢幕上維持好閱讀的比例。 */
+/* 功能：主容器：限制最大寬度，讓棋盤與側欄在大螢幕上維持易讀比例。 */
 .app-shell {
   display: grid;
   grid-template-columns: 132px minmax(0, 1fr);
@@ -72,7 +72,7 @@ body {
   display: block;
 }
 
-/* 頁首與控制列共用外觀：白色面板、邊框與陰影。 */
+/* 功能：頁首與控制列：統一排列標題、播放控制與操作按鈕。 */
 .topbar,
 .controls {
   display: flex;
@@ -176,7 +176,7 @@ h1 {
   font-size: 13px;
 }
 
-/* 棋譜選擇器：讓使用者從資料庫棋局清單切換目前播放的棋譜。 */
+/* 功能：棋譜選擇器：讓使用者從資料庫棋局清單切換目前播放的棋譜。 */
 .game-picker {
   display: grid;
   gap: 6px;
@@ -205,7 +205,7 @@ input {
   font: inherit;
 }
 
-/* 搜尋區：賽事、日期、棋手、戰型條件會送到後端 API 過濾棋局。 */
+/* 功能：搜尋區：將賽事、日期、棋手與戰型條件排成可掃描的表單。 */
 .search-panel {
   display: grid;
   grid-template-columns: 1.2fr minmax(130px, 0.8fr) minmax(130px, 0.8fr) 1.2fr 1.2fr auto;
@@ -248,7 +248,7 @@ input {
   color: var(--accent);
 }
 
-/* 資料庫狀態卡：顯示目前資料來源與資料表筆數，方便確認匯入結果。 */
+/* 功能：資料庫狀態區：顯示目前資料來源與各表統計數字。 */
 .db-panel {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -280,7 +280,7 @@ input {
   white-space: nowrap;
 }
 
-/* 對局主區：左右為雙方資訊，中間為棋盤。 */
+/* 功能：對局主區：左右顯示雙方資訊，中間顯示棋盤。 */
 .play-area {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) minmax(320px, 620px) minmax(160px, 1fr);
@@ -289,7 +289,7 @@ input {
   margin: 28px 0;
 }
 
-/* 棋盤外框：提供背景、邊框與固定比例容器。 */
+/* 功能：棋盤外框：提供背景、邊框與固定比例容器。 */
 .board-wrap {
   width: 100%;
 }
@@ -326,7 +326,7 @@ input {
   text-align: center;
 }
 
-/* 棋盤格線：使用 9 欄 grid 產生 9x9 將棋棋盤。 */
+/* 功能：棋盤格線：使用 9 欄 grid 產生 9x9 將棋棋盤。 */
 .board {
   display: grid;
   grid-column: 1;
@@ -341,7 +341,7 @@ input {
   box-shadow: 0 16px 40px rgba(50, 43, 31, 0.18);
 }
 
-/* 單一格子：放置棋子，並在邊緣補上座標提示。 */
+/* 功能：單一格子：承載棋子、座標提示、合法手與最後一手高亮狀態。 */
 .square {
   position: relative;
   display: grid;
@@ -391,7 +391,7 @@ input {
   background: transparent;
 }
 
-/* 棋子外觀：依先手/後手旋轉與配色，升變棋子使用不同底色。 */
+/* 功能：棋子外觀：依先手與後手調整方向、色彩與升變樣式。 */
 .piece {
   display: grid;
   place-items: center;
@@ -417,7 +417,7 @@ input {
   color: var(--danger);
 }
 
-/* 棋手與手駒側欄：顯示雙方名稱與目前持有手駒。 */
+/* 功能：棋手與手駒側欄：顯示雙方名稱與目前持有手駒。 */
 .side-panel {
   min-width: 0;
 }
@@ -477,7 +477,7 @@ input {
   background: #e9f5f4;
 }
 
-/* 播放控制列：負責上一手、下一手、初始局面與最後一手。 */
+/* 功能：播放控制列：負責上一手、下一手、初始局面與最後一手操作。 */
 .controls {
   justify-content: center;
   flex-wrap: wrap;
@@ -517,7 +517,7 @@ button:disabled {
   color: var(--muted);
 }
 
-/* 手順列表：每一手可點擊跳轉，星號可標記重點手。 */
+/* 功能：手順列表：顯示棋局手數，並支援跳轉與重點手標記。 */
 .move-list-panel {
   border-top: 1px solid rgba(30, 35, 41, 0.16);
   padding-top: 18px;
@@ -625,7 +625,7 @@ button:disabled {
   min-height: 48px;
 }
 
-/* 響應式調整：窄螢幕時將棋手資訊與棋盤改成上下排列。 */
+/* 功能：響應式調整：窄螢幕時將側欄、棋盤與控制區改成適合手機閱讀的排列。 */
 @media (max-width: 800px) {
   .app-shell {
     grid-template-columns: 1fr;

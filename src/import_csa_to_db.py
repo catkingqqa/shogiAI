@@ -1,3 +1,4 @@
+"""功能：將 CSA 棋譜匯入 MySQL，負責建立棋手、棋局、走法與局面資料。"""
 from __future__ import annotations
 
 import argparse
@@ -22,8 +23,6 @@ except ImportError as exc:  # pragma: no cover - shown as a clear CLI error.
     ) from exc
 
 
-# 建表 SQL：
-# 第一次匯入時可用 --create-tables 自動建立棋譜系統需要的五張資料表。
 CREATE_TABLES_SQL = [
     """
     CREATE TABLE IF NOT EXISTS users (
@@ -95,7 +94,7 @@ CREATE_TABLES_SQL = [
 
 @dataclass
 class ImportSummary:
-    # 匯入結果統計，最後會用 JSON 印出來讓使用者確認成功、略過與錯誤數量。
+    """功能：定義 ImportSummary 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     parsed_games: int = 0
     imported_games: int = 0
     skipped_games: int = 0
@@ -104,6 +103,7 @@ class ImportSummary:
     errors: list[dict[str, Any]] | None = None
 
     def add_error(self, source: Path, game_index: int, error: Exception) -> None:
+        """功能：處理 add_error 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         if self.errors is None:
             self.errors = []
         self.errors.append(
@@ -119,7 +119,7 @@ PlayerCache = dict[tuple[str, str | None], int]
 
 
 def iter_csa_files(path: Path, recursive: bool) -> Iterable[Path]:
-    # 掃描單一 CSA 檔或資料夾；recursive=True 時會包含子資料夾。
+    """功能：處理 iter_csa_files 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if path.is_file():
         yield path
         return
@@ -131,8 +131,7 @@ def iter_csa_files(path: Path, recursive: bool) -> Iterable[Path]:
 
 
 def parse_csa_games(path: Path, encoding: str | None) -> list[CSA.Parser]:
-    """Parse CSA files while tolerating UTF-8 BOM headers."""
-    # 有些 CSA 檔會有 BOM 或日文編碼，依序嘗試常見編碼以提高匯入成功率。
+    """功能：Parse CSA files while tolerating UTF-8 BOM headers."""
     encodings = [encoding] if encoding else []
     for candidate in ("utf-8-sig", "utf-8", "cp932", "shift_jis"):
         if candidate not in encodings:
@@ -150,7 +149,7 @@ def parse_csa_games(path: Path, encoding: str | None) -> list[CSA.Parser]:
 
 
 def parse_played_at(value: str | None) -> str | None:
-    # 將 CSA 中可能出現的日期格式統一轉成 MySQL DATE 可接受的 YYYY-MM-DD。
+    """功能：處理 parse_played_at 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if not value:
         return None
     for fmt in ("%Y/%m/%d %H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y/%m/%d", "%Y-%m-%d"):
@@ -162,7 +161,7 @@ def parse_played_at(value: str | None) -> str | None:
 
 
 def parse_player_name(value: str | None, fallback: str) -> tuple[str, str | None]:
-    # 從棋手欄位拆出姓名與段位/頭銜，例如「藤井聡太 竜王」。
+    """功能：處理 parse_player_name 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     name = (value or fallback).strip() or fallback
     parts = name.rsplit(maxsplit=1)
     if len(parts) == 2 and looks_like_rank(parts[1]):
@@ -171,7 +170,7 @@ def parse_player_name(value: str | None, fallback: str) -> tuple[str, str | None
 
 
 def looks_like_rank(value: str) -> bool:
-    # 判斷最後一段文字是否像段位或頭銜，用於棋手資料正規化。
+    """功能：處理 looks_like_rank 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     rank_suffixes = (
         "級",
         "段",
@@ -190,7 +189,7 @@ def looks_like_rank(value: str) -> bool:
 
 
 def game_result(parser: CSA.Parser) -> str | None:
-    # 將 cshogi 的勝負資訊轉成資料庫中易讀的結果文字。
+    """功能：處理 game_result 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if parser.endgame:
         return str(parser.endgame).lstrip("%")
     if parser.win == cshogi.BLACK_WIN:
@@ -203,28 +202,28 @@ def game_result(parser: CSA.Parser) -> str | None:
 
 
 def side_name(turn: int) -> str:
-    # cshogi 的黑白方常數轉成資料庫 ENUM 欄位值。
+    """功能：處理 side_name 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return "black" if turn == cshogi.BLACK else "white"
 
 
 def sfen_hash(sfen: str) -> str:
-    # 針對 SFEN 建立雜湊，未來若要比對重複局面可以直接使用。
+    """功能：處理 sfen_hash 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return hashlib.sha256(sfen.encode("utf-8")).hexdigest()
 
 
 def legal_moves_count(board: cshogi.Board) -> int:
-    # 計算當前局面的合法手數，存入 positions 方便分析局面複雜度。
+    """功能：處理 legal_moves_count 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return sum(1 for _ in board.legal_moves)
 
 
 def ensure_schema(cursor: Any) -> None:
-    # 逐一執行建表 SQL，資料表已存在時不會重建。
+    """功能：處理 ensure_schema 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     for sql in CREATE_TABLES_SQL:
         cursor.execute(sql)
 
 
 def ensure_user(cursor: Any, username: str, email: str | None) -> int:
-    # 找到或建立上傳者帳號，讓 game_records.uploader_id 有對應使用者。
+    """功能：處理 ensure_user 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if email:
         cursor.execute("SELECT user_id FROM users WHERE email = %s", (email,))
     else:
@@ -241,7 +240,7 @@ def ensure_user(cursor: Any, username: str, email: str | None) -> int:
 
 
 def load_existing_game_keys(cursor: Any) -> set[str]:
-    # 讀出已匯入過的 CSA 檔名，搭配 --skip-existing 避免重複匯入。
+    """功能：處理 load_existing_game_keys 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     cursor.execute(
         """
         SELECT original_file_name
@@ -254,7 +253,7 @@ def load_existing_game_keys(cursor: Any) -> set[str]:
 
 
 def load_player_cache(cursor: Any) -> PlayerCache:
-    # 預先載入棋手資料，批次匯入時可減少查詢次數。
+    """功能：處理 load_player_cache 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     cursor.execute("SELECT player_id, player_name, rank_name FROM players")
     return {
         (str(row["player_name"]), row["rank_name"]): int(row["player_id"])
@@ -263,7 +262,7 @@ def load_player_cache(cursor: Any) -> PlayerCache:
 
 
 def ensure_player(cursor: Any, player_cache: PlayerCache, player_name: str, rank_name: str | None) -> int:
-    # 找到或建立棋手，並把結果放進快取，避免同一位棋手重複 INSERT。
+    """功能：處理 ensure_player 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     cache_key = (player_name, rank_name)
     if cache_key in player_cache:
         return player_cache[cache_key]
@@ -295,12 +294,12 @@ def ensure_player(cursor: Any, player_cache: PlayerCache, player_name: str, rank
 
 
 def original_file_key(file_name: str, game_index: int) -> str:
-    # 一份 CSA 檔若包含多盤棋，用 #gameN 區分同檔內不同棋局。
+    """功能：處理 original_file_key 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     return file_name if game_index == 0 else f"{file_name}#game{game_index}"
 
 
 def build_position_row(game_id: int, move_number: int, board: cshogi.Board) -> tuple[Any, ...]:
-    # 將目前 cshogi.Board 轉成 positions 表的一列資料。
+    """功能：處理 build_position_row 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     sfen = board.sfen()
     return (
         game_id,
@@ -318,7 +317,7 @@ def build_move_and_position_rows(
     parser: CSA.Parser,
     source: Path,
 ) -> tuple[list[tuple[Any, ...]], list[tuple[Any, ...]]]:
-    # 重播棋局，同時準備 moves 與 positions 的批次 INSERT 資料。
+    """功能：處理 build_move_and_position_rows 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     board = cshogi.Board(parser.sfen)
     move_rows: list[tuple[Any, ...]] = []
     position_rows: list[tuple[Any, ...]] = [build_position_row(game_id, 0, board)]
@@ -357,7 +356,7 @@ def insert_game(
     existing_game_keys: set[str],
     player_cache: PlayerCache,
 ) -> tuple[bool, int, int]:
-    # 匯入單一棋局：先寫主資料，再批次寫入手順與每一步局面。
+    """功能：處理 insert_game 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     with conn.cursor() as cursor:
         file_key = original_file_key(source.name, game_index)
         if skip_existing and file_key in existing_game_keys:
@@ -424,7 +423,7 @@ def insert_game(
 
 
 def parse_args() -> argparse.Namespace:
-    # 命令列參數：資料來源、MySQL 連線資訊、是否建表、是否略過既有棋局。
+    """功能：解析命令列參數，讓使用者可以調整輸入、輸出與執行選項。"""
     parser = argparse.ArgumentParser(description="Import CSA game records into MySQL.")
     parser.add_argument("--input", required=True, type=Path, help="CSA file or directory")
     parser.add_argument("--recursive", action="store_true", help="Scan input directory recursively")
@@ -446,7 +445,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def connect(args: argparse.Namespace) -> Any:
-    # 建立 MySQL 連線；若沒有密碼參數，改用互動式輸入避免寫死在指令列。
+    """功能：處理 connect 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if not args.user:
         raise SystemExit("Missing --user or MYSQL_USER.")
     password = args.password
@@ -466,7 +465,7 @@ def connect(args: argparse.Namespace) -> Any:
 
 
 def dry_run(args: argparse.Namespace) -> ImportSummary:
-    # 只解析棋譜並統計數量，不連線也不寫入資料庫，適合匯入前檢查。
+    """功能：處理 dry_run 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     summary = ImportSummary()
     for source in iter_csa_files(args.input, args.recursive):
         games = parse_csa_games(source, args.encoding)
@@ -481,7 +480,7 @@ def dry_run(args: argparse.Namespace) -> ImportSummary:
 
 
 def safe_rollback(conn: Any) -> None:
-    # 發生錯誤時嘗試回滾；若連線已因限制或錯誤失效，就安靜略過。
+    """功能：處理 safe_rollback 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     try:
         conn.rollback()
     except Exception:
@@ -489,7 +488,7 @@ def safe_rollback(conn: Any) -> None:
 
 
 def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
-    # 主匯入流程：初始化快取，逐檔解析，逐盤寫入並在每盤後 commit。
+    """功能：處理 import_to_mysql 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     summary = ImportSummary()
     conn = connect(args)
     try:
@@ -550,7 +549,7 @@ def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
 
 
 def main() -> int:
-    # 程式入口：依 dry-run 或正式匯入模式執行，最後輸出摘要 JSON。
+    """功能：串接本檔案的主要執行流程。"""
     args = parse_args()
     summary = dry_run(args) if args.dry_run else import_to_mysql(args)
     print(json.dumps(asdict(summary), ensure_ascii=False, indent=2))

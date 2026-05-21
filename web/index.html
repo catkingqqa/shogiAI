@@ -7,7 +7,9 @@
     <link rel="stylesheet" href="/styles.css?v=20260519-2" />
   </head>
   <body>
+    <!-- 功能：App shell：左側是模式切換，右側 workspace 依目前模式顯示不同功能。 -->
     <main class="app-shell">
+      <!-- 功能：模式分頁：讓使用者在棋譜瀏覽、自行對弈與 AI 對弈之間切換。 -->
       <nav class="mode-tabs" aria-label="功能切換">
         <button id="browserTab" class="mode-tab active" type="button">棋譜瀏覽</button>
         <button id="selfPlayTab" class="mode-tab" type="button">自行對奕</button>
@@ -15,6 +17,7 @@
       </nav>
 
       <section class="workspace">
+        <!-- 功能：棋譜瀏覽模式：顯示搜尋條件、資料庫統計、棋盤與手順列表。 -->
         <section id="browserView" class="mode-view active">
           <header class="topbar">
             <div>
@@ -27,6 +30,7 @@
             </label>
           </header>
 
+          <!-- 功能：搜尋條件：供 app.js 組成 query string 送到 /api/games 過濾棋局。 -->
           <section class="search-panel" aria-label="搜尋棋局">
             <label>
               <span>賽事</span>
@@ -54,6 +58,7 @@
             </div>
           </section>
 
+          <!-- 功能：資料庫統計：呈現 /api/db/stats 回傳的棋局、棋手、走法與局面數。 -->
           <section class="db-panel" aria-label="資料庫狀態">
             <div>
               <span>資料來源</span>
@@ -81,6 +86,7 @@
             </div>
           </section>
 
+          <!-- 功能：棋盤區：左右顯示雙方資訊，中間顯示 9x9 棋盤。 -->
           <section class="play-area">
             <aside class="side-panel">
               <div class="player player-white">
@@ -118,6 +124,7 @@
             <button id="lastBtn" class="control-btn" type="button" title="跳到最後一手" aria-label="跳到最後一手">→|</button>
           </footer>
 
+          <!-- 功能：手順列表：顯示已下走法，並提供點選跳轉功能。 -->
           <section class="move-list-panel" aria-label="手順">
             <div class="move-list-head">
               <h2>手順</h2>
@@ -127,6 +134,7 @@
           </section>
         </section>
 
+        <!-- 功能：自行對弈模式：前端保存 USI 走法序列，後端負責重播與回傳合法手。 -->
         <section id="selfPlayView" class="mode-view">
           <header class="topbar self-play-topbar">
             <div>
@@ -156,6 +164,7 @@
             </div>
           </header>
 
+          <!-- 功能：棋盤區：左右顯示雙方資訊，中間顯示 9x9 棋盤。 -->
           <section class="play-area">
             <aside class="side-panel">
               <div class="player player-white">
@@ -193,6 +202,7 @@
             <button id="selfLastBtn" class="control-btn" type="button" title="還原到最後" aria-label="還原到最後">→|</button>
           </footer>
 
+          <!-- 功能：手順列表：顯示已下走法，並提供點選跳轉功能。 -->
           <section class="move-list-panel" aria-label="自行對奕手順">
             <div class="move-list-head">
               <h2>自建手順</h2>
@@ -202,6 +212,7 @@
           </section>
         </section>
 
+        <!-- 功能：AI 對弈模式：顯示搜尋深度、節點數、PV 與 policy 候選手。 -->
         <section id="aiPlayView" class="mode-view">
           <header class="topbar ai-play-topbar">
             <div>
@@ -260,6 +271,7 @@
             <div id="aiCandidateList" class="candidate-list"></div>
           </section>
 
+          <!-- 功能：棋盤區：左右顯示雙方資訊，中間顯示 9x9 棋盤。 -->
           <section class="play-area">
             <aside class="side-panel">
               <div class="player player-white">
@@ -293,6 +305,7 @@
             </div>
           </footer>
 
+          <!-- 功能：手順列表：顯示已下走法，並提供點選跳轉功能。 -->
           <section class="move-list-panel" aria-label="AI 對弈手順">
             <div class="move-list-head">
               <h2>對弈手順</h2>

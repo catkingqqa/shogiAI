@@ -1,3 +1,4 @@
+"""功能：從 MySQL 重建 policy/value 訓練資料，輸出 npz 給模型使用。"""
 from __future__ import annotations
 
 import argparse
@@ -14,6 +15,7 @@ from csa_preprocess import MOVE_LABELS, encode_move, encode_state
 
 
 def parse_args() -> argparse.Namespace:
+    """功能：解析命令列參數，讓使用者可以調整輸入、輸出與執行選項。"""
     parser = argparse.ArgumentParser(description="Export policy/value-network samples from MySQL.")
     parser.add_argument("--output", required=True, type=Path, help="Output .npz path")
     parser.add_argument("--host", default=os.getenv("MYSQL_HOST", "127.0.0.1"))
@@ -26,6 +28,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """功能：串接本檔案的主要執行流程。"""
     args = parse_args()
     if not args.user:
         raise SystemExit("Missing --user or MYSQL_USER.")
@@ -155,11 +158,13 @@ def main() -> int:
 
 
 def clean_result(value: object) -> str:
+    """功能：處理 clean_result 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     result = "" if value is None else str(value).strip().upper()
     return "" if result in {"", "NONE", "NULL"} else result
 
 
 def value_for_row(side_to_move: str, final_side_to_move: str, result: str) -> tuple[float, float, str | None]:
+    """功能：處理 value_for_row 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     winner: str | None
     if result == "BLACK_WIN":
         winner = "black"
