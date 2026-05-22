@@ -201,23 +201,6 @@ print(json.loads(str(data["meta"][0])))
 jupyter notebook
 
 
-NNUE-like Value Evaluator
-
-本專案也提供第一階段 NNUE-like 評估器。它不使用整盤 CNN，而是把盤面轉成以雙方玉位置為 anchor 的稀疏特徵，再用 `EmbeddingBag` 訓練 value evaluator。這比較接近專業將棋引擎常用的 NNUE 思路，也比較適合之後接到 alpha-beta 搜尋。
-
-```powershell
-python src\train_nnue.py --input out\policy_dataset.npz --output out\nnue_model.pt --epochs 8 --batch-size 512 --hidden-size 64
-```
-
-快速測試可先用小樣本：
-
-```powershell
-python src\train_nnue.py --input out\policy_dataset.npz --output out\nnue_smoke.pt --epochs 1 --batch-size 128 --max-samples 512 --hidden-size 32
-```
-
-目前這是訓練骨架，尚未預設接入 `.bat` 的 AI 決策。建議先觀察 `test_mae`，等 value label 改善後，再把它接成中終盤 evaluator 或 root bonus。
-
-
 Opening Book
 
 AI 對弈支援從 MySQL 棋譜資料庫建立簡單開局庫。啟動時會統計前 N 手的局面與下一手出現次數；AI 在開局庫命中時會直接走資料庫中最常見的合法手，查不到才進入 alpha-beta 搜尋。
