@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import time
+from collections import defaultdict
 from dataclasses import asdict, dataclass
 from datetime import datetime
 from pathlib import Path
@@ -98,6 +99,7 @@ class ImportSummary:
     parsed_games: int = 0
     imported_games: int = 0
     skipped_games: int = 0
+    updated_file_names: int = 0
     imported_moves: int = 0
     imported_positions: int = 0
     errors: list[dict[str, Any]] | None = None
@@ -116,6 +118,7 @@ class ImportSummary:
 
 
 PlayerCache = dict[tuple[str, str | None], int]
+ExistingGameIndex = dict[str, Any]
 
 
 def iter_csa_files(path: Path, recursive: bool) -> Iterable[Path]:
@@ -239,17 +242,72 @@ def ensure_user(cursor: Any, username: str, email: str | None) -> int:
     return int(cursor.lastrowid)
 
 
-def load_existing_game_keys(cursor: Any) -> set[str]:
-    """功能：處理 load_existing_game_keys 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
+def game_content_key(initial_sfen: str, moves_usi: Iterable[str]) -> str:
+    """用初始局面與完整手順建立內容指紋，避免改檔名後重複匯入同一盤。"""
+    payload = "\n".join([initial_sfen.strip(), *moves_usi])
+    return "content:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def parser_content_key(parser: CSA.Parser) -> str:
+    """從 CSA parser 直接建立棋局內容指紋。"""
+    return game_content_key(parser.sfen, (cshogi.move_to_usi(move) for move in parser.moves))
+
+
+def load_existing_game_index(cursor: Any) -> ExistingGameIndex:
+    """讀取既有棋局的檔名與內容索引，供 --skip-existing 判斷重複與更新檔名。"""
+    file_keys: set[str] = set()
+    file_names_by_game: dict[int, str | None] = {}
     cursor.execute(
         """
-        SELECT original_file_name
+        SELECT game_id, original_file_name
         FROM game_records
         WHERE source_format = 'CSA'
           AND original_file_name IS NOT NULL
         """
     )
-    return {str(row["original_file_name"]) for row in cursor.fetchall()}
+    for row in cursor.fetchall():
+        game_id = int(row["game_id"])
+        file_name = str(row["original_file_name"])
+        file_names_by_game[game_id] = file_name
+        file_keys.add(file_name)
+
+    cursor.execute(
+        """
+        SELECT g.game_id, p.sfen
+        FROM game_records g
+        JOIN positions p
+          ON p.game_id = g.game_id
+         AND p.move_number = 0
+        WHERE g.source_format = 'CSA'
+        """
+    )
+    initial_sfens = {int(row["game_id"]): str(row["sfen"]) for row in cursor.fetchall()}
+
+    moves_by_game: dict[int, list[str]] = defaultdict(list)
+    if initial_sfens:
+        cursor.execute(
+            """
+            SELECT game_id, usi_move
+            FROM moves
+            WHERE game_id IN (
+                SELECT game_id
+                FROM game_records
+                WHERE source_format = 'CSA'
+            )
+            ORDER BY game_id, move_number
+            """
+        )
+        for row in cursor.fetchall():
+            moves_by_game[int(row["game_id"])].append(str(row["usi_move"]))
+
+    content_keys: dict[str, dict[str, Any]] = {}
+    for game_id, initial_sfen in initial_sfens.items():
+        content_keys[game_content_key(initial_sfen, moves_by_game.get(game_id, []))] = {
+            "game_id": game_id,
+            "file_name": file_names_by_game.get(game_id),
+        }
+
+    return {"file_keys": file_keys, "content_keys": content_keys}
 
 
 def load_player_cache(cursor: Any) -> PlayerCache:
@@ -353,14 +411,31 @@ def insert_game(
     game_index: int,
     uploader_id: int,
     skip_existing: bool,
-    existing_game_keys: set[str],
+    existing_games: ExistingGameIndex,
     player_cache: PlayerCache,
-) -> tuple[bool, int, int]:
+) -> tuple[bool, int, int, bool]:
     """功能：處理 insert_game 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     with conn.cursor() as cursor:
         file_key = original_file_key(source.name, game_index)
-        if skip_existing and file_key in existing_game_keys:
-            return False, 0, 0
+        content_key = parser_content_key(parser)
+        file_keys: set[str] = existing_games["file_keys"]
+        content_keys: dict[str, dict[str, Any]] = existing_games["content_keys"]
+        if skip_existing and file_key in file_keys:
+            return False, 0, 0, False
+        if skip_existing and content_key in content_keys:
+            existing = content_keys[content_key]
+            old_file_name = existing.get("file_name")
+            if old_file_name != file_key:
+                cursor.execute(
+                    "UPDATE game_records SET original_file_name = %s WHERE game_id = %s",
+                    (file_key, int(existing["game_id"])),
+                )
+                if old_file_name:
+                    file_keys.discard(str(old_file_name))
+                file_keys.add(file_key)
+                existing["file_name"] = file_key
+                return False, 0, 0, True
+            return False, 0, 0, False
 
         names = parser.names or []
         black_name, black_rank = parse_player_name(names[0] if names else None, "先手")
@@ -417,9 +492,10 @@ def insert_game(
             """,
             position_rows,
         )
-        existing_game_keys.add(file_key)
+        file_keys.add(file_key)
+        content_keys[content_key] = {"game_id": game_id, "file_name": file_key}
 
-    return True, len(move_rows), len(position_rows)
+    return True, len(move_rows), len(position_rows), False
 
 
 def parse_args() -> argparse.Namespace:
@@ -436,7 +512,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--uploader", default="csa_importer", help="Username stored in users")
     parser.add_argument("--uploader-email", default=None)
     parser.add_argument("--create-tables", action="store_true", help="Create required tables if missing")
-    parser.add_argument("--skip-existing", action="store_true", help="Skip games with the same original_file_name")
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help=(
+            "Skip games already in DB by original_file_name or by initial SFEN + full move sequence hash. "
+            "If content matches but the file name changed, update original_file_name to the new file name."
+        ),
+    )
     parser.add_argument("--max-games", type=int, default=None, help="Stop after this many parsed games")
     parser.add_argument("--pause-every", type=int, default=0, help="Pause after this many newly imported games")
     parser.add_argument("--pause-seconds", type=float, default=65.0, help="Seconds to pause when --pause-every is reached")
@@ -496,7 +579,10 @@ def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
             if args.create_tables:
                 ensure_schema(cursor)
             uploader_id = ensure_user(cursor, args.uploader, args.uploader_email)
-            existing_game_keys = load_existing_game_keys(cursor) if args.skip_existing else set()
+            existing_games = load_existing_game_index(cursor) if args.skip_existing else {
+                "file_keys": set(),
+                "content_keys": {},
+            }
             player_cache = load_player_cache(cursor)
         conn.commit()
 
@@ -510,14 +596,14 @@ def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
             for game_index, parser in enumerate(games):
                 summary.parsed_games += 1
                 try:
-                    imported, moves_inserted, positions_inserted = insert_game(
+                    imported, moves_inserted, positions_inserted, file_name_updated = insert_game(
                         conn,
                         parser,
                         source,
                         game_index,
                         uploader_id,
                         args.skip_existing,
-                        existing_game_keys,
+                        existing_games,
                         player_cache,
                     )
                     conn.commit()
@@ -530,15 +616,19 @@ def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
                     summary.imported_games += 1
                     summary.imported_moves += moves_inserted
                     summary.imported_positions += positions_inserted
-                    if args.pause_every > 0 and summary.imported_games % args.pause_every == 0:
-                        print(
-                            f"Imported {summary.imported_games} new games; sleeping {args.pause_seconds} seconds "
-                            "to avoid MySQL max_questions limit.",
-                            flush=True,
-                        )
-                        time.sleep(args.pause_seconds)
+                elif file_name_updated:
+                    summary.updated_file_names += 1
                 else:
                     summary.skipped_games += 1
+
+                changed_games = summary.imported_games + summary.updated_file_names
+                if (imported or file_name_updated) and args.pause_every > 0 and changed_games % args.pause_every == 0:
+                    print(
+                        f"Changed {changed_games} games; sleeping {args.pause_seconds} seconds "
+                        "to avoid MySQL max_questions limit.",
+                        flush=True,
+                    )
+                    time.sleep(args.pause_seconds)
 
                 if args.max_games is not None and summary.parsed_games >= args.max_games:
                     return summary
