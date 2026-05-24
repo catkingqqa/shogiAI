@@ -6,18 +6,42 @@ cd /d "%~dp0"
 
 REM Prefer the Python installed on this computer. Stop early if it cannot be found.
 set "PYTHON_EXE="
-if exist "C:\Users\20050\AppData\Local\Programs\Python\Python313\python.exe" (
-  set "PYTHON_EXE=C:\Users\20050\AppData\Local\Programs\Python\Python313\python.exe"
+
+REM First try Python Launcher, Python 3.13
+for /f "delims=" %%P in ('py -3.13 -c "import sys; print(sys.executable)" 2^>nul') do (
+  set "PYTHON_EXE=%%P"
 )
+
+REM If Python 3.13 is not installed, try any Python 3 version
+if "%PYTHON_EXE%"=="" (
+  for /f "delims=" %%P in ('py -3 -c "import sys; print(sys.executable)" 2^>nul') do (
+    set "PYTHON_EXE=%%P"
+  )
+)
+
+REM If py launcher is not available, try common install paths
 if "%PYTHON_EXE%"=="" if exist "%LocalAppData%\Programs\Python\Python313\python.exe" (
   set "PYTHON_EXE=%LocalAppData%\Programs\Python\Python313\python.exe"
 )
+
+if "%PYTHON_EXE%"=="" if exist "%LocalAppData%\Programs\Python\Python312\python.exe" (
+  set "PYTHON_EXE=%LocalAppData%\Programs\Python\Python312\python.exe"
+)
+
+if "%PYTHON_EXE%"=="" if exist "%LocalAppData%\Programs\Python\Python311\python.exe" (
+  set "PYTHON_EXE=%LocalAppData%\Programs\Python\Python311\python.exe"
+)
+
 if "%PYTHON_EXE%"=="" (
-  echo Python was not found. Please install Python 3.13 or fix PYTHON_EXE in this bat file.
+  echo Python was not found.
+  echo Please install Python 3, or fix PYTHON_EXE in this bat file.
+  echo.
+  echo Try running:
+  echo   py -0p
+  echo   where python
   pause
   exit /b 1
 )
-
 echo Starting CSA browser...
 echo AI settings:
 echo   policy model: out\policy_model.pt
