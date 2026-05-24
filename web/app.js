@@ -10,6 +10,8 @@ const modelMatchView = document.querySelector("#modelMatchView");
 
 // 功能：棋譜瀏覽模式的 DOM 元件：棋局選單、棋盤、手數控制、持駒與搜尋條件。
 const gameSelect = document.querySelector("#gameSelect");
+const gamePageStatus = document.querySelector("#gamePageStatus");
+const loadMoreGamesBtn = document.querySelector("#loadMoreGamesBtn");
 const boardEl = document.querySelector("#board");
 const firstBtn = document.querySelector("#firstBtn");
 const prevBtn = document.querySelector("#prevBtn");
@@ -136,6 +138,11 @@ let currentGameId = "";
 let currentPly = 0;
 let maxPly = 0;
 let latestState = null;
+const GAME_PAGE_SIZE = 50;
+let loadedGames = [];
+let nextGamesOffset = 0;
+let gamesHasMore = false;
+let gamesLoading = false;
 
 let selfMoves = [];
 let selfRedoMoves = [];
@@ -505,35 +512,79 @@ async function loadPosition(ply) {
 }
 
 // 功能：處理 loadGames 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
-async function loadGames() {
-  await loadDbStats();
+function gamesPageUrl(offset) {
   const params = searchParams();
-  const url = params.toString() ? `/api/games?${params.toString()}` : "/api/games";
-  const data = await fetchJson(url);
-  gameSelect.innerHTML = "";
+  params.set("limit", String(GAME_PAGE_SIZE));
+  params.set("offset", String(offset));
+  return `/api/games?${params.toString()}`;
+}
 
-  if (data.games.length === 0) {
-    clearBoardState("找不到符合條件的棋局");
+function updateGamePageStatus() {
+  if (!gamePageStatus || !loadMoreGamesBtn) {
     return;
   }
+  gamePageStatus.textContent = loadedGames.length
+    ? `已載入 ${loadedGames.length} 筆棋局`
+    : "";
+  loadMoreGamesBtn.hidden = !gamesHasMore;
+  loadMoreGamesBtn.disabled = gamesLoading;
+  loadMoreGamesBtn.textContent = gamesLoading ? "載入中..." : "載入更多";
+}
 
-  for (const game of data.games) {
+function appendGameOptions(games) {
+  for (const game of games) {
     const option = document.createElement("option");
     option.value = game.id;
     option.textContent = game.error ? `${game.name} - 讀取失敗` : `${game.name} (${game.moves} 手)`;
     option.disabled = Boolean(game.error);
     gameSelect.appendChild(option);
   }
+}
 
-  const firstPlayable = data.games.find((game) => !game.error);
-  if (!firstPlayable) {
-    clearBoardState("沒有可讀取的棋局");
+async function loadGames(options = {}) {
+  const append = Boolean(options.append);
+  if (gamesLoading) {
     return;
   }
+  gamesLoading = true;
+  updateGamePageStatus();
+  try {
+    if (!append) {
+      await loadDbStats();
+      loadedGames = [];
+      nextGamesOffset = 0;
+      gamesHasMore = false;
+      gameSelect.innerHTML = "";
+    }
 
-  currentGameId = firstPlayable.id;
-  gameSelect.value = currentGameId;
-  await loadPosition(0);
+    const data = await fetchJson(gamesPageUrl(nextGamesOffset));
+    const pageGames = data.games || [];
+    loadedGames = [...loadedGames, ...pageGames];
+    nextGamesOffset = Number(data.nextOffset ?? (nextGamesOffset + pageGames.length));
+    gamesHasMore = Boolean(data.hasMore);
+    appendGameOptions(pageGames);
+
+    if (loadedGames.length === 0) {
+      clearBoardState("找不到符合條件的棋局");
+      return;
+    }
+
+    if (!append) {
+      const firstPlayable = loadedGames.find((game) => !game.error);
+      if (!firstPlayable) {
+        clearBoardState(gamesHasMore ? "目前批次沒有可讀取的棋局，請載入更多" : "沒有可讀取的棋局");
+        return;
+      }
+      currentGameId = firstPlayable.id;
+      gameSelect.value = currentGameId;
+      await loadPosition(0);
+    } else if (currentGameId) {
+      gameSelect.value = currentGameId;
+    }
+  } finally {
+    gamesLoading = false;
+    updateGamePageStatus();
+  }
 }
 
 // 功能：處理 legalMovesForSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
@@ -1244,6 +1295,10 @@ modelMatchTab.addEventListener("click", async () => {
 gameSelect.addEventListener("change", async () => {
   currentGameId = gameSelect.value;
   await loadPosition(0);
+});
+
+loadMoreGamesBtn.addEventListener("click", async () => {
+  await loadGames({ append: true });
 });
 
 searchBtn.addEventListener("click", async () => {

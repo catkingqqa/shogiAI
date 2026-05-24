@@ -570,6 +570,16 @@ def safe_rollback(conn: Any) -> None:
         pass
 
 
+def is_mysql_resource_limit(error: Exception) -> bool:
+    """Return True when MySQL has stopped accepting queries for this account window."""
+    return (
+        pymysql is not None
+        and isinstance(error, pymysql.err.OperationalError)
+        and error.args
+        and int(error.args[0]) == 1226
+    )
+
+
 def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
     """功能：處理 import_to_mysql 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     summary = ImportSummary()
@@ -609,7 +619,10 @@ def import_to_mysql(args: argparse.Namespace) -> ImportSummary:
                     conn.commit()
                 except Exception as exc:
                     safe_rollback(conn)
+                    player_cache = {}
                     summary.add_error(source, game_index, exc)
+                    if is_mysql_resource_limit(exc):
+                        return summary
                     continue
 
                 if imported:

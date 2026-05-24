@@ -146,7 +146,12 @@ class Game:
 
 class GameSource(Protocol):
     """功能：定義 GameSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
-    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    def list_games(
+        self,
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         ...
 
@@ -414,19 +419,35 @@ def filter_file_games(games: list[dict[str, Any]], filters: dict[str, str]) -> l
 
 class CsaFileSource:
     """功能：定義 CsaFileSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
-    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    def list_games(
+        self,
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         games = []
         if not DATA_DIR.exists():
             return games
-        for path in sorted(DATA_DIR.rglob("*.csa")):
+        filters = filters or {}
+        paths = sorted(DATA_DIR.rglob("*.csa"))
+        if not filters:
+            paths = paths[max(0, offset) :]
+            if limit is not None:
+                paths = paths[:limit]
+        for path in paths:
             game_id = path.relative_to(DATA_DIR).as_posix()
             try:
                 game = parse_csa(path, game_id)
                 games.append(serialize_game_summary(game))
             except Exception as exc:
                 games.append({"id": game_id, "name": path.name, "error": str(exc)})
-        return filter_file_games(games, filters or {})
+        filtered = filter_file_games(games, filters)
+        if filters:
+            start = max(0, offset)
+            end = None if limit is None else start + limit
+            return filtered[start:end]
+        return filtered
 
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
         """功能：處理 get_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
@@ -445,15 +466,14 @@ class CsaFileSource:
 
     def stats(self) -> dict[str, Any]:
         """功能：處理 stats 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        games = self.list_games()
-        playable_games = [game for game in games if not game.get("error")]
+        game_count = len(list(DATA_DIR.rglob("*.csa"))) if DATA_DIR.exists() else 0
         return {
             "source": "csa",
             "database": "",
-            "games": len(playable_games),
+            "games": game_count,
             "players": 0,
-            "moves": sum(int(game.get("moves") or 0) for game in playable_games),
-            "positions": sum(int(game.get("moves") or 0) + 1 for game in playable_games),
+            "moves": 0,
+            "positions": 0,
             "duplicateGroups": 0,
         }
 
@@ -594,10 +614,20 @@ class MySqlSource:
         """功能：處理 like_param 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         return f"%{value.strip()}%"
 
-    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    def list_games(
+        self,
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> list[dict[str, Any]]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         filters = filters or {}
         where_sql, params = self.build_filters(filters)
+        page_sql = ""
+        query_params = list(params)
+        if limit is not None:
+            page_sql = "LIMIT %s OFFSET %s"
+            query_params.extend([limit, max(0, offset)])
         with self.connect() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -611,18 +641,19 @@ class MySqlSource:
                         COALESCE(g.opening, '') AS opening,
                         COALESCE(g.result, '') AS result,
                         g.played_at,
-                        COUNT(m.move_id) AS move_count
+                        (
+                            SELECT COUNT(*)
+                            FROM moves m
+                            WHERE m.game_id = g.game_id
+                        ) AS move_count
                     FROM game_records g
                     LEFT JOIN players bp ON g.black_player_id = bp.player_id
                     LEFT JOIN players wp ON g.white_player_id = wp.player_id
-                    LEFT JOIN moves m ON g.game_id = m.game_id
                     {where_sql}
-                    GROUP BY
-                        g.game_id, g.original_file_name, bp.player_name, wp.player_name,
-                        g.event_name, g.opening, g.result, g.played_at
                     ORDER BY g.played_at DESC, g.game_id DESC
+                    {page_sql}
                     """,
-                    params,
+                    query_params,
                 )
                 rows = cursor.fetchall()
 
@@ -1226,8 +1257,25 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         path = parsed.path
 
         if path == "/api/games":
-            filters = {key: values[0] for key, values in parse_qs(parsed.query).items() if values and values[0].strip()}
-            self.send_json({"games": self.source.list_games(filters)})
+            query = parse_qs(parsed.query)
+            filters = {
+                key: values[0]
+                for key, values in query.items()
+                if key not in {"limit", "offset"} and values and values[0].strip()
+            }
+            limit = self.clamp_int(query.get("limit", ["50"])[0], 1, 200, "limit")
+            offset = self.min_int(query.get("offset", ["0"])[0], 0, "offset")
+            games = self.source.list_games(filters, limit=limit + 1, offset=offset)
+            has_more = len(games) > limit
+            self.send_json(
+                {
+                    "games": games[:limit],
+                    "limit": limit,
+                    "offset": offset,
+                    "nextOffset": offset + min(len(games), limit),
+                    "hasMore": has_more,
+                }
+            )
             return
         if path == "/api/db/stats":
             self.send_json({"stats": self.source.stats()})

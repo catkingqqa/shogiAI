@@ -343,6 +343,14 @@ h1 {
   font-size: 14px;
 }
 
+.game-page-status {
+  font-size: 13px;
+}
+
+.game-picker .text-btn {
+  justify-self: end;
+}
+
 select {
   width: 100%;
   border: 1px solid #bcc4c7;
