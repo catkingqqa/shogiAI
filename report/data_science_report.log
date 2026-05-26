@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.4) (preloaded format=xelatex 2025.12.16)  21 MAY 2026 14:02
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.4) (preloaded format=xelatex 2025.12.16)  26 MAY 2026 16:27
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -726,19 +726,28 @@ LaTeX Font Warning: Font shape `TU/MicrosoftJhengHei(0)/m/sl' undefined
 
 [5]
 
-[6] [7]
+[6]
 
-[8] [9]
+[7]
+
+[8]
+
+[9]
 
 [10]
+Overfull \hbox (3.18102pt too wide) in paragraph at lines 460--461
+[]\TU/MicrosoftJhengHei(0)/m/n/12 本 專 案 其 實 就 是 把 棋 盤 轉 為 多 通 道 \TU/lmr/m/n/12 
+one-hot \TU/MicrosoftJhengHei(0)/m/n/12 與 數 量 \TU/lmr/m/n/12 plane\TU/Microsoft
+JhengHei(0)/m/n/12 。|  不 同 棋 種 與 持 駒 分 開 \TU/lmr/m/n/12 chan-
+ []
+
+
 
 [11]
 
 [12]
 
-[13]
-
-[14] (data_science_report.aux)
+[13] (data_science_report.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2022/08/05>
@@ -748,15 +757,15 @@ L3 programming layer <2022/08/05>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `data_science_report.out' has not changed.
-(rerunfilecheck)             Checksum: F6A46D52CD3BC9F7753BA81AB965FA60;4363.
+(rerunfilecheck)             Checksum: 1A6A11D0DBA3CDABC1044F9241DFDAC5;5353.
  ) 
 Here is how much of TeX's memory you used:
- 17925 strings out of 405057
- 380760 string characters out of 5499577
- 851612 words of memory out of 5000000
- 44345 multiletter control sequences out of 15000+600000
- 637907 words of font info for 114 fonts, out of 8000000 for 9000
+ 17867 strings out of 405057
+ 376508 string characters out of 5499577
+ 835629 words of memory out of 5000000
+ 44289 multiletter control sequences out of 15000+600000
+ 637891 words of font info for 112 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 93i,9n,95p,491b,1815s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 93i,9n,95p,385b,1809s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on data_science_report.pdf (14 pages).
+Output written on data_science_report.pdf (13 pages).

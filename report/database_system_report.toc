@@ -1,0 +1,43 @@
+\contentsline {section}{\numberline {1}系統目標與資料流程}{3}{section.1}%
+\contentsline {section}{\numberline {2}資料庫設計方法與原理}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}設計方法}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}為什麼要正規化}{3}{subsection.2.2}%
+\contentsline {section}{\numberline {3}資料表設計}{4}{section.3}%
+\contentsline {subsection}{\numberline {3.1}\texttt {users}}{4}{subsection.3.1}%
+\contentsline {subsection}{\numberline {3.2}\texttt {players}}{4}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}\texttt {game\_records}}{5}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}\texttt {moves}}{5}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}\texttt {positions}}{5}{subsection.3.5}%
+\contentsline {section}{\numberline {4}關聯設計與資料一致性}{6}{section.4}%
+\contentsline {section}{\numberline {5}資料匯入流程}{6}{section.5}%
+\contentsline {section}{\numberline {6}去重與可追溯設計}{7}{section.6}%
+\contentsline {subsection}{\numberline {6.1}檔名去重}{7}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}內容去重}{7}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}資料追溯}{7}{subsection.6.3}%
+\contentsline {section}{\numberline {7}使用者如何與資料庫互動}{7}{section.7}%
+\contentsline {subsection}{\numberline {7.1}棋譜瀏覽}{8}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}棋譜查詢與篩選}{8}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}資料庫統計}{8}{subsection.7.3}%
+\contentsline {section}{\numberline {8}資料庫相關功能}{8}{section.8}%
+\contentsline {subsection}{\numberline {8.1}棋譜匯入}{8}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}局面回放}{8}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}訓練資料匯出}{9}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}開局庫}{9}{subsection.8.4}%
+\contentsline {subsection}{\numberline {8.5}AI 對弈與模型比賽}{9}{subsection.8.5}%
+\contentsline {section}{\numberline {9}API 資料結構設計}{9}{section.9}%
+\contentsline {section}{\numberline {10}索引與效能設計}{10}{section.10}%
+\contentsline {section}{\numberline {11}安全性與資料品質}{10}{section.11}%
+\contentsline {subsection}{\numberline {11.1}SQL 注入防護}{10}{subsection.11.1}%
+\contentsline {subsection}{\numberline {11.2}路徑安全}{10}{subsection.11.2}%
+\contentsline {subsection}{\numberline {11.3}合法性檢查}{11}{subsection.11.3}%
+\contentsline {section}{\numberline {12}教授可能提問與回答}{11}{section.12}%
+\contentsline {subsection}{\numberline {12.1}為什麼要存 \texttt {positions}，只存 \texttt {moves} 不行嗎}{11}{subsection.12.1}%
+\contentsline {subsection}{\numberline {12.2}為什麼 \texttt {moves} 和 \texttt {positions} 分開}{11}{subsection.12.2}%
+\contentsline {subsection}{\numberline {12.3}為什麼用 MySQL 而不是只用檔案}{11}{subsection.12.3}%
+\contentsline {subsection}{\numberline {12.4}如果棋手同名怎麼辦}{11}{subsection.12.4}%
+\contentsline {subsection}{\numberline {12.5}資料庫如何支援 AI}{11}{subsection.12.5}%
+\contentsline {section}{\numberline {13}結論}{12}{section.13}%
+\contentsline {section}{\numberline {A}常用指令}{12}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}建立資料表並匯入}{12}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}匯出訓練資料}{12}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}啟動資料庫瀏覽與 AI API}{12}{subsection.A.3}%

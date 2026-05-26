@@ -1,0 +1,478 @@
+\documentclass[12pt,a4paper,fontset=none]{ctexart}
+
+\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\setCJKmainfont{Microsoft JhengHei}
+\setCJKsansfont{Microsoft JhengHei}
+\setCJKmonofont{Microsoft JhengHei}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!55!black,
+  urlcolor=blue!55!black
+}
+
+\lstdefinestyle{cmd}{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible
+}
+
+\setlist[itemize]{leftmargin=2em}
+\setlist[enumerate]{leftmargin=2em}
+
+\title{\textbf{shogiAI 資料庫系統報告}\\
+\large 資料庫設計方法、互動流程與棋譜資料管理功能}
+\author{shogiAI 專案}
+\date{2026 年 5 月}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本報告說明 shogiAI 專案的資料庫系統設計。專案資料來源為 CSA 將棋棋譜，系統將原始棋譜解析為使用者、棋手、對局、走法與局面五類資料，再以 MySQL 儲存。資料庫不只保存原始棋譜內容，也支援棋譜查詢、局面回放、訓練資料匯出、開局庫統計、AI 對弈與模型比賽等功能。設計核心是把「一盤棋」拆成可正規化、可查詢、可重播、可訓練的資料單位，使前端、後端 API 與 AI 模組都能使用同一份可信資料來源。
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{系統目標與資料流程}
+
+shogiAI 的資料庫系統目標不是單純把 CSA 檔案存進資料庫，而是把棋譜轉換成可被系統操作的資料模型。整體流程如下：
+
+\begin{center}
+\begin{tabular}{c}
+CSA 棋譜 $\rightarrow$ Python 解析與合法性檢查\\
+$\rightarrow$ MySQL 正規化儲存 $\rightarrow$ HTTP JSON API\\
+$\rightarrow$ 前端棋盤、搜尋、AI 與訓練模組
+\end{tabular}
+\end{center}
+
+這個流程讓專案具備三個特性：
+
+\begin{enumerate}
+  \item \textbf{可追溯：} 每一筆訓練樣本都能追回來源對局、手數、SFEN 與實戰走法。
+  \item \textbf{可重播：} 系統保存每一步前後的局面，使用者可以直接跳到任意手數。
+  \item \textbf{可擴充：} 前端查詢、開局庫、AI 對弈與資料科學訓練都從同一組資料表取得資料。
+\end{enumerate}
+
+\section{資料庫設計方法與原理}
+
+\subsection{設計方法}
+
+本專案採用關聯式資料庫設計。設計時先分析 CSA 棋譜中有哪些實體，再判斷實體之間的關係：
+
+\begin{itemize}
+  \item 一個系統使用者可以匯入多盤棋。
+  \item 一位棋手可以出現在多盤棋中。
+  \item 一盤棋包含多個走法。
+  \item 一盤棋包含多個局面，其中第 0 手代表初始局面。
+\end{itemize}
+
+因此資料庫拆成五張主要資料表：\texttt{users}、\texttt{players}、\texttt{game\_records}、\texttt{moves}、\texttt{positions}。這種拆法符合第三正規化精神：棋手名稱不重複存在每一手資料中，對局 metadata 不混入走法資料，局面資訊也不與走法欄位混在一起。
+
+\subsection{為什麼要正規化}
+
+若只用一張大表保存所有資料，會產生三個問題：
+
+\begin{enumerate}
+  \item \textbf{資料重複：} 同一位棋手在多盤棋中重複出現，修改名稱會很困難。
+  \item \textbf{查詢不清楚：} 對局資料、走法資料、局面資料混在一起，查詢某一盤棋或某一步時需要額外解析。
+  \item \textbf{訓練資料難匯出：} AI 訓練需要的是「局面加下一手」樣本，如果沒有獨立的 \texttt{positions} 與 \texttt{moves}，每次都必須重新讀 CSA 檔案。
+\end{enumerate}
+
+正規化後，資料庫能以 SQL 直接取得訓練樣本：
+
+\begin{lstlisting}[style=cmd]
+SELECT p.sfen, m.usi_move, g.result
+FROM positions p
+JOIN moves m
+  ON m.game_id = p.game_id
+ AND m.move_number = p.move_number + 1
+JOIN game_records g
+  ON g.game_id = p.game_id
+ORDER BY p.game_id, p.move_number;
+\end{lstlisting}
+
+\section{資料表設計}
+
+\subsection{\texttt{users}}
+
+\texttt{users} 保存系統使用者或匯入者。即使目前主要由匯入程式使用，保留使用者表可以讓日後擴充登入、權限、個人收藏或上傳紀錄。
+
+\begin{longtable}{p{0.26\textwidth}p{0.22\textwidth}p{0.42\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{用途}\\
+\midrule
+\endhead
+\texttt{user\_id} & INT PK & 使用者主鍵，自動遞增。\\
+\texttt{username} & VARCHAR & 使用者名稱或匯入程式名稱。\\
+\texttt{email} & VARCHAR & 可選的唯一信箱。\\
+\texttt{password\_hash} & VARCHAR & 預留登入驗證欄位。\\
+\texttt{role} & VARCHAR & 權限角色，例如 user。\\
+\texttt{created\_at} & DATETIME & 建立時間。\\
+\bottomrule
+\end{longtable}
+
+\subsection{\texttt{players}}
+
+\texttt{players} 保存棋手資料，避免同一棋手名稱在每盤棋中重複儲存。
+
+\begin{longtable}{p{0.26\textwidth}p{0.22\textwidth}p{0.42\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{用途}\\
+\midrule
+\endhead
+\texttt{player\_id} & INT PK & 棋手主鍵。\\
+\texttt{player\_name} & VARCHAR & 棋手名稱。\\
+\texttt{rank\_name} & VARCHAR & 段位或稱號，可為空。\\
+\texttt{created\_at} & DATETIME & 建立時間。\\
+\bottomrule
+\end{longtable}
+
+\subsection{\texttt{game\_records}}
+
+\texttt{game\_records} 是對局主表，保存一盤棋的 metadata 與外鍵關係。
+
+\begin{longtable}{p{0.28\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{用途}\\
+\midrule
+\endhead
+\texttt{game\_id} & INT PK & 對局主鍵。\\
+\texttt{uploader\_id} & INT FK & 匯入者，連到 \texttt{users}。\\
+\texttt{black\_player\_id} & INT FK & 先手棋手，連到 \texttt{players}。\\
+\texttt{white\_player\_id} & INT FK & 後手棋手，連到 \texttt{players}。\\
+\texttt{event\_name} & VARCHAR & 賽事名稱。\\
+\texttt{site} & VARCHAR & 地點。\\
+\texttt{opening} & VARCHAR & 開局名稱。\\
+\texttt{result} & VARCHAR & 結果，例如 TORYO、DRAW、SENNICHITE。\\
+\texttt{source\_format} & VARCHAR & 來源格式，目前主要為 CSA。\\
+\texttt{original\_file\_name} & VARCHAR & 原始檔名，用於去重與追溯。\\
+\texttt{played\_at} & DATE & 對局日期。\\
+\bottomrule
+\end{longtable}
+
+\subsection{\texttt{moves}}
+
+\texttt{moves} 保存每一步棋。系統同時保存 \texttt{original\_move} 與 \texttt{usi\_move}，目前兩者多數相同，但保留原始欄位可支援未來不同格式匯入。
+
+\begin{longtable}{p{0.28\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{用途}\\
+\midrule
+\endhead
+\texttt{move\_id} & INT PK & 走法主鍵。\\
+\texttt{game\_id} & INT FK & 所屬對局。\\
+\texttt{move\_number} & INT & 第幾手，從 1 開始。\\
+\texttt{side\_to\_move} & ENUM & 下這步棋的一方：black 或 white。\\
+\texttt{original\_move} & VARCHAR & 原始走法字串。\\
+\texttt{usi\_move} & VARCHAR & 標準化 USI 走法。\\
+\texttt{move\_time} & VARCHAR & 該手耗時。\\
+\texttt{comment} & TEXT & 棋譜註解。\\
+\bottomrule
+\end{longtable}
+
+\subsection{\texttt{positions}}
+
+\texttt{positions} 保存每一手後的棋盤狀態。第 0 筆局面代表初始盤面，第 $n$ 筆局面代表走完第 $n$ 手後的狀態。
+
+\begin{longtable}{p{0.28\textwidth}p{0.22\textwidth}p{0.40\textwidth}}
+\toprule
+\textbf{欄位} & \textbf{型別} & \textbf{用途}\\
+\midrule
+\endhead
+\texttt{position\_id} & INT PK & 局面主鍵。\\
+\texttt{game\_id} & INT FK & 所屬對局。\\
+\texttt{move\_number} & INT & 此局面對應到走完第幾手。\\
+\texttt{side\_to\_move} & ENUM & 輪到哪一方行棋。\\
+\texttt{sfen} & TEXT & 局面的 SFEN 表示。\\
+\texttt{sfen\_hash} & CHAR(64) & SFEN 的 SHA-256 hash，便於比對重複局面。\\
+\texttt{is\_check} & BOOLEAN & 是否正在被將軍。\\
+\texttt{legal\_moves\_count} & INT & 合法手數量。\\
+\bottomrule
+\end{longtable}
+
+\section{關聯設計與資料一致性}
+
+主要關係如下：
+
+\[
+\texttt{users}
+\xrightarrow{1:N}
+\texttt{game\_records}
+\xleftarrow{N:1}
+\texttt{players}
+\]
+
+\[
+\texttt{game\_records}
+\xrightarrow{1:N}
+\texttt{moves}
+\qquad
+\texttt{game\_records}
+\xrightarrow{1:N}
+\texttt{positions}
+\]
+
+其中 \texttt{moves} 與 \texttt{positions} 的對應關係是本系統最重要的設計：
+
+\[
+Position_t + Move_{t+1} \rightarrow Position_{t+1}
+\]
+
+這表示第 $t$ 手後的局面，加上下一手 \texttt{Move\_{t+1}}，會得到第 $t+1$ 手後的局面。這個設計同時服務三種需求：
+
+\begin{itemize}
+  \item 前端可以直接查 \texttt{positions} 顯示任意手數，不需要每次從第一手重播。
+  \item AI 訓練可以用 \texttt{Position\_t} 當輸入，\texttt{Move\_{t+1}} 當 policy 標籤。
+  \item 系統可以用 \texttt{sfen\_hash} 判斷重複局面或建立開局統計。
+\end{itemize}
+
+\section{資料匯入流程}
+
+資料匯入由 \texttt{src/import\_csa\_to\_db.py} 負責。核心流程如下：
+
+\begin{enumerate}
+  \item 掃描單一 CSA 檔案或整個資料夾。
+  \item 使用 \texttt{cshogi.CSA.Parser} 解析棋譜。
+  \item 建立或取得匯入者與棋手資料。
+  \item 建立 \texttt{game\_records}。
+  \item 從初始 SFEN 建立 \texttt{cshogi.Board}。
+  \item 逐手檢查 \texttt{board.is\_legal(move)}。
+  \item 寫入 \texttt{moves}，再推進棋盤並寫入 \texttt{positions}。
+  \item 每盤棋獨立 commit；若有錯誤則 rollback 並記錄。
+\end{enumerate}
+
+匯入程式也提供 \texttt{--dry-run}、\texttt{--skip-existing}、\texttt{--max-games}、\texttt{--pause-every} 等參數。這些參數使系統能在學校 MySQL 帳號有查詢次數限制時分批匯入，並避免重複資料。
+
+\section{去重與可追溯設計}
+
+\subsection{檔名去重}
+
+\texttt{original\_file\_name} 可用來判斷某個 CSA 檔案是否已匯入。如果使用 \texttt{--skip-existing}，系統會略過已存在的檔名。
+
+\subsection{內容去重}
+
+只用檔名去重不夠，因為同一盤棋可能被重新命名。因此系統另外建立內容 key：
+
+\[
+\text{content key}
+=
+SHA256(\text{initial SFEN} + \text{full USI move sequence})
+\]
+
+只要初始局面與完整走法序列相同，就視為同一盤棋。這能避免同一盤棋因檔名不同而重複匯入。
+
+\subsection{資料追溯}
+
+每筆訓練資料都能從 \texttt{game\_id}、\texttt{move\_number}、\texttt{sfen} 與 \texttt{usi\_move} 追溯回原始對局。教授若問「模型某個樣本從哪裡來」，可回答：由 \texttt{positions} 與 \texttt{moves} join 得到，並可透過 \texttt{game\_records.original\_file\_name} 找回原始 CSA。
+
+\section{使用者如何與資料庫互動}
+
+使用者不直接寫 SQL，而是透過後端 API 與前端操作間接使用資料庫。後端程式是 \texttt{src/csa\_browser\_api.py}，前端是 \texttt{web/index.html} 與 \texttt{web/app.js}。
+
+\subsection{棋譜瀏覽}
+
+使用者可以載入對局列表、選擇對局、前後移動手數、跳到第一手或最後一手。前端會呼叫：
+
+\begin{lstlisting}[style=cmd]
+GET /api/games
+GET /api/games/<game_id>?ply=<n>
+\end{lstlisting}
+
+後端從 \texttt{game\_records}、\texttt{moves}、\texttt{positions} 取資料，再序列化為 JSON。
+
+\subsection{棋譜查詢與篩選}
+
+前端提供賽事、日期、棋手、開局等篩選條件。對應欄位來自：
+
+\begin{itemize}
+  \item 賽事：\texttt{game\_records.event\_name}
+  \item 日期：\texttt{game\_records.played\_at}
+  \item 棋手：\texttt{players.player\_name}
+  \item 開局：\texttt{game\_records.opening}
+\end{itemize}
+
+\subsection{資料庫統計}
+
+前端可顯示資料庫目前有多少對局、棋手、走法、局面與重複局面群組。後端 API 為：
+
+\begin{lstlisting}[style=cmd]
+GET /api/db/stats
+\end{lstlisting}
+
+這讓使用者知道資料庫規模，也方便檢查匯入是否成功。
+
+\section{資料庫相關功能}
+
+\subsection{棋譜匯入}
+
+匯入功能支援單一檔案、整個資料夾與遞迴掃描。若教授問「系統如何避免非法棋譜污染資料庫」，答案是：匯入時每一步都經過 \texttt{cshogi.Board.is\_legal} 驗證，遇到錯誤會 rollback 並記錄錯誤，不會把半盤棋寫進資料庫。
+
+\subsection{局面回放}
+
+系統將每一手後的 SFEN 保存到 \texttt{positions}，因此前端可以任意跳轉，不必每次從初始局面重算。這是資料庫換取查詢速度的設計：多存一些局面資料，降低使用者互動時的延遲。
+
+\subsection{訓練資料匯出}
+
+\texttt{src/export\_policy\_dataset.py} 從 MySQL 匯出 \texttt{out/policy\_dataset.npz}。它把每筆 \texttt{position} 轉成神經網路輸入，把下一手 \texttt{move} 轉成 policy label，並根據對局結果產生 value label。
+
+\subsection{開局庫}
+
+\texttt{OpeningBook.from\_mysql} 會統計資料庫中前若干手的局面與下一手頻率。AI 對弈時，如果目前局面存在於開局庫，系統可優先選擇資料庫中常見走法。這是一種資料庫驅動的 AI 功能。
+
+\subsection{AI 對弈與模型比賽}
+
+使用者可以透過前端與 AI 對弈，或讓兩個模型互相對弈。AI 搜尋會使用資料庫訓練出的 policy/value model，也可以使用資料庫建立的 opening book。模型比賽結果則透過 API 回傳給前端顯示。
+
+\section{API 資料結構設計}
+
+後端不直接把資料庫 row 原樣送到前端，而是轉成適合 UI 使用的 JSON。例如局面 API 會回傳：
+
+\begin{lstlisting}[style=cmd]
+{
+  "game": {...},
+  "ply": 30,
+  "maxPly": 105,
+  "turn": "+",
+  "board": [[...], ...],
+  "hands": {"+": {...}, "-": {...}},
+  "lastMove": {...},
+  "moves": [...],
+  "isCheck": false,
+  "legalMovesCount": 42
+}
+\end{lstlisting}
+
+這個設計把「資料庫儲存格式」與「前端顯示格式」分開。資料庫關心正規化與查詢效率，前端關心棋盤格子、持駒、最後一步與可視化資訊。
+
+\section{索引與效能設計}
+
+本專案適合加入下列索引：
+
+\begin{lstlisting}[style=cmd]
+CREATE INDEX idx_game_records_played_at
+ON game_records(played_at);
+
+CREATE INDEX idx_game_records_original_file_name
+ON game_records(original_file_name);
+
+CREATE INDEX idx_moves_game_number
+ON moves(game_id, move_number);
+
+CREATE INDEX idx_positions_game_number
+ON positions(game_id, move_number);
+
+CREATE INDEX idx_positions_sfen_hash
+ON positions(sfen_hash);
+\end{lstlisting}
+
+其中 \texttt{idx\_positions\_game\_number} 最重要，因為前端查某盤棋第 $n$ 手局面時會頻繁使用 \texttt{game\_id} 與 \texttt{move\_number}。 \texttt{idx\_moves\_game\_number} 則支援訓練資料匯出與棋譜回放。
+
+\section{安全性與資料品質}
+
+\subsection{SQL 注入防護}
+
+匯入與查詢使用 PyMySQL 參數化查詢，例如：
+
+\begin{lstlisting}[style=cmd]
+cursor.execute(
+  "SELECT user_id FROM users WHERE email = %s",
+  (email,)
+)
+\end{lstlisting}
+
+使用參數化查詢可以避免使用者輸入被拼接成 SQL 指令。
+
+\subsection{路徑安全}
+
+若系統從本機 CSA 檔案讀資料，會檢查解析後路徑仍在 \texttt{data/} 目錄內，避免使用者透過路徑穿越讀取專案外檔案。
+
+\subsection{合法性檢查}
+
+資料品質的核心是 \texttt{cshogi}。每一步棋在寫入資料庫前都必須合法，否則視為錯誤棋譜。這能確保後續 AI 訓練不會學到不合法走法。
+
+\section{教授可能提問與回答}
+
+\subsection{為什麼要存 \texttt{positions}，只存 \texttt{moves} 不行嗎}
+
+只存 \texttt{moves} 的確可以重建棋局，但每次查第 100 手都要從第 0 手重播 100 次。保存 \texttt{positions} 可以讓前端直接查詢任意局面，也讓 AI 訓練能快速取得狀態。這是以儲存空間換查詢速度與系統可用性。
+
+\subsection{為什麼 \texttt{moves} 和 \texttt{positions} 分開}
+
+\texttt{moves} 表示動作，\texttt{positions} 表示狀態。兩者概念不同，分開後能清楚描述：
+
+\[
+S_t + A_{t+1} = S_{t+1}
+\]
+
+這個設計也剛好符合機器學習資料格式：輸入是狀態 $S_t$，標籤是下一步動作 $A_{t+1}$。
+
+\subsection{為什麼用 MySQL 而不是只用檔案}
+
+檔案適合保存原始資料，但不適合多條件查詢、統計、去重、局面索引與多人資料管理。MySQL 提供關聯、外鍵、索引與交易機制，能讓資料更可靠，也讓前端與 AI 模組共用一致資料來源。
+
+\subsection{如果棋手同名怎麼辦}
+
+目前以 \texttt{player\_name} 與 \texttt{rank\_name} 作為棋手識別基礎。若未來需要更精準，可以加入棋手官方 ID、來源網站 ID 或人工合併表。現階段資料來源多為棋譜檔案，姓名加段位已能滿足基本正規化需求。
+
+\subsection{資料庫如何支援 AI}
+
+資料庫提供兩種 AI 支援：第一，匯出訓練資料，讓模型學習局面到走法與勝負的對應；第二，統計開局庫，讓 AI 在前期可參考資料庫中的常見實戰走法。
+
+\section{結論}
+
+shogiAI 的資料庫系統將原本分散的 CSA 棋譜轉成關聯式資料模型。五張核心表各自負責使用者、棋手、對局、走法與局面，並透過外鍵與手數建立清楚關係。這個設計讓使用者可以查詢與回放棋譜，讓後端可以提供穩定 JSON API，也讓數據科學模組可以直接匯出可訓練資料。整體而言，資料庫不只是資料存放處，而是連接棋譜瀏覽、AI 訓練、AI 對弈與模型評估的核心基礎。
+
+\appendix
+\section{常用指令}
+
+\subsection{建立資料表並匯入}
+
+\begin{lstlisting}[style=cmd]
+python src\import_csa_to_db.py ^
+  --input data ^
+  --recursive ^
+  --create-tables ^
+  --host 140.135.65.53 ^
+  --port 3306 ^
+  --user 11211213 ^
+  --database DB11211213 ^
+  --skip-existing
+\end{lstlisting}
+
+\subsection{匯出訓練資料}
+
+\begin{lstlisting}[style=cmd]
+python src\export_policy_dataset.py ^
+  --output out\policy_dataset.npz ^
+  --host 140.135.65.53 ^
+  --port 3306 ^
+  --user 11211213 ^
+  --database DB11211213
+\end{lstlisting}
+
+\subsection{啟動資料庫瀏覽與 AI API}
+
+\begin{lstlisting}[style=cmd]
+python src\csa_browser_api.py ^
+  --source mysql ^
+  --db-host 140.135.65.53 ^
+  --db-port 3306 ^
+  --db-user 11211213 ^
+  --db-name DB11211213 ^
+  --policy-model out\policy_model.pt
+\end{lstlisting}
+
+\end{document}
