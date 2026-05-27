@@ -1,17 +1,17 @@
-// 功能：快取三個模式分頁與主要畫面容器，後續切換模式時直接更新 class。
+// 功能：快取各模式分頁與主要畫面容器，後續切換模式時直接更新 class。
 const browserTab = document.querySelector("#browserTab");
+const uploadTab = document.querySelector("#uploadTab");
 const selfPlayTab = document.querySelector("#selfPlayTab");
 const aiPlayTab = document.querySelector("#aiPlayTab");
 const modelMatchTab = document.querySelector("#modelMatchTab");
 const browserView = document.querySelector("#browserView");
+const uploadView = document.querySelector("#uploadView");
 const selfPlayView = document.querySelector("#selfPlayView");
 const aiPlayView = document.querySelector("#aiPlayView");
 const modelMatchView = document.querySelector("#modelMatchView");
 
 // 功能：棋譜瀏覽模式的 DOM 元件：棋局選單、棋盤、手數控制、持駒與搜尋條件。
 const gameSelect = document.querySelector("#gameSelect");
-const gamePageStatus = document.querySelector("#gamePageStatus");
-const loadMoreGamesBtn = document.querySelector("#loadMoreGamesBtn");
 const boardEl = document.querySelector("#board");
 const firstBtn = document.querySelector("#firstBtn");
 const prevBtn = document.querySelector("#prevBtn");
@@ -39,6 +39,11 @@ const dbPlayerCount = document.querySelector("#dbPlayerCount");
 const dbMoveCount = document.querySelector("#dbMoveCount");
 const dbPositionCount = document.querySelector("#dbPositionCount");
 const dbDuplicateCount = document.querySelector("#dbDuplicateCount");
+
+// 功能：上傳 CSA 模式的 DOM 元件：檔案選擇、上傳按鈕與狀態訊息。
+const csaUploadInput = document.querySelector("#csaUploadInput");
+const uploadCsaBtn = document.querySelector("#uploadCsaBtn");
+const uploadCsaStatus = document.querySelector("#uploadCsaStatus");
 
 // 功能：自行對弈模式的 DOM 元件：棋盤、玩家名稱、結果、復原/重做與 CSA 下載。
 const selfPlayMeta = document.querySelector("#selfPlayMeta");
@@ -132,17 +137,12 @@ const matchPlyStatus = document.querySelector("#matchPlyStatus");
 const matchLastMove = document.querySelector("#matchLastMove");
 const matchMoveList = document.querySelector("#matchMoveList");
 
-// 功能：全域 UI 狀態。瀏覽棋譜、自行對弈與 AI 對弈各自保存目前局面與選取狀態。
+// 功能：全域 UI 狀態。各模式保存目前局面、選取狀態與對戰回放進度。
 let activeMode = "browser";
 let currentGameId = "";
 let currentPly = 0;
 let maxPly = 0;
 let latestState = null;
-const GAME_PAGE_SIZE = 50;
-let loadedGames = [];
-let nextGamesOffset = 0;
-let gamesHasMore = false;
-let gamesLoading = false;
 
 let selfMoves = [];
 let selfRedoMoves = [];
@@ -187,6 +187,53 @@ async function postJson(url, payload) {
     throw new Error(data.error || `HTTP ${response.status}`);
   }
   return data;
+}
+
+// 功能：上傳使用者選取的 CSA 檔案，成功後重新載入棋譜列表並切回棋譜瀏覽。
+async function uploadCsaFile() {
+  const file = csaUploadInput.files[0];
+  if (!file) {
+    uploadCsaStatus.textContent = "請先選擇 CSA 檔案";
+    return;
+  }
+  if (!file.name.toLowerCase().endsWith(".csa")) {
+    uploadCsaStatus.textContent = "只能上傳 .csa 檔案";
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  uploadCsaBtn.disabled = true;
+  uploadCsaStatus.textContent = "上傳中...";
+
+  try {
+    const response = await fetch("/api/upload-csa", {
+      method: "POST",
+      body: formData,
+    });
+    const result = await response.json();
+
+    if (!response.ok || !result.ok) {
+      uploadCsaStatus.textContent = result.error || result.summary?.errors?.[0]?.error || "上傳失敗";
+      return;
+    }
+
+    uploadCsaStatus.textContent = result.status === "skipped" ? "棋局已存在" : "上傳成功";
+    csaUploadInput.value = "";
+
+    await loadGames();
+    if (result.gameId) {
+      currentGameId = String(result.gameId);
+      gameSelect.value = currentGameId;
+      await loadPosition(0);
+    }
+    setActiveMode("browser");
+  } catch (error) {
+    uploadCsaStatus.textContent = error.message || "上傳失敗";
+  } finally {
+    uploadCsaBtn.disabled = false;
+  }
 }
 
 // 功能：處理 sideLabel 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
@@ -243,10 +290,12 @@ function pieceClass(piece) {
 function setActiveMode(mode) {
   activeMode = mode;
   browserTab.classList.toggle("active", mode === "browser");
+  uploadTab.classList.toggle("active", mode === "upload");
   selfPlayTab.classList.toggle("active", mode === "self-play");
   aiPlayTab.classList.toggle("active", mode === "ai-play");
   modelMatchTab.classList.toggle("active", mode === "model-match");
   browserView.classList.toggle("active", mode === "browser");
+  uploadView.classList.toggle("active", mode === "upload");
   selfPlayView.classList.toggle("active", mode === "self-play");
   aiPlayView.classList.toggle("active", mode === "ai-play");
   modelMatchView.classList.toggle("active", mode === "model-match");
@@ -512,79 +561,35 @@ async function loadPosition(ply) {
 }
 
 // 功能：處理 loadGames 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
-function gamesPageUrl(offset) {
+async function loadGames() {
+  await loadDbStats();
   const params = searchParams();
-  params.set("limit", String(GAME_PAGE_SIZE));
-  params.set("offset", String(offset));
-  return `/api/games?${params.toString()}`;
-}
+  const url = params.toString() ? `/api/games?${params.toString()}` : "/api/games";
+  const data = await fetchJson(url);
+  gameSelect.innerHTML = "";
 
-function updateGamePageStatus() {
-  if (!gamePageStatus || !loadMoreGamesBtn) {
+  if (data.games.length === 0) {
+    clearBoardState("找不到符合條件的棋局");
     return;
   }
-  gamePageStatus.textContent = loadedGames.length
-    ? `已載入 ${loadedGames.length} 筆棋局`
-    : "";
-  loadMoreGamesBtn.hidden = !gamesHasMore;
-  loadMoreGamesBtn.disabled = gamesLoading;
-  loadMoreGamesBtn.textContent = gamesLoading ? "載入中..." : "載入更多";
-}
 
-function appendGameOptions(games) {
-  for (const game of games) {
+  for (const game of data.games) {
     const option = document.createElement("option");
     option.value = game.id;
     option.textContent = game.error ? `${game.name} - 讀取失敗` : `${game.name} (${game.moves} 手)`;
     option.disabled = Boolean(game.error);
     gameSelect.appendChild(option);
   }
-}
 
-async function loadGames(options = {}) {
-  const append = Boolean(options.append);
-  if (gamesLoading) {
+  const firstPlayable = data.games.find((game) => !game.error);
+  if (!firstPlayable) {
+    clearBoardState("沒有可讀取的棋局");
     return;
   }
-  gamesLoading = true;
-  updateGamePageStatus();
-  try {
-    if (!append) {
-      await loadDbStats();
-      loadedGames = [];
-      nextGamesOffset = 0;
-      gamesHasMore = false;
-      gameSelect.innerHTML = "";
-    }
 
-    const data = await fetchJson(gamesPageUrl(nextGamesOffset));
-    const pageGames = data.games || [];
-    loadedGames = [...loadedGames, ...pageGames];
-    nextGamesOffset = Number(data.nextOffset ?? (nextGamesOffset + pageGames.length));
-    gamesHasMore = Boolean(data.hasMore);
-    appendGameOptions(pageGames);
-
-    if (loadedGames.length === 0) {
-      clearBoardState("找不到符合條件的棋局");
-      return;
-    }
-
-    if (!append) {
-      const firstPlayable = loadedGames.find((game) => !game.error);
-      if (!firstPlayable) {
-        clearBoardState(gamesHasMore ? "目前批次沒有可讀取的棋局，請載入更多" : "沒有可讀取的棋局");
-        return;
-      }
-      currentGameId = firstPlayable.id;
-      gameSelect.value = currentGameId;
-      await loadPosition(0);
-    } else if (currentGameId) {
-      gameSelect.value = currentGameId;
-    }
-  } finally {
-    gamesLoading = false;
-    updateGamePageStatus();
-  }
+  currentGameId = firstPlayable.id;
+  gameSelect.value = currentGameId;
+  await loadPosition(0);
 }
 
 // 功能：處理 legalMovesForSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
@@ -1266,8 +1271,13 @@ async function runModelMatch() {
   }
 }
 
+// 功能：模式切換事件：使用左側分頁在棋譜瀏覽、上傳、自行對弈、AI 對弈與模型對戰間切換。
 browserTab.addEventListener("click", () => {
   setActiveMode("browser");
+});
+
+uploadTab.addEventListener("click", () => {
+  setActiveMode("upload");
 });
 
 selfPlayTab.addEventListener("click", async () => {
@@ -1292,13 +1302,17 @@ modelMatchTab.addEventListener("click", async () => {
   }
 });
 
+// 功能：上傳 CSA 事件：按下上傳時送出檔案，選檔時更新提示文字。
+uploadCsaBtn.addEventListener("click", uploadCsaFile);
+
+csaUploadInput.addEventListener("change", () => {
+  const file = csaUploadInput.files[0];
+  uploadCsaStatus.textContent = file ? file.name : "";
+});
+
 gameSelect.addEventListener("change", async () => {
   currentGameId = gameSelect.value;
   await loadPosition(0);
-});
-
-loadMoreGamesBtn.addEventListener("click", async () => {
-  await loadGames({ append: true });
 });
 
 searchBtn.addEventListener("click", async () => {

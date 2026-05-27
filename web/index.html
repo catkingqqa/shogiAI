@@ -12,6 +12,7 @@
       <!-- 功能：模式分頁：讓使用者在棋譜瀏覽、自行對弈與 AI 對弈之間切換。 -->
       <nav class="mode-tabs" aria-label="功能切換">
         <button id="browserTab" class="mode-tab active" type="button">棋譜瀏覽</button>
+        <button id="uploadTab" class="mode-tab" type="button">上傳 CSA</button>
         <button id="selfPlayTab" class="mode-tab" type="button">自行對奕</button>
         <button id="aiPlayTab" class="mode-tab" type="button">AI 對弈</button>
         <button id="modelMatchTab" class="mode-tab" type="button">模型對戰</button>
@@ -134,6 +135,26 @@
               <span id="moveListCount">0 手</span>
             </div>
             <div id="moveList" class="move-list"></div>
+          </section>
+        </section>
+        <!-- 功能：上傳 CSA 棋譜 -->
+        <section id="uploadView" class="mode-view">
+          <header class="topbar">
+            <div>
+              <h1>上傳 CSA</h1>
+              <p>選擇本機 CSA 棋譜，上傳後會匯入資料庫並回到棋譜瀏覽。</p>
+            </div>
+          </header>
+
+          <section class="search-panel upload-panel" aria-label="上傳 CSA 棋譜">
+            <label>
+              <span>CSA 檔案</span>
+              <input id="csaUploadInput" type="file" accept=".csa" />
+            </label>
+            <div class="search-actions">
+              <button id="uploadCsaBtn" class="text-btn" type="button">上傳棋譜</button>
+            </div>
+            <span id="uploadCsaStatus" class="upload-status"></span>
           </section>
         </section>
 

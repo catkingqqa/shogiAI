@@ -1,14 +1,17 @@
-"""功能：提供 CSA 棋譜瀏覽、資料庫查詢、自行對弈與 AI 對弈的 HTTP API。"""
+"""功能：提供 CSA 棋譜瀏覽、資料庫查詢、CSA 上傳、自行對弈與 AI 對弈的 HTTP API。"""
 from __future__ import annotations
 
 import argparse
 import getpass
 import json
+import uuid
 import mimetypes
 import os
 import re
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
+from email.parser import BytesParser
+from email.policy import default as email_policy
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -33,9 +36,12 @@ except ImportError:
     pymysql = None
 
 
+# 功能：集中設定專案目錄、網頁目錄、CSA 上傳保存位置與檔案大小限制。
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+UPLOAD_DIR = DATA_DIR / "uploads"
 WEB_DIR = ROOT / "web"
+MAX_CSA_UPLOAD_BYTES = 5 * 1024 * 1024
 
 MOVE_RE = re.compile(r"^[+-][0-9]{4}[A-Z]{2}$")
 BOARD_RANKS = range(1, 10)
@@ -146,12 +152,7 @@ class Game:
 
 class GameSource(Protocol):
     """功能：定義 GameSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
-    def list_games(
-        self,
-        filters: dict[str, str] | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[dict[str, Any]]:
+    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         ...
 
@@ -419,35 +420,19 @@ def filter_file_games(games: list[dict[str, Any]], filters: dict[str, str]) -> l
 
 class CsaFileSource:
     """功能：定義 CsaFileSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
-    def list_games(
-        self,
-        filters: dict[str, str] | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[dict[str, Any]]:
+    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         games = []
         if not DATA_DIR.exists():
             return games
-        filters = filters or {}
-        paths = sorted(DATA_DIR.rglob("*.csa"))
-        if not filters:
-            paths = paths[max(0, offset) :]
-            if limit is not None:
-                paths = paths[:limit]
-        for path in paths:
+        for path in sorted(DATA_DIR.rglob("*.csa")):
             game_id = path.relative_to(DATA_DIR).as_posix()
             try:
                 game = parse_csa(path, game_id)
                 games.append(serialize_game_summary(game))
             except Exception as exc:
                 games.append({"id": game_id, "name": path.name, "error": str(exc)})
-        filtered = filter_file_games(games, filters)
-        if filters:
-            start = max(0, offset)
-            end = None if limit is None else start + limit
-            return filtered[start:end]
-        return filtered
+        return filter_file_games(games, filters or {})
 
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
         """功能：處理 get_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
@@ -466,14 +451,15 @@ class CsaFileSource:
 
     def stats(self) -> dict[str, Any]:
         """功能：處理 stats 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        game_count = len(list(DATA_DIR.rglob("*.csa"))) if DATA_DIR.exists() else 0
+        games = self.list_games()
+        playable_games = [game for game in games if not game.get("error")]
         return {
             "source": "csa",
             "database": "",
-            "games": game_count,
+            "games": len(playable_games),
             "players": 0,
-            "moves": 0,
-            "positions": 0,
+            "moves": sum(int(game.get("moves") or 0) for game in playable_games),
+            "positions": sum(int(game.get("moves") or 0) + 1 for game in playable_games),
             "duplicateGroups": 0,
         }
 
@@ -614,20 +600,10 @@ class MySqlSource:
         """功能：處理 like_param 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         return f"%{value.strip()}%"
 
-    def list_games(
-        self,
-        filters: dict[str, str] | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> list[dict[str, Any]]:
+    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         filters = filters or {}
         where_sql, params = self.build_filters(filters)
-        page_sql = ""
-        query_params = list(params)
-        if limit is not None:
-            page_sql = "LIMIT %s OFFSET %s"
-            query_params.extend([limit, max(0, offset)])
         with self.connect() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(
@@ -641,19 +617,18 @@ class MySqlSource:
                         COALESCE(g.opening, '') AS opening,
                         COALESCE(g.result, '') AS result,
                         g.played_at,
-                        (
-                            SELECT COUNT(*)
-                            FROM moves m
-                            WHERE m.game_id = g.game_id
-                        ) AS move_count
+                        COUNT(m.move_id) AS move_count
                     FROM game_records g
                     LEFT JOIN players bp ON g.black_player_id = bp.player_id
                     LEFT JOIN players wp ON g.white_player_id = wp.player_id
+                    LEFT JOIN moves m ON g.game_id = m.game_id
                     {where_sql}
+                    GROUP BY
+                        g.game_id, g.original_file_name, bp.player_name, wp.player_name,
+                        g.event_name, g.opening, g.result, g.played_at
                     ORDER BY g.played_at DESC, g.game_id DESC
-                    {page_sql}
                     """,
-                    query_params,
+                    params,
                 )
                 rows = cursor.fetchall()
 
@@ -1223,6 +1198,7 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     """功能：定義 CsaBrowserHandler 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
     server_version = "CsaBrowser/0.2"
     source: GameSource
+    mysql_config: MySqlConfig | None = None
     policy_predictor: PolicyValuePredictor | None = None
     opening_book: OpeningBook | None = None
     match_engine_cache: dict[tuple[str, str, int, int, int], MatchEngine] = {}
@@ -1257,25 +1233,8 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         path = parsed.path
 
         if path == "/api/games":
-            query = parse_qs(parsed.query)
-            filters = {
-                key: values[0]
-                for key, values in query.items()
-                if key not in {"limit", "offset"} and values and values[0].strip()
-            }
-            limit = self.clamp_int(query.get("limit", ["50"])[0], 1, 200, "limit")
-            offset = self.min_int(query.get("offset", ["0"])[0], 0, "offset")
-            games = self.source.list_games(filters, limit=limit + 1, offset=offset)
-            has_more = len(games) > limit
-            self.send_json(
-                {
-                    "games": games[:limit],
-                    "limit": limit,
-                    "offset": offset,
-                    "nextOffset": offset + min(len(games), limit),
-                    "hasMore": has_more,
-                }
-            )
+            filters = {key: values[0] for key, values in parse_qs(parsed.query).items() if values and values[0].strip()}
+            self.send_json({"games": self.source.list_games(filters)})
             return
         if path == "/api/db/stats":
             self.send_json({"stats": self.source.stats()})
@@ -1291,6 +1250,9 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     def route_post(self) -> None:
         """功能：處理 route_post 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         parsed = urlparse(self.path)
+        if parsed.path == "/api/upload-csa":
+            self.api_upload_csa()
+            return
         if parsed.path == "/api/self-play/state":
             payload = self.read_json_body()
             moves = self.parse_moves_payload(payload)
@@ -1430,6 +1392,144 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             self.send_json({"match": self.run_model_match(payload)})
             return
         raise FileNotFoundError(parsed.path)
+
+    def api_upload_csa(self) -> None:
+        """功能：接收瀏覽器上傳的 CSA 檔案，存入 data/uploads 後交給既有匯入流程寫入 MySQL。"""
+        if self.mysql_config is None or not isinstance(self.source, MySqlSource):
+            raise ValueError("CSA upload requires --source mysql")
+
+        original_name, content = self.read_uploaded_csa_file()
+        stored_path = self.save_uploaded_csa_file(original_name, content)
+
+        from import_csa_to_db import import_to_mysql
+
+        import_args = argparse.Namespace(
+            input=stored_path,
+            recursive=False,
+            encoding="utf-8-sig",
+            host=self.mysql_config.host,
+            port=self.mysql_config.port,
+            user=self.mysql_config.user,
+            password=self.mysql_config.password,
+            database=self.mysql_config.database,
+            uploader="web_uploader",
+            uploader_email=None,
+            create_tables=False,
+            skip_existing=True,
+            max_games=1,
+            pause_every=0,
+            pause_seconds=0.0,
+            dry_run=False,
+        )
+        summary = import_to_mysql(import_args)
+        summary_payload = asdict(summary)
+        game_id = self.find_mysql_game_id_by_file_name(stored_path.name)
+
+        if summary.errors:
+            self.send_json(
+                {
+                    "ok": False,
+                    "error": summary.errors[0].get("error", "CSA import failed"),
+                    "originalName": original_name,
+                    "storedName": stored_path.name,
+                    "summary": summary_payload,
+                },
+                HTTPStatus.BAD_REQUEST,
+            )
+            return
+
+        status = "imported"
+        if summary.updated_file_names:
+            status = "updated"
+        elif summary.skipped_games:
+            status = "skipped"
+
+        self.send_json(
+            {
+                "ok": True,
+                "status": status,
+                "gameId": str(game_id) if game_id is not None else "",
+                "originalName": original_name,
+                "storedName": stored_path.name,
+                "summary": summary_payload,
+            }
+        )
+
+    def read_uploaded_csa_file(self) -> tuple[str, bytes]:
+        """功能：解析 multipart/form-data，取出前端欄位 file 內的 CSA 檔案並做基本上傳限制檢查。"""
+        content_type = self.headers.get("Content-Type", "")
+        if "multipart/form-data" not in content_type.lower():
+            raise ValueError("request must be multipart/form-data")
+
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError as exc:
+            raise ValueError("invalid Content-Length") from exc
+        if content_length <= 0:
+            raise ValueError("uploaded file is empty")
+        if content_length > MAX_CSA_UPLOAD_BYTES + 4096:
+            raise ValueError("CSA file is too large")
+
+        body = self.rfile.read(content_length)
+        header = (
+            f"Content-Type: {content_type}\r\n"
+            "MIME-Version: 1.0\r\n\r\n"
+        ).encode("utf-8")
+        message = BytesParser(policy=email_policy).parsebytes(header + body)
+        if not message.is_multipart():
+            raise ValueError("invalid multipart upload")
+
+        for part in message.iter_parts():
+            if part.get_content_disposition() != "form-data":
+                continue
+            if part.get_param("name", header="content-disposition") != "file":
+                continue
+            file_name = part.get_filename() or ""
+            data = part.get_payload(decode=True) or b""
+            if not file_name.lower().endswith(".csa"):
+                raise ValueError("only .csa files can be uploaded")
+            if not data:
+                raise ValueError("uploaded CSA file is empty")
+            if len(data) > MAX_CSA_UPLOAD_BYTES:
+                raise ValueError("CSA file is too large")
+            return Path(file_name).name, data
+
+        raise ValueError("missing file field")
+
+    @staticmethod
+    def safe_upload_file_name(file_name: str) -> str:
+        """功能：產生安全且不易重複的上傳檔名。"""
+        original = Path(file_name).name
+        stem = Path(original).stem or "game"
+        safe_stem = re.sub(r"[^0-9A-Za-z_\-\u4e00-\u9fff]+", "_", stem).strip("_") or "game"
+        return f"upload_{uuid.uuid4().hex[:12]}_{safe_stem}.csa"
+
+    def save_uploaded_csa_file(self, original_name: str, content: bytes) -> Path:
+        """功能：將使用者上傳的 CSA 內容保存到 data/uploads。"""
+        UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+        file_name = self.safe_upload_file_name(original_name)
+        path = UPLOAD_DIR / file_name
+        path.write_bytes(content)
+        return path
+
+    def find_mysql_game_id_by_file_name(self, file_name: str) -> int | None:
+        """功能：依匯入後的 original_file_name 找出 MySQL 棋局 ID，讓前端可自動跳到新棋局。"""
+        if not isinstance(self.source, MySqlSource):
+            return None
+        with self.source.connect() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT game_id
+                    FROM game_records
+                    WHERE original_file_name = %s
+                    ORDER BY game_id DESC
+                    LIMIT 1
+                    """,
+                    (file_name,),
+                )
+                row = cursor.fetchone()
+        return int(row["game_id"]) if row else None
 
     def api_position(self, game_id: str, query: str) -> None:
         """功能：處理 api_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
@@ -1949,6 +2049,7 @@ def main() -> int:
     args = parse_args()
     mysql_config = build_mysql_config(args) if args.source == "mysql" else None
     CsaBrowserHandler.source = build_source(args, mysql_config)
+    CsaBrowserHandler.mysql_config = mysql_config
     CsaBrowserHandler.policy_predictor = (
         PolicyValuePredictor(args.policy_model) if args.policy_model.is_file() else None
     )
