@@ -5,6 +5,17 @@ read games from MySQL or directly from local CSA files.
 
 ## Run
 
+Double-click `start_csa_browser.bat` to open the browser with the shared MySQL
+database. Enter the MySQL password in the command window when prompted.
+
+To use local CSA files without a MySQL password instead:
+
+```powershell
+.\start_csa_browser.bat local
+```
+
+You can also start either mode directly with Python.
+
 ```powershell
 python src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source mysql --db-host 140.135.65.53 --db-port 3306 --db-user 11211213 --db-name DB11211213
 ```
