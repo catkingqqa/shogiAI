@@ -121,6 +121,17 @@ PlayerCache = dict[tuple[str, str | None], int]
 ExistingGameIndex = dict[str, Any]
 
 
+def explain_mysql_connect_error(error: Exception) -> RuntimeError:
+    """把 MySQL / PyMySQL 常見連線錯誤轉成清楚的命令列訊息。"""
+    text = str(error)
+    if "cryptography" in text and ("sha256_password" in text or "caching_sha2_password" in text):
+        return RuntimeError(
+            "MySQL 密碼驗證需要 Python 套件 cryptography。請先執行 "
+            "`python -m pip install -r requirements.txt` 後再重試。"
+        )
+    return RuntimeError(text)
+
+
 def iter_csa_files(path: Path, recursive: bool) -> Iterable[Path]:
     """功能：處理 iter_csa_files 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     if path.is_file():
@@ -535,16 +546,19 @@ def connect(args: argparse.Namespace) -> Any:
     if password is None:
         password = getpass.getpass(f"MySQL password for {args.user}@{args.host}: ")
 
-    return pymysql.connect(
-        host=args.host,
-        port=args.port,
-        user=args.user,
-        password=password,
-        database=args.database,
-        charset="utf8mb4",
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=False,
-    )
+    try:
+        return pymysql.connect(
+            host=args.host,
+            port=args.port,
+            user=args.user,
+            password=password,
+            database=args.database,
+            charset="utf8mb4",
+            cursorclass=pymysql.cursors.DictCursor,
+            autocommit=False,
+        )
+    except Exception as exc:
+        raise explain_mysql_connect_error(exc) from exc
 
 
 def dry_run(args: argparse.Namespace) -> ImportSummary:

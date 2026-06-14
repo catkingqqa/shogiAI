@@ -152,7 +152,12 @@ class Game:
 
 class GameSource(Protocol):
     """功能：定義 GameSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
-    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    def list_games(
+        self,
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> dict[str, Any]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         ...
 
@@ -420,11 +425,16 @@ def filter_file_games(games: list[dict[str, Any]], filters: dict[str, str]) -> l
 
 class CsaFileSource:
     """功能：定義 CsaFileSource 的資料結構與行為，讓相關流程可以以結構化方式使用。"""
-    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    def list_games(
+        self,
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> dict[str, Any]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         games = []
         if not DATA_DIR.exists():
-            return games
+            return {"games": [], "total": 0, "offset": offset, "hasMore": False}
         for path in sorted(DATA_DIR.rglob("*.csa")):
             game_id = path.relative_to(DATA_DIR).as_posix()
             try:
@@ -432,7 +442,15 @@ class CsaFileSource:
                 games.append(serialize_game_summary(game))
             except Exception as exc:
                 games.append({"id": game_id, "name": path.name, "error": str(exc)})
-        return filter_file_games(games, filters or {})
+        filtered = filter_file_games(games, filters or {})
+        total = len(filtered)
+        page = filtered[offset:] if limit is None else filtered[offset : offset + limit]
+        return {
+            "games": page,
+            "total": total,
+            "offset": offset,
+            "hasMore": offset + len(page) < total,
+        }
 
     def get_position(self, game_id: str, ply: int) -> dict[str, Any]:
         """功能：處理 get_position 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
@@ -451,7 +469,7 @@ class CsaFileSource:
 
     def stats(self) -> dict[str, Any]:
         """功能：處理 stats 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        games = self.list_games()
+        games = self.list_games()["games"]
         playable_games = [game for game in games if not game.get("error")]
         return {
             "source": "csa",
@@ -485,6 +503,17 @@ class BookMove:
         return self.count / self.total if self.total else 0.0
 
 
+def explain_mysql_connect_error(error: Exception) -> RuntimeError:
+    """把 MySQL / PyMySQL 常見連線錯誤轉成前端看得懂的訊息。"""
+    text = str(error)
+    if "cryptography" in text and ("sha256_password" in text or "caching_sha2_password" in text):
+        return RuntimeError(
+            "MySQL 密碼驗證需要 Python 套件 cryptography。請先執行 "
+            "`python -m pip install -r requirements.txt`，再重新啟動 start_csa_browser.bat。"
+        )
+    return RuntimeError(text)
+
+
 class OpeningBook:
     def __init__(self, entries: dict[str, list[BookMove]], max_ply: int, min_count: int) -> None:
         self.entries = entries
@@ -496,16 +525,19 @@ class OpeningBook:
         if pymysql is None:
             raise RuntimeError("PyMySQL is required for MySQL opening book.")
         raw: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
-        connection = pymysql.connect(
-            host=config.host,
-            port=config.port,
-            user=config.user,
-            password=config.password,
-            database=config.database,
-            charset="utf8mb4",
-            cursorclass=pymysql.cursors.DictCursor,
-            connect_timeout=5,
-        )
+        try:
+            connection = pymysql.connect(
+                host=config.host,
+                port=config.port,
+                user=config.user,
+                password=config.password,
+                database=config.database,
+                charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor,
+                connect_timeout=5,
+            )
+        except Exception as exc:
+            raise explain_mysql_connect_error(exc) from exc
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
@@ -557,16 +589,19 @@ class MySqlSource:
 
     def connect(self) -> Any:
         """功能：處理 connect 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        return pymysql.connect(
-            host=self.config.host,
-            port=self.config.port,
-            user=self.config.user,
-            password=self.config.password,
-            database=self.config.database,
-            charset="utf8mb4",
-            cursorclass=pymysql.cursors.DictCursor,
-            autocommit=True,
-        )
+        try:
+            return pymysql.connect(
+                host=self.config.host,
+                port=self.config.port,
+                user=self.config.user,
+                password=self.config.password,
+                database=self.config.database,
+                charset="utf8mb4",
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True,
+            )
+        except Exception as exc:
+            raise explain_mysql_connect_error(exc) from exc
 
     @staticmethod
     def clean_text(value: Any) -> str:
@@ -600,12 +635,33 @@ class MySqlSource:
         """功能：處理 like_param 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         return f"%{value.strip()}%"
 
-    def list_games(self, filters: dict[str, str] | None = None) -> list[dict[str, Any]]:
+    def list_games(
+        self,
+        filters: dict[str, str] | None = None,
+        limit: int | None = None,
+        offset: int = 0,
+    ) -> dict[str, Any]:
         """功能：處理 list_games 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
         filters = filters or {}
         where_sql, params = self.build_filters(filters)
         with self.connect() as conn:
             with conn.cursor() as cursor:
+                cursor.execute(
+                    f"""
+                    SELECT COUNT(DISTINCT g.game_id) AS total
+                    FROM game_records g
+                    LEFT JOIN players bp ON g.black_player_id = bp.player_id
+                    LEFT JOIN players wp ON g.white_player_id = wp.player_id
+                    {where_sql}
+                    """,
+                    params,
+                )
+                total = int(cursor.fetchone()["total"])
+                pagination_sql = ""
+                page_params = list(params)
+                if limit is not None:
+                    pagination_sql = "LIMIT %s OFFSET %s"
+                    page_params.extend([limit, offset])
                 cursor.execute(
                     f"""
                     SELECT
@@ -617,18 +673,19 @@ class MySqlSource:
                         COALESCE(g.opening, '') AS opening,
                         COALESCE(g.result, '') AS result,
                         g.played_at,
-                        COUNT(m.move_id) AS move_count
+                        (
+                            SELECT COUNT(1)
+                            FROM moves m
+                            WHERE m.game_id = g.game_id
+                        ) AS move_count
                     FROM game_records g
                     LEFT JOIN players bp ON g.black_player_id = bp.player_id
                     LEFT JOIN players wp ON g.white_player_id = wp.player_id
-                    LEFT JOIN moves m ON g.game_id = m.game_id
                     {where_sql}
-                    GROUP BY
-                        g.game_id, g.original_file_name, bp.player_name, wp.player_name,
-                        g.event_name, g.opening, g.result, g.played_at
                     ORDER BY g.played_at DESC, g.game_id DESC
+                    {pagination_sql}
                     """,
-                    params,
+                    page_params,
                 )
                 rows = cursor.fetchall()
 
@@ -647,7 +704,12 @@ class MySqlSource:
                     "startTime": row["played_at"].isoformat() if row["played_at"] else "",
                 }
             )
-        return games
+        return {
+            "games": games,
+            "total": total,
+            "offset": offset,
+            "hasMore": offset + len(games) < total,
+        }
 
     def build_filters(self, filters: dict[str, str]) -> tuple[str, list[Any]]:
         """功能：處理 build_filters 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
@@ -1233,8 +1295,14 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
         path = parsed.path
 
         if path == "/api/games":
-            filters = {key: values[0] for key, values in parse_qs(parsed.query).items() if values and values[0].strip()}
-            self.send_json({"games": self.source.list_games(filters)})
+            query = parse_qs(parsed.query)
+            filters = {
+                key: values[0]
+                for key, values in query.items()
+                if key not in {"limit", "offset"} and values and values[0].strip()
+            }
+            limit, offset = self.parse_game_pagination(query)
+            self.send_json(self.source.list_games(filters, limit=limit, offset=offset))
             return
         if path == "/api/db/stats":
             self.send_json({"stats": self.source.stats()})
@@ -1246,6 +1314,20 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             self.api_position(path.removeprefix("/api/games/"), parsed.query)
             return
         self.serve_static(path)
+
+    @staticmethod
+    def parse_game_pagination(query: dict[str, list[str]]) -> tuple[int, int]:
+        """Parse bounded game-list pagination parameters."""
+        try:
+            limit = int(query.get("limit", ["100"])[0])
+            offset = int(query.get("offset", ["0"])[0])
+        except ValueError as exc:
+            raise ValueError("limit and offset must be integers") from exc
+        if not 1 <= limit <= 200:
+            raise ValueError("limit must be between 1 and 200")
+        if offset < 0:
+            raise ValueError("offset must be at least 0")
+        return limit, offset
 
     def route_post(self) -> None:
         """功能：處理 route_post 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""

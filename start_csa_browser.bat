@@ -57,6 +57,17 @@ echo Keep this window open while presenting.
 echo Press Ctrl+C here when you want to stop the server.
 echo.
 
+REM Check dependencies that are required before the web page can load MySQL games.
+"%PYTHON_EXE%" -c "import pymysql, cryptography" >nul 2>nul
+if errorlevel 1 (
+  echo Missing Python dependencies.
+  echo Please run:
+  echo   "%PYTHON_EXE%" -m pip install -r requirements.txt
+  echo.
+  pause
+  exit /b 1
+)
+
 REM If an old server is still using port 8000, this copy cannot load new code.
 set "PORT_PID="
 for /f "tokens=5" %%P in ('netstat -ano ^| findstr /R /C:"127.0.0.1:8000 .*LISTENING"') do set "PORT_PID=%%P"

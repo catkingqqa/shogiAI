@@ -12,6 +12,8 @@ const modelMatchView = document.querySelector("#modelMatchView");
 
 // 功能：棋譜瀏覽模式的 DOM 元件：棋局選單、棋盤、手數控制、持駒與搜尋條件。
 const gameSelect = document.querySelector("#gameSelect");
+const gamePageStatus = document.querySelector("#gamePageStatus");
+const loadMoreGamesBtn = document.querySelector("#loadMoreGamesBtn");
 const boardEl = document.querySelector("#board");
 const firstBtn = document.querySelector("#firstBtn");
 const prevBtn = document.querySelector("#prevBtn");
@@ -143,6 +145,11 @@ let currentGameId = "";
 let currentPly = 0;
 let maxPly = 0;
 let latestState = null;
+const gamePageSize = 100;
+let loadedGameCount = 0;
+let totalGameCount = 0;
+let loadingGames = false;
+let dbStatsLoaded = false;
 
 let selfMoves = [];
 let selfRedoMoves = [];
@@ -222,6 +229,7 @@ async function uploadCsaFile() {
     uploadCsaStatus.textContent = result.status === "skipped" ? "棋局已存在" : "上傳成功";
     csaUploadInput.value = "";
 
+    dbStatsLoaded = false;
     await loadGames();
     if (result.gameId) {
       currentGameId = String(result.gameId);
@@ -261,7 +269,9 @@ async function loadDbStats() {
   try {
     const data = await fetchJson("/api/db/stats");
     renderDbStats(data.stats);
+    dbStatsLoaded = true;
   } catch {
+    dbStatsLoaded = false;
     for (const el of [dbSource, dbGameCount, dbPlayerCount, dbMoveCount, dbPositionCount, dbDuplicateCount]) {
       el.textContent = "-";
     }
@@ -561,35 +571,58 @@ async function loadPosition(ply) {
 }
 
 // 功能：處理 loadGames 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
-async function loadGames() {
-  await loadDbStats();
+async function loadGames({ append = false } = {}) {
+  if (loadingGames) {
+    return;
+  }
+  loadingGames = true;
+  loadMoreGamesBtn.disabled = true;
+
+  if (!append && !dbStatsLoaded) {
+    await loadDbStats();
+  }
   const params = searchParams();
-  const url = params.toString() ? `/api/games?${params.toString()}` : "/api/games";
-  const data = await fetchJson(url);
-  gameSelect.innerHTML = "";
+  params.set("limit", String(gamePageSize));
+  params.set("offset", String(append ? loadedGameCount : 0));
 
-  if (data.games.length === 0) {
-    clearBoardState("找不到符合條件的棋局");
-    return;
+  try {
+    const data = await fetchJson(`/api/games?${params.toString()}`);
+    if (!append) {
+      gameSelect.innerHTML = "";
+      loadedGameCount = 0;
+    }
+
+    for (const game of data.games) {
+      const option = document.createElement("option");
+      option.value = game.id;
+      option.textContent = game.error ? `${game.name} - 讀取失敗` : `${game.name} (${game.moves} 手)`;
+      option.disabled = Boolean(game.error);
+      gameSelect.appendChild(option);
+    }
+
+    loadedGameCount += data.games.length;
+    totalGameCount = Number(data.total ?? loadedGameCount);
+    gamePageStatus.textContent = `已載入 ${formatNumber(loadedGameCount)} / ${formatNumber(totalGameCount)} 局`;
+    loadMoreGamesBtn.hidden = !data.hasMore;
+
+    if (!append) {
+      if (data.games.length === 0) {
+        clearBoardState("找不到符合條件的棋局");
+        return;
+      }
+      const firstPlayable = data.games.find((game) => !game.error);
+      if (!firstPlayable) {
+        clearBoardState("沒有可讀取的棋局");
+        return;
+      }
+      currentGameId = firstPlayable.id;
+      gameSelect.value = currentGameId;
+      await loadPosition(0);
+    }
+  } finally {
+    loadingGames = false;
+    loadMoreGamesBtn.disabled = false;
   }
-
-  for (const game of data.games) {
-    const option = document.createElement("option");
-    option.value = game.id;
-    option.textContent = game.error ? `${game.name} - 讀取失敗` : `${game.name} (${game.moves} 手)`;
-    option.disabled = Boolean(game.error);
-    gameSelect.appendChild(option);
-  }
-
-  const firstPlayable = data.games.find((game) => !game.error);
-  if (!firstPlayable) {
-    clearBoardState("沒有可讀取的棋局");
-    return;
-  }
-
-  currentGameId = firstPlayable.id;
-  gameSelect.value = currentGameId;
-  await loadPosition(0);
 }
 
 // 功能：處理 legalMovesForSelection 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
@@ -1313,6 +1346,10 @@ csaUploadInput.addEventListener("change", () => {
 gameSelect.addEventListener("change", async () => {
   currentGameId = gameSelect.value;
   await loadPosition(0);
+});
+
+loadMoreGamesBtn.addEventListener("click", async () => {
+  await loadGames({ append: true });
 });
 
 searchBtn.addEventListener("click", async () => {

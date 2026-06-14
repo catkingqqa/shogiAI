@@ -2,3 +2,23 @@ __pycache__/
 *.pyc
 out/
 .ipynb_checkpoints/
+.venv/
+.uv-cache/
+.uv-python/
+
+# Runtime crawler output and state.
+climbbug/data/
+climbbug/data_1/
+climbbug/game_urls.txt
+climbbug/failed_urls.txt
+climbbug/*.log
+climbbug/*.pid
+climbbug/mysql_import_state.json
+climbbug/.mysql_import_staging/
+
+# Local deployment and diagnostic artifacts.
+.remote-export/
+*-upload.tar.gz
+*-export.tar.gz
+*_diag.log
+*_status.log
