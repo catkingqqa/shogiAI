@@ -8,6 +8,7 @@ import uuid
 import mimetypes
 import os
 import re
+import threading
 from collections import defaultdict
 from dataclasses import asdict, dataclass, field
 from email.parser import BytesParser
@@ -2126,16 +2127,15 @@ def build_source(args: argparse.Namespace, mysql_config: MySqlConfig | None = No
     return MySqlSource(mysql_config or build_mysql_config(args))
 
 
-def main() -> int:
-    """功能：串接本檔案的主要執行流程。"""
-    args = parse_args()
-    mysql_config = build_mysql_config(args) if args.source == "mysql" else None
-    CsaBrowserHandler.source = build_source(args, mysql_config)
-    CsaBrowserHandler.mysql_config = mysql_config
-    CsaBrowserHandler.policy_predictor = (
-        PolicyValuePredictor(args.policy_model) if args.policy_model.is_file() else None
-    )
-    CsaBrowserHandler.opening_book = None
+def load_optional_ai_features(args: argparse.Namespace, mysql_config: MySqlConfig | None) -> None:
+    """Load slower optional AI helpers after the web server starts accepting requests."""
+    if args.policy_model.is_file():
+        try:
+            CsaBrowserHandler.policy_predictor = PolicyValuePredictor(args.policy_model)
+            print(f"Policy model loaded: {args.policy_model}", flush=True)
+        except Exception as exc:
+            print(f"Policy model disabled: {exc}", flush=True)
+
     if mysql_config is not None and args.opening_book_ply > 0:
         try:
             CsaBrowserHandler.opening_book = OpeningBook.from_mysql(
@@ -2147,16 +2147,34 @@ def main() -> int:
                 "Opening book loaded: "
                 f"{len(CsaBrowserHandler.opening_book.entries)} positions, "
                 f"max ply {CsaBrowserHandler.opening_book.max_ply}, "
-                f"min count {CsaBrowserHandler.opening_book.min_count}"
+                f"min count {CsaBrowserHandler.opening_book.min_count}",
+                flush=True,
             )
         except Exception as exc:
-            print(f"Opening book disabled: {exc}")
+            print(f"Opening book disabled: {exc}", flush=True)
+
+
+def main() -> int:
+    """功能：串接本檔案的主要執行流程。"""
+    args = parse_args()
+    mysql_config = build_mysql_config(args) if args.source == "mysql" else None
+    CsaBrowserHandler.source = build_source(args, mysql_config)
+    CsaBrowserHandler.mysql_config = mysql_config
+    CsaBrowserHandler.policy_predictor = None
+    CsaBrowserHandler.opening_book = None
     CsaBrowserHandler.value_weight = max(0, args.value_weight)
     CsaBrowserHandler.policy_order_ply = max(0, args.policy_order_ply)
     server = ThreadingHTTPServer((args.host, args.port), CsaBrowserHandler)
-    print(f"CSA browser running at http://{args.host}:{args.port}")
-    print(f"Data source: {args.source}")
-    print("Press Ctrl+C to stop.")
+    print(f"CSA browser running at http://{args.host}:{args.port}", flush=True)
+    print(f"Data source: {args.source}", flush=True)
+    threading.Thread(
+        target=load_optional_ai_features,
+        args=(args, mysql_config),
+        daemon=True,
+        name="optional-ai-loader",
+    ).start()
+    print("AI model and opening book are loading in the background.", flush=True)
+    print("Press Ctrl+C to stop.", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

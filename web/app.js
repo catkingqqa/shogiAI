@@ -579,7 +579,7 @@ async function loadGames({ append = false } = {}) {
   loadMoreGamesBtn.disabled = true;
 
   if (!append && !dbStatsLoaded) {
-    await loadDbStats();
+    void loadDbStats();
   }
   const params = searchParams();
   params.set("limit", String(gamePageSize));

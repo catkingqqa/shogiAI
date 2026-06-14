@@ -105,8 +105,8 @@ if /I "%DATA_SOURCE%"=="mysql" (
   )
 )
 
-REM Model modules can take a few seconds to load. Open the browser after the API is ready.
-start "" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$url='http://127.0.0.1:8000/api/model-match/models'; for ($i=0; $i -lt 30; $i++) { try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 $url | Out-Null; break } catch { Start-Sleep -Seconds 1 } }; Start-Process 'http://127.0.0.1:8000'"
+REM Open as soon as the web server is ready; AI helpers continue loading in the background.
+start "" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$url='http://127.0.0.1:8000/'; for ($i=0; $i -lt 30; $i++) { try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 $url | Out-Null; break } catch { Start-Sleep -Milliseconds 250 } }; Start-Process 'http://127.0.0.1:8000'"
 
 REM Start the Python API server with the selected game source.
 if /I "%DATA_SOURCE%"=="mysql" (

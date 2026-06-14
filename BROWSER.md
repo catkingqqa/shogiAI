@@ -7,6 +7,8 @@ read games from MySQL or directly from local CSA files.
 
 Double-click `start_csa_browser.bat` to open the browser with the shared MySQL
 database. Enter the MySQL password in the command window when prompted.
+The page opens as soon as the API is ready; the AI model and opening book finish
+loading in the background.
 
 To use local CSA files without a MySQL password instead:
 
