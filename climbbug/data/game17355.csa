@@ -1,0 +1,44 @@
+﻿V2.2
+N+高崎一生 六段
+N-堀口一史座 七段
+$EVENT:順位戦
+$SITE:東京・将棋会館
+$START_TIME:2017-09-12T01:00:00Z
+$END_TIME:2017-09-12T04:40:00Z
+$OPENING:三間飛車
+P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
+P2 * -HI *  *  *  *  * -KA * 
+P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
+P4 *  *  *  *  *  *  *  *  * 
+P5 *  *  *  *  *  *  *  *  * 
+P6 *  *  *  *  *  *  *  *  * 
+P7+FU+FU+FU+FU+FU+FU+FU+FU+FU
+P8 * +KA *  *  *  *  * +HI * 
+P9+KY+KE+GI+KI+OU+KI+GI+KE+KY
++
++7776FU
+-3334FU
++7675FU
+-1314FU
++2878HI
+-2288UM
++7988GI
+-0045KA
++0076KA
+-4527UM
++7643UM
+-4132KI
++4334UM
+-3122GI
++7574FU
+-7374FU
++7874HI
+-8272HI
++0073FU
+-7273HI
++7473RY
+-8173KE
++0074FU
+-7365KE
++3456UM
+%TORYO

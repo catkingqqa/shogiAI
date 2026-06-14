@@ -1,0 +1,53 @@
+﻿V2.2
+N+石田検校
+N-檜垣是安
+$EVENT:江戸時代の古典棋譜
+$SITE:京都「鷹司前関白御前」
+$START_TIME:1651-01-01T00:00:00Z
+$OPENING:三間飛車
+P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
+P2 * -HI *  *  *  *  * -KA * 
+P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
+P4 *  *  *  *  *  *  *  *  * 
+P5 *  *  *  *  *  *  *  *  * 
+P6 *  *  *  *  *  *  *  *  * 
+P7+FU+FU+FU+FU+FU+FU+FU+FU+FU
+P8 * +KA *  *  *  *  * +HI * 
+P9+KY+KE+GI+KI+OU+KI+GI+KE+KY
++
+-3334FU
++7776FU
+-8384FU
++6766FU
+-7162GI
++7978GI
+-5354FU
++7867GI
+-8485FU
++8877KA
+-7374FU
++9796FU
+-6253GI
++9695FU
+-8284HI
++2878HI
+-5142OU
++5948OU
+-6152KI
++4838OU
+-1314FU
++4948KI
+-6364FU
++7898HI
+-7475FU
++9594FU
+-6465FU
++7675FU
+-8586FU
++8786FU
+-6566FU
++6766GI
+-0076FU
++7788KA
+-8486HI
+%TORYO

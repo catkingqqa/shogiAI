@@ -1,0 +1,48 @@
+﻿V2.2
+N+及川拓馬 六段
+N-高橋道雄 九段
+$EVENT:順位戦
+$SITE:東京・将棋会館
+$START_TIME:2019-12-03T01:00:00Z
+$END_TIME:2019-12-03T06:59:00Z
+$OPENING:横歩取り
+P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
+P2 * -HI *  *  *  *  * -KA * 
+P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
+P4 *  *  *  *  *  *  *  *  * 
+P5 *  *  *  *  *  *  *  *  * 
+P6 *  *  *  *  *  *  *  *  * 
+P7+FU+FU+FU+FU+FU+FU+FU+FU+FU
+P8 * +KA *  *  *  *  * +HI * 
+P9+KY+KE+GI+KI+OU+KI+GI+KE+KY
++
++2726FU
+-3334FU
++7776FU
+-8384FU
++2625FU
+-8485FU
++6978KI
+-4132KI
++2524FU
+-2324FU
++2824HI
+-8586FU
++8786FU
+-8286HI
++2434HI
+-2233KA
++5958OU
+-8685HI
++3736FU
+-8525HI
++0028FU
+-2585HI
++3938GI
+-5141OU
++2937KE
+-4344FU
++8977KE
+-8555HI
++7765KE
+%TORYO

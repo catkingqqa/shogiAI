@@ -6,11 +6,7 @@ out/
 .uv-cache/
 .uv-python/
 
-# Runtime crawler output and state.
-climbbug/data/
-climbbug/data_1/
-climbbug/game_urls.txt
-climbbug/failed_urls.txt
+# Runtime crawler state that should never be committed.
 climbbug/*.log
 climbbug/*.pid
 climbbug/mysql_import_state.json
