@@ -10,6 +10,9 @@ database. Enter the MySQL password in the command window when prompted.
 The page opens as soon as the API is ready; the AI model and opening book finish
 loading in the background.
 
+The launcher uses `models/policy_model.pt` when a trained model has been
+published through Git, and falls back to `out/policy_model.pt` otherwise.
+
 To use local CSA files without a MySQL password instead:
 
 ```powershell

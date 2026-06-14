@@ -9,6 +9,10 @@ REM Run "start_csa_browser.bat local" to use local CSA files instead.
 set "DATA_SOURCE=mysql"
 if /I "%~1"=="local" set "DATA_SOURCE=csa"
 
+REM Prefer the latest model published through Git; keep out\policy_model.pt as a fallback.
+set "POLICY_MODEL=out\policy_model.pt"
+if exist "models\policy_model.pt" set "POLICY_MODEL=models\policy_model.pt"
+
 REM Prefer the Python installed on this computer. Stop early if it cannot be found.
 set "PYTHON_EXE="
 
@@ -50,7 +54,7 @@ if "%PYTHON_EXE%"=="" (
 echo Starting CSA browser...
 echo   data source: %DATA_SOURCE%
 echo AI settings:
-echo   policy model: out\policy_model.pt
+echo   policy model: %POLICY_MODEL%
 echo   value weight: 0
 echo   policy order ply: 2
 echo   opening book: first 30 plies, min count 2
@@ -110,9 +114,9 @@ start "" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Comm
 
 REM Start the Python API server with the selected game source.
 if /I "%DATA_SOURCE%"=="mysql" (
-  "%PYTHON_EXE%" src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source mysql --db-host 140.135.65.53 --db-port 3306 --db-user 11211213 --db-password "%MYSQL_PASSWORD%" --db-name DB11211213 --policy-model out\policy_model.pt --value-weight 0 --policy-order-ply 2 --opening-book-ply 30 --opening-book-min-count 2
+  "%PYTHON_EXE%" src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source mysql --db-host 140.135.65.53 --db-port 3306 --db-user 11211213 --db-password "%MYSQL_PASSWORD%" --db-name DB11211213 --policy-model "%POLICY_MODEL%" --value-weight 0 --policy-order-ply 2 --opening-book-ply 30 --opening-book-min-count 2
 ) else (
-  "%PYTHON_EXE%" src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source csa --policy-model out\policy_model.pt --value-weight 0 --policy-order-ply 2
+  "%PYTHON_EXE%" src\csa_browser_api.py --host 127.0.0.1 --port 8000 --source csa --policy-model "%POLICY_MODEL%" --value-weight 0 --policy-order-ply 2
 )
 
 echo.
