@@ -13,9 +13,9 @@ files.sort()
 for idx, old_name in enumerate(files, start=1):
 
     old_path = os.path.join(FOLDER, old_name)
-
+   
     new_name = f"game{idx:05d}.csa" #改名
-
+    
     new_path = os.path.join(FOLDER, new_name)
 
     os.rename(old_path, new_path)
