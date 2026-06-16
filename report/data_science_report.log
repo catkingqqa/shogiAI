@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.4) (preloaded format=xelatex 2025.12.16)  26 MAY 2026 16:27
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.4) (preloaded format=xelatex 2025.12.16)  17 JUN 2026 01:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -659,15 +659,15 @@ LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(68.28644pt, 460.935pt, 68.28644pt)
-* v-part:(T,H,B)=(68.28644pt, 708.47397pt, 68.28644pt)
+* h-part:(L,W,R)=(66.86414pt, 463.7796pt, 66.86414pt)
+* v-part:(T,H,B)=(66.86414pt, 711.31857pt, 66.86414pt)
 * \paperwidth=597.50787pt
 * \paperheight=845.04684pt
-* \textwidth=460.935pt
-* \textheight=708.47397pt
-* \oddsidemargin=-3.98355pt
-* \evensidemargin=-3.98355pt
-* \topmargin=-40.98355pt
+* \textwidth=463.7796pt
+* \textheight=711.31857pt
+* \oddsidemargin=-5.40585pt
+* \evensidemargin=-5.40585pt
+* \topmargin=-42.40585pt
 * \headheight=12.0pt
 * \headsep=25.0pt
 * \topskip=12.0pt
@@ -707,22 +707,32 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 [1
 
-])
+]
+
+
+LaTeX Font Warning: Font shape `TU/MicrosoftJhengHei(0)/m/sl' undefined
+(Font)              using `TU/MicrosoftJhengHei(0)/m/n' instead on input line 4
+1.
+
+[2])
 \tf@toc=\write4
 \openout4 = `data_science_report.toc'.
 
 
 
-
-LaTeX Font Warning: Font shape `TU/MicrosoftJhengHei(0)/m/sl' undefined
-(Font)              using `TU/MicrosoftJhengHei(0)/m/n' instead on input line 4
-7.
-
-[2]
-
 [3]
+Overfull \hbox (67.871pt too wide) in paragraph at lines 90--91
+[]|\TU/lmtt/m/n/12 out/policy_dataset.policy_only_latest.npz| 
+ []
 
 [4]
+Overfull \hbox (57.37604pt too wide) in paragraph at lines 136--137
+[]\TU/MicrosoftJhengHei(0)/m/n/12 在 \TU/lmr/m/n/12 Python \TU/MicrosoftJhengHei
+(0)/m/n/12 中，|  系 統 會 用 \TU/lmtt/m/n/12 cshogi.Board(sfen) \TU/MicrosoftJhengHe
+i(0)/m/n/12 還 原 棋 盤，|  用 \TU/lmtt/m/n/12 board.move_from_usi(usi_move)
+ []
+
+
 
 [5]
 
@@ -731,23 +741,48 @@ LaTeX Font Warning: Font shape `TU/MicrosoftJhengHei(0)/m/sl' undefined
 [7]
 
 [8]
-
-[9]
-
-[10]
-Overfull \hbox (3.18102pt too wide) in paragraph at lines 460--461
-[]\TU/MicrosoftJhengHei(0)/m/n/12 本 專 案 其 實 就 是 把 棋 盤 轉 為 多 通 道 \TU/lmr/m/n/12 
-one-hot \TU/MicrosoftJhengHei(0)/m/n/12 與 數 量 \TU/lmr/m/n/12 plane\TU/Microsoft
-JhengHei(0)/m/n/12 。|  不 同 棋 種 與 持 駒 分 開 \TU/lmr/m/n/12 chan-
+Overfull \hbox (2.19353pt too wide) in paragraph at lines 280--281
+\TU/MicrosoftJhengHei(0)/m/n/12 相 似，|  如 果 同 一 盤 棋 的 前 半 放 進 訓 練 集、|  後 半 放 進 測
+ 試 集，|  測 試 結 果 會 過 度 樂 觀。| \TU/lmr/m/n/12 Game-
  []
 
 
+Overfull \hbox (31.71272pt too wide) in paragraph at lines 284--285
+[]\TU/MicrosoftJhengHei(0)/m/n/12 最 新 \TU/lmr/m/n/12 policy-only \TU/MicrosoftJ
+hengHei(0)/m/n/12 模 型 在 遠 端 大 數 據 主 機 訓 練，|  並 已 同 步 回 本 地 \TU/lmtt/m/n/12 mode
+ls/policy_model.pt\TU/MicrosoftJhengHei(0)/m/n/12 。|
+ []
+
+[9]
+Overfull \hbox (37.41087pt too wide) in paragraph at lines 344--345
+\TU/MicrosoftJhengHei(0)/m/n/12 詰 將 棋 或 防 守 手。|  因 此 \TU/lmr/m/n/12 shogiAI \TU
+/MicrosoftJhengHei(0)/m/n/12 將 神 經 網 路 與 傳 統 搜 尋 結 合。|  搜 尋 核 心 位 於 \TU/lmtt/m/
+n/12 src/ai_search.py\TU/MicrosoftJhengHei(0)/m/n/12 。| 
+ []
+
+
+
+[10]
 
 [11]
 
 [12]
 
-[13] (data_science_report.aux)
+[13]
+
+[14]
+Overfull \hbox (6.21446pt too wide) in paragraph at lines 495--496
+\TU/lmr/m/n/12 beta \TU/MicrosoftJhengHei(0)/m/n/12 搜 尋 的 走 法 排 序。|  最 新 資 料 集 
+包 含 \TU/lmr/m/n/12 4,855,173 \TU/MicrosoftJhengHei(0)/m/n/12 筆 樣 本，|  測 試 \TU/l
+mr/m/n/12 Top-1 accuracy \TU/MicrosoftJhengHei(0)/m/n/12 達 \TU/lmr/m/n/12 41.10
+%\TU/MicrosoftJhengHei(0)/m/n/12 ，|
+ []
+
+
+
+[15]
+
+[16] (data_science_report.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2022/08/05>
@@ -757,15 +792,15 @@ L3 programming layer <2022/08/05>
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `data_science_report.out' has not changed.
-(rerunfilecheck)             Checksum: 1A6A11D0DBA3CDABC1044F9241DFDAC5;5353.
+(rerunfilecheck)             Checksum: DD5145169C4ABED41073F66FBF2E03D9;5976.
  ) 
 Here is how much of TeX's memory you used:
- 17867 strings out of 405057
- 376508 string characters out of 5499577
- 835629 words of memory out of 5000000
- 44289 multiletter control sequences out of 15000+600000
- 637891 words of font info for 112 fonts, out of 8000000 for 9000
+ 17877 strings out of 405057
+ 377805 string characters out of 5499577
+ 847381 words of memory out of 5000000
+ 44301 multiletter control sequences out of 15000+600000
+ 637875 words of font info for 110 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 93i,9n,95p,385b,1809s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 93i,7n,95p,480b,1815s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
-Output written on data_science_report.pdf (13 pages).
+Output written on data_science_report.pdf (16 pages).

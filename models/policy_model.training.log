@@ -1,47 +1,58 @@
-[train-latest] started_at=2026-06-14T17:47:27+08:00
-[train-latest] git_head=d3786a8d
-[train-latest] export_started=2026-06-14T17:47:27+08:00
+[policy-only] started_at=2026-06-16T21:44:58+08:00
+[policy-only] host=am01
+[policy-only] git_head=4ed8cdcb
+[policy-only] python=Python 3.10.12
+[policy-only] waiting_for_active_import_batches=2026-06-16T21:44:58+08:00
+1380288       00:16 /home/students/s11211213/shogiAI/.venv/bin/python /home/students/s11211213/shogiAI/src/import_csa_to_db.py --input /home/students/s11211213/climbbug/.mysql_import_staging --host 140.135.65.53 --port 3306 --user 11211213 --database DB11211213 --skip-existing --create-tables
+[policy-only] import batch still running; waiting 30s at 2026-06-16T21:44:58+08:00
+1380288       00:46 /home/students/s11211213/shogiAI/.venv/bin/python /home/students/s11211213/shogiAI/src/import_csa_to_db.py --input /home/students/s11211213/climbbug/.mysql_import_staging --host 140.135.65.53 --port 3306 --user 11211213 --database DB11211213 --skip-existing --create-tables
+[policy-only] import batch still running; waiting 30s at 2026-06-16T21:45:28+08:00
+[policy-only] no_active_import_batch=2026-06-16T21:45:58+08:00
+[policy-only] active_crawler_processes
+2650301  5-22:46:04 /home/students/s11211213/shogiAI/.venv/bin/python -u CC.py
+2671960  5-22:36:46 /home/students/s11211213/shogiAI/.venv/bin/python -u /home/students/s11211213/shogiAI/src/watch_csa_import.py --watch-dir /home/students/s11211213/climbbug/data --importer /home/students/s11211213/shogiAI/src/import_csa_to_db.py --state-file /home/students/s11211213/climbbug/mysql_import_state.json --staging-dir /home/students/s11211213/climbbug/.mysql_import_staging --interval 60 --settle-seconds 15 --batch-size 20 --host 140.135.65.53 --port 3306 --user 11211213 --database DB11211213 --create-tables --initialize-from-database
+[policy-only] export_started=2026-06-16T21:45:58+08:00
 {
-  "samples": 3396364,
-  "games": 29920,
-  "value_labeled_samples": 3396364,
+  "samples": 4855173,
+  "games": 42534,
+  "value_labeled_samples": 4855173,
   "value_unlabeled_samples": 0,
   "result_counts": {
-    "TORYO": 3383560,
+    "TORYO": 4829692,
     "DRAW": 104,
-    "SENNICHITE": 12700
+    "SENNICHITE": 25377
   },
   "invalid_rows": 0,
-  "output": "out/policy_dataset.npz"
+  "output": "out/policy_dataset.policy_only_latest.npz"
 }
-[train-latest] export_finished=2026-06-14T18:14:45+08:00
--rw-r--r-- 1 s11211213 students 232M Jun 14 18:14 out/policy_dataset.npz
-[train-latest] training_started=2026-06-14T18:14:45+08:00
-{"epoch": 1, "train_loss": 3.917927, "learning_rate": 0.001, "val_policy_loss": 2.89132, "val_accuracy": 0.335493, "val_top3_accuracy": 0.545936, "val_top5_accuracy": 0.634364, "val_value_loss": 0.951861, "val_value_mae": 0.94755, "value_loss_weight": 0.25}
-{"epoch": 2, "train_loss": 2.907625, "learning_rate": 0.00098313, "val_policy_loss": 2.641706, "val_accuracy": 0.358959, "val_top3_accuracy": 0.584706, "val_top5_accuracy": 0.676611, "val_value_loss": 0.945547, "val_value_mae": 0.934412, "value_loss_weight": 0.25}
-{"epoch": 3, "train_loss": 2.689037, "learning_rate": 0.00093368, "val_policy_loss": 2.549599, "val_accuracy": 0.369443, "val_top3_accuracy": 0.599769, "val_top5_accuracy": 0.692625, "val_value_loss": 0.95125, "val_value_mae": 0.933827, "value_loss_weight": 0.25}
-{"epoch": 4, "train_loss": 2.558636, "learning_rate": 0.00085502, "val_policy_loss": 2.479107, "val_accuracy": 0.380289, "val_top3_accuracy": 0.614696, "val_top5_accuracy": 0.707576, "val_value_loss": 0.950579, "val_value_mae": 0.926606, "value_loss_weight": 0.25}
-{"epoch": 5, "train_loss": 2.460631, "learning_rate": 0.0007525, "val_policy_loss": 2.44658, "val_accuracy": 0.382667, "val_top3_accuracy": 0.619838, "val_top5_accuracy": 0.712862, "val_value_loss": 0.950684, "val_value_mae": 0.921514, "value_loss_weight": 0.25}
-{"epoch": 6, "train_loss": 2.376704, "learning_rate": 0.00063312, "val_policy_loss": 2.420442, "val_accuracy": 0.386586, "val_top3_accuracy": 0.623904, "val_top5_accuracy": 0.717883, "val_value_loss": 0.954534, "val_value_mae": 0.919381, "value_loss_weight": 0.25}
-{"epoch": 7, "train_loss": 2.300665, "learning_rate": 0.000505, "val_policy_loss": 2.394071, "val_accuracy": 0.391453, "val_top3_accuracy": 0.629476, "val_top5_accuracy": 0.722795, "val_value_loss": 0.957775, "val_value_mae": 0.916553, "value_loss_weight": 0.25}
-{"epoch": 8, "train_loss": 2.231321, "learning_rate": 0.00037688, "val_policy_loss": 2.377768, "val_accuracy": 0.394026, "val_top3_accuracy": 0.633006, "val_top5_accuracy": 0.725771, "val_value_loss": 0.961018, "val_value_mae": 0.916349, "value_loss_weight": 0.25}
-{"epoch": 9, "train_loss": 2.169018, "learning_rate": 0.0002575, "val_policy_loss": 2.365439, "val_accuracy": 0.395711, "val_top3_accuracy": 0.635425, "val_top5_accuracy": 0.729351, "val_value_loss": 0.966186, "val_value_mae": 0.909409, "value_loss_weight": 0.25}
-{"epoch": 10, "train_loss": 2.116672, "learning_rate": 0.00015498, "val_policy_loss": 2.365373, "val_accuracy": 0.398062, "val_top3_accuracy": 0.638601, "val_top5_accuracy": 0.73164, "val_value_loss": 0.970097, "val_value_mae": 0.909786, "value_loss_weight": 0.25}
-{"epoch": 11, "train_loss": 2.076357, "learning_rate": 7.632e-05, "val_policy_loss": 2.359407, "val_accuracy": 0.400364, "val_top3_accuracy": 0.640631, "val_top5_accuracy": 0.734045, "val_value_loss": 0.970543, "val_value_mae": 0.908471, "value_loss_weight": 0.25}
-{"epoch": 12, "train_loss": 2.050889, "learning_rate": 2.687e-05, "val_policy_loss": 2.359469, "val_accuracy": 0.401109, "val_top3_accuracy": 0.641188, "val_top5_accuracy": 0.734678, "val_value_loss": 0.972045, "val_value_mae": 0.905929, "value_loss_weight": 0.25}
+-rw-r--r-- 1 s11211213 students 332M Jun 16 22:24 out/policy_dataset.policy_only_latest.npz
+[policy-only] export_finished=2026-06-16T22:24:07+08:00
+[policy-only] training_started=2026-06-16T22:24:07+08:00
+{"epoch": 1, "train_loss": 3.330943, "learning_rate": 0.001, "val_policy_loss": 2.749995, "val_accuracy": 0.351321, "val_top3_accuracy": 0.568895, "val_top5_accuracy": 0.658794}
+{"epoch": 2, "train_loss": 2.595387, "learning_rate": 0.00098313, "val_policy_loss": 2.586079, "val_accuracy": 0.367747, "val_top3_accuracy": 0.595908, "val_top5_accuracy": 0.687781}
+{"epoch": 3, "train_loss": 2.438864, "learning_rate": 0.00093368, "val_policy_loss": 2.511959, "val_accuracy": 0.374976, "val_top3_accuracy": 0.607197, "val_top5_accuracy": 0.700258}
+{"epoch": 4, "train_loss": 2.344204, "learning_rate": 0.00085502, "val_policy_loss": 2.460423, "val_accuracy": 0.38329, "val_top3_accuracy": 0.618409, "val_top5_accuracy": 0.711062}
+{"epoch": 5, "train_loss": 2.26936, "learning_rate": 0.0007525, "val_policy_loss": 2.417896, "val_accuracy": 0.388572, "val_top3_accuracy": 0.624277, "val_top5_accuracy": 0.716689}
+{"epoch": 6, "train_loss": 2.202131, "learning_rate": 0.00063312, "val_policy_loss": 2.382098, "val_accuracy": 0.393645, "val_top3_accuracy": 0.631683, "val_top5_accuracy": 0.724843}
+{"epoch": 7, "train_loss": 2.139014, "learning_rate": 0.000505, "val_policy_loss": 2.350543, "val_accuracy": 0.397774, "val_top3_accuracy": 0.636912, "val_top5_accuracy": 0.730431}
+{"epoch": 8, "train_loss": 2.0792, "learning_rate": 0.00037688, "val_policy_loss": 2.333189, "val_accuracy": 0.400273, "val_top3_accuracy": 0.640602, "val_top5_accuracy": 0.734258}
+{"epoch": 9, "train_loss": 2.025592, "learning_rate": 0.0002575, "val_policy_loss": 2.303525, "val_accuracy": 0.40393, "val_top3_accuracy": 0.646339, "val_top5_accuracy": 0.739548}
+{"epoch": 10, "train_loss": 1.97948, "learning_rate": 0.00015498, "val_policy_loss": 2.287848, "val_accuracy": 0.406253, "val_top3_accuracy": 0.648966, "val_top5_accuracy": 0.74251}
+{"epoch": 11, "train_loss": 1.943619, "learning_rate": 7.632e-05, "val_policy_loss": 2.278218, "val_accuracy": 0.408597, "val_top3_accuracy": 0.651462, "val_top5_accuracy": 0.744558}
+{"epoch": 12, "train_loss": 1.920561, "learning_rate": 2.687e-05, "val_policy_loss": 2.275741, "val_accuracy": 0.410085, "val_top3_accuracy": 0.652728, "val_top5_accuracy": 0.746099}
 {
-  "output": "out/policy_model.pt",
-  "train_samples": 2715245,
-  "validation_samples": 339384,
-  "test_samples": 341735,
-  "test_policy_loss": 2.379209,
-  "test_accuracy": 0.398733,
-  "test_top3_accuracy": 0.637895,
-  "test_top5_accuracy": 0.732293,
-  "test_value_loss": 0.971583,
-  "test_value_mae": 0.907244
+  "output": "out/policy_model.policy_only.pt",
+  "train_samples": 3882230,
+  "validation_samples": 487292,
+  "test_samples": 485651,
+  "test_policy_loss": 2.275118,
+  "test_accuracy": 0.411032,
+  "test_top3_accuracy": 0.652386,
+  "test_top5_accuracy": 0.744889
 }
-[train-latest] training_finished=2026-06-14T18:45:46+08:00
--rw-r--r-- 1 s11211213 students 34M Jun 14 18:45 out/policy_model.pt
-35720f9a1f02f549e6a235940afebfee2371df8b9d6af0d7110eb50fdcc4311a  out/policy_model.pt
-[train-latest] completed_at=2026-06-14T18:45:46+08:00
+-rw-r--r-- 1 s11211213 students 33M Jun 16 22:57 out/policy_model.policy_only.pt
+79bee4f2299667004803ec2265ba67a06c3236d08735372a7594a711b34b0ab0  out/policy_model.policy_only.pt
+[policy-only] training_finished=2026-06-16T22:57:57+08:00
+Traceback (most recent call last):
+  File "<stdin>", line 4, in <module>
+ModuleNotFoundError: No module named 'policy_model'

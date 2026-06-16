@@ -1,0 +1,345 @@
+{"kind":"deck","id":"pr/0aqiun","name":"Deck"}
+{"kind":"layout","layoutId":"1c4e4dd2-df1c-4d13-ab76-3dd6b0e798a5","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"885ab2e8-e7a2-4eac-bf8f-496132f07359","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/xer9z5","slide":1,"title":"SHOGIAI CLASS REPORT","textShapes":8}
+{"kind":"shape","id":"sh/za1gvy90","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/svu9knih","slide":1,"bbox":[0,0,20,720]}
+{"kind":"shape","id":"sh/hgn29gr2","slide":1,"bbox":[20,0,10,720]}
+{"kind":"textbox","id":"sh/a1gvy90j","slide":1,"name":"text","text":"SHOGIAI CLASS REPORT","textPreview":"SHOGIAI CLASS REPORT","textChars":20,"textLines":1,"bbox":[84,82,600,28]}
+{"kind":"textbox","id":"sh/zidonyd0","slide":1,"name":"text","text":"shogiAI\n數據科學報告","textPreview":"shogiAI | 數據科學報告","textChars":14,"textLines":2,"bbox":[84,150,760,150]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":1,"name":"text","text":"Policy-only 將棋模型、資料前處理、訓練結果與 Alpha-beta 搜尋整合","textPreview":"Policy-only 將棋模型、資料前處理、訓練結果與 Alpha-beta 搜尋整合","textChars":44,"textLines":1,"bbox":[88,322,700,80]}
+{"kind":"shape","id":"sh/hoza1gvy","slide":1,"bbox":[860,132,292,360]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":1,"name":"text","text":"15 分鐘報告節奏","textPreview":"15 分鐘報告節奏","textChars":9,"textLines":1,"bbox":[892,164,230,32]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":1,"name":"text","text":"• 問題背景\n• 模型與資料架構\n• 訓練結果\n• 搜尋整合與未來方向","textPreview":"• 問題背景 | • 模型與資料架構 | • 訓練結果 | • 搜尋整合與未來方向","textChars":35,"textLines":4,"bbox":[894,214,226,168]}
+{"kind":"textbox","id":"sh/zidonyd0","slide":1,"name":"text","text":"2026 年 6 月｜課堂報告用簡報","textPreview":"2026 年 6 月｜課堂報告用簡報","textChars":18,"textLines":1,"bbox":[88,594,700,30]}
+{"kind":"shape","id":"sh/a1gvy90j","slide":1,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/hoza1gvy","slide":1,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":1,"name":"text","text":"1/14","textPreview":"1/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/xer9z5","slide":1,"text":"開場說明這份報告的核心：把棋譜資料變成模型能學的資料，再把模型放回 AI 搜尋系統。\n前半講資料與模型，中段講訓練結果，後半講 alpha-beta 搜尋與 policy network 如何協作。"}
+{"kind":"slide","id":"sl/lnio49","slide":2,"title":"PROBLEM","textShapes":12}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":2,"name":"text","text":"PROBLEM","textPreview":"PROBLEM","textChars":7,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":2,"name":"text","text":"資料科學問題：從局面預測下一手","textPreview":"資料科學問題：從局面預測下一手","textChars":15,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":2,"name":"text","text":"把專業棋譜轉成 supervised learning 問題，模型學習高手在某個局面會選哪一手。","textPreview":"把專業棋譜轉成 supervised learning 問題，模型學習高手在某個局面會選哪一手。","textChars":48,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/sji5snel","slide":2,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":2,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":2,"name":"text","text":"fθ(s) = policy logits over 13,689 move labels","textPreview":"fθ(s) = policy logits over 13,689 move labels","textChars":45,"textLines":1,"bbox":[112,214,1056,74]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":2,"bbox":[112,350,310,142]}
+{"kind":"textbox","id":"sh/svu9knih","slide":2,"name":"text","text":"輸入 s","textPreview":"輸入 s","textChars":4,"textLines":1,"bbox":[134,368,266,34]}
+{"kind":"textbox","id":"sh/hgn29gr2","slide":2,"name":"text","text":"43 × 9 × 9 的局面張量，包含棋盤駒、持駒與行棋方資訊。","textPreview":"43 × 9 × 9 的局面張量，包含棋盤駒、持駒與行棋方資訊。","textChars":32,"textLines":1,"bbox":[134,406,266,72]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":2,"bbox":[486,350,310,142]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":2,"name":"text","text":"輸出 p","textPreview":"輸出 p","textChars":4,"textLines":1,"bbox":[508,368,266,34]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":2,"name":"text","text":"13,689 維 move label logits，經 softmax 可視為每手候選機率。","textPreview":"13,689 維 move label logits，經 softmax 可視為每手候選機率。","textChars":47,"textLines":1,"bbox":[508,406,266,72]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":2,"bbox":[860,350,310,142]}
+{"kind":"textbox","id":"sh/tsvu9kni","slide":2,"name":"text","text":"用途","textPreview":"用途","textChars":2,"textLines":1,"bbox":[882,368,266,34]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":2,"name":"text","text":"不是直接取代搜尋，而是提供候選手排序，幫 alpha-beta 更快找到好手。","textPreview":"不是直接取代搜尋，而是提供候選手排序，幫 alpha-beta 更快找到好手。","textChars":39,"textLines":1,"bbox":[882,406,266,72]}
+{"kind":"shape","id":"sh/bm58z25k","slide":2,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":2,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":2,"name":"text","text":"2/14","textPreview":"2/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/lnio49","slide":2,"text":"用公式建立問題：輸入棋盤局面，輸出所有可能走法的分數。\n這屬於 supervised learning 或 imitation learning，模型模仿棋譜中的實戰走法。"}
+{"kind":"slide","id":"sl/ikmb0p","slide":3,"title":"DATASET","textShapes":14}
+{"kind":"textbox","id":"sh/7adsji5s","slide":3,"name":"text","text":"DATASET","textPreview":"DATASET","textChars":7,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/wval87ed","slide":3,"name":"text","text":"最新資料集規模","textPreview":"最新資料集規模","textChars":7,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":3,"name":"text","text":"遠端主機以最新 MySQL 棋譜匯出 policy-only dataset，訓練後模型已同步回本地。","textPreview":"遠端主機以最新 MySQL 棋譜匯出 policy-only dataset，訓練後模型已同步回本地。","textChars":51,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":3,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":3,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/w7mp0bi9","slide":3,"bbox":[86,200,236,128]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":3,"name":"text","text":"4,855,173","textPreview":"4,855,173","textChars":9,"textLines":1,"bbox":[104,218,200,58]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":3,"name":"text","text":"總樣本數","textPreview":"總樣本數","textChars":4,"textLines":1,"bbox":[104,278,200,44]}
+{"kind":"shape","id":"sh/7u54zido","slide":3,"bbox":[374,200,236,128]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":3,"name":"text","text":"42,534","textPreview":"42,534","textChars":6,"textLines":1,"bbox":[392,218,200,58]}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":3,"name":"text","text":"來源棋局數","textPreview":"來源棋局數","textChars":5,"textLines":1,"bbox":[392,278,200,44]}
+{"kind":"shape","id":"sh/lwval87e","slide":3,"bbox":[662,200,236,128]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":3,"name":"text","text":"332 MB","textPreview":"332 MB","textChars":6,"textLines":1,"bbox":[680,218,200,58]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":3,"name":"text","text":"dataset 檔案大小","textPreview":"dataset 檔案大小","textChars":12,"textLines":1,"bbox":[680,278,200,44]}
+{"kind":"shape","id":"sh/ex0nuxc3","slide":3,"bbox":[950,200,236,128]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":3,"name":"text","text":"0","textPreview":"0","textChars":1,"textLines":1,"bbox":[968,218,200,58]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":3,"name":"text","text":"invalid rows","textPreview":"invalid rows","textChars":12,"textLines":1,"bbox":[968,278,200,44]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":3,"bbox":[152,400,976,104]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":3,"name":"text","text":"結果分布：TORYO 4,829,692｜DRAW 104｜SENNICHITE 25,377","textPreview":"結果分布：TORYO 4,829,692｜DRAW 104｜SENNICHITE 25,377","textChars":47,"textLines":1,"bbox":[176,430,928,42]}
+{"kind":"shape","id":"sh/ixczed8v","slide":3,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":3,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/032lszqt","slide":3,"name":"text","text":"3/14","textPreview":"3/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/ikmb0p","slide":3,"text":"四百八十五萬筆樣本代表每一盤棋被拆成多個局面與下一手配對。\ninvalid rows 是零，代表這次匯出的資料在合法性檢查上是乾淨的。"}
+{"kind":"slide","id":"sl/62v416","slide":4,"title":"PREPROCESSING","textShapes":18}
+{"kind":"textbox","id":"sh/1orytsvu","slide":4,"name":"text","text":"PREPROCESSING","textPreview":"PREPROCESSING","textChars":13,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":4,"name":"text","text":"資料前處理：從 MySQL 到 .npz","textPreview":"資料前處理：從 MySQL 到 .npz","textChars":20,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":4,"name":"text","text":"關鍵是把 positions 與 moves join 起來，得到「局面 → 下一手」訓練樣本。","textPreview":"關鍵是把 positions 與 moves join 起來，得到「局面 → 下一手」訓練樣本。","textChars":48,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/cfa9w3m9","slide":4,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/1032lszq","slide":4,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/u9knih4b","slide":4,"bbox":[72,220,178,112]}
+{"kind":"textbox","id":"sh/judg7ads","slide":4,"name":"text","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,232,44,24]}
+{"kind":"textbox","id":"sh/cj6tovah","slide":4,"name":"text","text":"MySQL\npositions+moves","textPreview":"MySQL | positions+moves","textChars":21,"textLines":2,"bbox":[88,262,146,54]}
+{"kind":"shape","id":"sh/54zidony","slide":4,"bbox":[252,264,30,24]}
+{"kind":"shape","id":"sh/t47y1kre","slide":4,"bbox":[268,220,178,112]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":4,"name":"text","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[284,232,44,24]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":4,"name":"text","text":"SFEN 還原\ncshogi.Board","textPreview":"SFEN 還原 | cshogi.Board","textChars":20,"textLines":2,"bbox":[284,262,146,54]}
+{"kind":"shape","id":"sh/idonyd0z","slide":4,"bbox":[448,264,30,24]}
+{"kind":"shape","id":"sh/tcj6tova","slide":4,"bbox":[464,220,178,112]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":4,"name":"text","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[480,232,44,24]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":4,"name":"text","text":"合法手\n驗證","textPreview":"合法手 | 驗證","textChars":6,"textLines":2,"bbox":[480,262,146,54]}
+{"kind":"shape","id":"sh/il0rqd4v","slide":4,"bbox":[644,264,30,24]}
+{"kind":"shape","id":"sh/tovahoza","slide":4,"bbox":[660,220,178,112]}
+{"kind":"textbox","id":"sh/032lszqt","slide":4,"name":"text","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[676,232,44,24]}
+{"kind":"textbox","id":"sh/czed8v6p","slide":4,"name":"text","text":"43×9×9\nstate tensor","textPreview":"43×9×9 | state tensor","textChars":19,"textLines":2,"bbox":[676,262,146,54]}
+{"kind":"shape","id":"sh/5kb6xkf6","slide":4,"bbox":[840,264,30,24]}
+{"kind":"shape","id":"sh/ytsvu9kn","slide":4,"bbox":[856,220,178,112]}
+{"kind":"textbox","id":"sh/neloj2t8","slide":4,"name":"text","text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[872,232,44,24]}
+{"kind":"textbox","id":"sh/cbulwval","slide":4,"name":"text","text":"move label\nencoding","textPreview":"move label | encoding","textChars":19,"textLines":2,"bbox":[872,262,146,54]}
+{"kind":"shape","id":"sh/5sneloj2","slide":4,"bbox":[1036,264,30,24]}
+{"kind":"shape","id":"sh/u54zidon","slide":4,"bbox":[1052,220,178,112]}
+{"kind":"textbox","id":"sh/nqxs72x4","slide":4,"name":"text","text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1068,232,44,24]}
+{"kind":"textbox","id":"sh/gbq1oryt","slide":4,"name":"text","text":".npz\n訓練資料","textPreview":".npz | 訓練資料","textChars":9,"textLines":2,"bbox":[1068,262,146,54]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":4,"name":"text","text":"資料切分採 game-level split，避免同一盤棋的相似局面同時出現在訓練集與測試集造成過度樂觀。","textPreview":"資料切分採 game-level split，避免同一盤棋的相似局面同時出現在訓練集與測試集造成過度樂觀。","textChars":53,"textLines":1,"bbox":[122,454,1036,78]}
+{"kind":"shape","id":"sh/v6psfil0","slide":4,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":4,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":4,"name":"text","text":"4/14","textPreview":"4/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/62v416","slide":4,"text":"positions 裡有 SFEN，moves 裡有下一手，所以 join 後可以形成訓練樣本。\ngame-level split 很重要，因為同一盤棋相鄰局面高度相似。"}
+{"kind":"slide","id":"sl/qidoqk","slide":5,"title":"FEATURE ENCODING","textShapes":17}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":5,"name":"text","text":"FEATURE ENCODING","textPreview":"FEATURE ENCODING","textChars":16,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":5,"name":"text","text":"局面特徵：43 × 9 × 9 planes","textPreview":"局面特徵：43 × 9 × 9 planes","textChars":22,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":5,"name":"text","text":"CNN 不能直接讀 SFEN 字串，所以要把棋盤轉成多通道張量。","textPreview":"CNN 不能直接讀 SFEN 字串，所以要把棋盤轉成多通道張量。","textChars":32,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/u9knih4b","slide":5,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/judg7ads","slide":5,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/cfa9w3m9","slide":5,"bbox":[92,224,188,150]}
+{"kind":"textbox","id":"sh/1032lszq","slide":5,"name":"text","text":"0–13","textPreview":"0–13","textChars":4,"textLines":1,"bbox":[104,246,164,44]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":5,"name":"text","text":"己方棋盤駒","textPreview":"己方棋盤駒","textChars":5,"textLines":1,"bbox":[106,304,160,44]}
+{"kind":"shape","id":"sh/nyd0z610","slide":5,"bbox":[314,224,188,150]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":5,"name":"text","text":"14–27","textPreview":"14–27","textChars":5,"textLines":1,"bbox":[326,246,164,44]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":5,"name":"text","text":"對方棋盤駒","textPreview":"對方棋盤駒","textChars":5,"textLines":1,"bbox":[328,304,160,44]}
+{"kind":"shape","id":"sh/d8bat47y","slide":5,"bbox":[536,224,188,150]}
+{"kind":"textbox","id":"sh/knih4byh","slide":5,"name":"text","text":"28–34","textPreview":"28–34","textChars":5,"textLines":1,"bbox":[548,246,164,44]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":5,"name":"text","text":"己方持駒數","textPreview":"己方持駒數","textChars":5,"textLines":1,"bbox":[550,304,160,44]}
+{"kind":"shape","id":"sh/29gr2p8n","slide":5,"bbox":[758,224,188,150]}
+{"kind":"textbox","id":"sh/d0z61032","slide":5,"name":"text","text":"35–41","textPreview":"35–41","textChars":5,"textLines":1,"bbox":[770,246,164,44]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":5,"name":"text","text":"對方持駒數","textPreview":"對方持駒數","textChars":5,"textLines":1,"bbox":[772,304,160,44]}
+{"kind":"shape","id":"sh/vixczed8","slide":5,"bbox":[980,224,188,150]}
+{"kind":"textbox","id":"sh/2x4nap4r","slide":5,"name":"text","text":"42","textPreview":"42","textChars":2,"textLines":1,"bbox":[992,246,164,44]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":5,"name":"text","text":"行棋方 plane","textPreview":"行棋方 plane","textChars":9,"textLines":1,"bbox":[994,304,160,44]}
+{"kind":"shape","id":"sh/3itgfmlk","slide":5,"bbox":[160,442,960,112]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":5,"name":"text","text":"行棋方視角旋轉","textPreview":"行棋方視角旋轉","textChars":7,"textLines":1,"bbox":[182,460,916,34]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":5,"name":"text","text":"當輪到後手時，局面會旋轉 180 度，讓模型永遠從「自己要下」的角度學習。","textPreview":"當輪到後手時，局面會旋轉 180 度，讓模型永遠從「自己要下」的角度學習。","textChars":37,"textLines":1,"bbox":[182,498,916,42]}
+{"kind":"shape","id":"sh/e9cvixcz","slide":5,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":5,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":5,"name":"text","text":"5/14","textPreview":"5/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/qidoqk","slide":5,"text":"43 個 plane 把不同種類資訊分開，例如自己的駒、對方的駒、雙方持駒和輪到誰。\n旋轉到行棋方視角可以減少模型要學的對稱性。"}
+{"kind":"slide","id":"sl/m88441","slide":6,"title":"LABEL DESIGN","textShapes":10}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":6,"name":"text","text":"LABEL DESIGN","textPreview":"LABEL DESIGN","textChars":12,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":6,"name":"text","text":"走法標籤：13,689 種可能輸出","textPreview":"走法標籤：13,689 種可能輸出","textChars":17,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":6,"name":"text","text":"Policy head 的每一個 logit 對應一種可能走法，包含移動、升變與打入。","textPreview":"Policy head 的每一個 logit 對應一種可能走法，包含移動、升變與打入。","textChars":43,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/1w7mp0bi","slide":6,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/8bat47y1","slide":6,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":6,"name":"text","text":"81 × 81 × 2  +  7 × 81  =  13,689","textPreview":"81 × 81 × 2  +  7 × 81  =  13,689","textChars":33,"textLines":1,"bbox":[94,214,1090,86]}
+{"kind":"shape","id":"sh/q5o7qpg3","slide":6,"bbox":[172,365,390,140]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":6,"name":"text","text":"盤上移動","textPreview":"盤上移動","textChars":4,"textLines":1,"bbox":[194,383,346,34]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":6,"name":"text","text":"81 個起點 × 81 個終點 × 是否升變，涵蓋大部分一般走法。","textPreview":"81 個起點 × 81 個終點 × 是否升變，涵蓋大部分一般走法。","textChars":33,"textLines":1,"bbox":[194,421,346,70]}
+{"kind":"shape","id":"sh/a1gvy90j","slide":6,"bbox":[718,365,390,140]}
+{"kind":"textbox","id":"sh/zidonyd0","slide":6,"name":"text","text":"持駒打入","textPreview":"持駒打入","textChars":4,"textLines":1,"bbox":[740,383,346,34]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":6,"name":"text","text":"7 種可打入駒 × 81 個目標格，涵蓋將棋特有的 drop move。","textPreview":"7 種可打入駒 × 81 個目標格，涵蓋將棋特有的 drop move。","textChars":36,"textLines":1,"bbox":[740,421,346,70]}
+{"kind":"shape","id":"sh/hoza1gvy","slide":6,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":6,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/za1gvy90","slide":6,"name":"text","text":"6/14","textPreview":"6/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/m88441","slide":6,"text":"將棋有持駒打入，因此輸出空間不只盤上移動。\n13,689 是固定維度，模型每次輸出所有 label 的分數，再只取合法走法排名。"}
+{"kind":"slide","id":"sl/1d98p3","slide":7,"title":"POLICY ONLY","textShapes":12}
+{"kind":"textbox","id":"sh/9knih4by","slide":7,"name":"text","text":"POLICY ONLY","textPreview":"POLICY ONLY","textChars":11,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":7,"name":"text","text":"為什麼拿掉 value head？","textPreview":"為什麼拿掉 value head？","textChars":17,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/re1w7mp0","slide":7,"name":"text","text":"原本曾有 policy/value 雙頭模型，後來改成 policy-only，避免不可靠的局面價值干擾訓練。","textPreview":"原本曾有 policy/value 雙頭模型，後來改成 policy-only，避免不可靠的局面價值干擾訓練。","textChars":55,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/kb6xkf6d","slide":7,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/9w3m94fu","slide":7,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/25kb6xkf","slide":7,"bbox":[72,198,350,152]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":7,"name":"text","text":"Value label 太粗","textPreview":"Value label 太粗","textChars":14,"textLines":1,"bbox":[94,216,306,34]}
+{"kind":"textbox","id":"sh/kjm1cfa9","slide":7,"name":"text","text":"棋局勝負只有最後結果，拿來標記中盤每個局面，會把很複雜的局面判斷壓成 -1/0/1。","textPreview":"棋局勝負只有最後結果，拿來標記中盤每個局面，會把很複雜的局面判斷壓成 -1/0/1。","textChars":42,"textLines":1,"bbox":[94,254,306,82]}
+{"kind":"shape","id":"sh/94fu18jq","slide":7,"bbox":[465,198,350,152]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":7,"name":"text","text":"投了與和棋訊號不穩","textPreview":"投了與和棋訊號不穩","textChars":9,"textLines":1,"bbox":[487,216,306,34]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":7,"name":"text","text":"TORYO、DRAW、SENNICHITE 代表的是棋局結果，不等於每個局面的精確勝率。","textPreview":"TORYO、DRAW、SENNICHITE 代表的是棋局結果，不等於每個局面的精確勝率。","textChars":44,"textLines":1,"bbox":[487,254,306,82]}
+{"kind":"shape","id":"sh/jm1cfa9w","slide":7,"bbox":[858,198,350,152]}
+{"kind":"textbox","id":"sh/u18jqh0f","slide":7,"name":"text","text":"實際用途是排序","textPreview":"實際用途是排序","textChars":7,"textLines":1,"bbox":[880,216,306,34]}
+{"kind":"textbox","id":"sh/1032lszq","slide":7,"name":"text","text":"目前 AI 主要靠 alpha-beta 評估局面，神經網路最適合提供候選手排序與 prior。","textPreview":"目前 AI 主要靠 alpha-beta 評估局面，神經網路最適合提供候選手排序與 prior。","textChars":48,"textLines":1,"bbox":[880,254,306,82]}
+{"kind":"shape","id":"sh/cfa9w3m9","slide":7,"bbox":[190,428,900,100]}
+{"kind":"textbox","id":"sh/judg7ads","slide":7,"name":"text","text":"最後決策：刪除 value head 與 root value\nbonus，模型只訓練下一手 policy。","textPreview":"最後決策：刪除 value head 與 root value | bonus，模型只訓練下一手 policy。","textChars":54,"textLines":2,"bbox":[222,454,836,56]}
+{"kind":"shape","id":"sh/u9knih4b","slide":7,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/54zidony","slide":7,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/cj6tovah","slide":7,"name":"text","text":"7/14","textPreview":"7/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/1d98p3","slide":7,"text":"value head 看似可以估局面好壞，但資料標籤其實不夠精準。\n最後選 policy-only：讓模型專心學下一手，而局面優劣交給搜尋與評估函數。"}
+{"kind":"slide","id":"sl/kt50qd","slide":8,"title":"MODEL ARCHITECTURE","textShapes":19}
+{"kind":"textbox","id":"sh/fyxobm58","slide":8,"name":"text","text":"MODEL ARCHITECTURE","textPreview":"MODEL ARCHITECTURE","textChars":18,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":8,"name":"text","text":"Policy-only CNN 架構","textPreview":"Policy-only CNN 架構","textChars":18,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":8,"name":"text","text":"小型 CNN 將 43-channel 棋盤特徵壓成 13,689 維 move logits。","textPreview":"小型 CNN 將 43-channel 棋盤特徵壓成 13,689 維 move logits。","textChars":48,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/qpg3ex0n","slide":8,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/fa9w3m94","slide":8,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/8v6psfil","slide":8,"bbox":[72,218,178,112]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":8,"name":"text","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,230,44,24]}
+{"kind":"textbox","id":"sh/qtcj6tov","slide":8,"name":"text","text":"Input\n43×9×9","textPreview":"Input | 43×9×9","textChars":12,"textLines":2,"bbox":[88,260,146,54]}
+{"kind":"shape","id":"sh/je9cvixc","slide":8,"bbox":[252,262,30,24]}
+{"kind":"shape","id":"sh/nih4byhg","slide":8,"bbox":[268,218,178,112]}
+{"kind":"textbox","id":"sh/yxobm58z","slide":8,"name":"text","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[284,230,44,24]}
+{"kind":"textbox","id":"sh/5o7qpg3e","slide":8,"name":"text","text":"Conv 64\nReLU","textPreview":"Conv 64 | ReLU","textChars":12,"textLines":2,"bbox":[284,260,146,54]}
+{"kind":"shape","id":"sh/g3ex0nux","slide":8,"bbox":[448,262,30,24]}
+{"kind":"shape","id":"sh/r65wjudg","slide":8,"bbox":[464,218,178,112]}
+{"kind":"textbox","id":"sh/ylc7u54z","slide":8,"name":"text","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[480,230,44,24]}
+{"kind":"textbox","id":"sh/9cvixcze","slide":8,"name":"text","text":"Conv 64\nReLU","textPreview":"Conv 64 | ReLU","textChars":12,"textLines":2,"bbox":[480,260,146,54]}
+{"kind":"shape","id":"sh/gr2p8nqx","slide":8,"bbox":[644,262,30,24]}
+{"kind":"shape","id":"sh/rytsvu9k","slide":8,"bbox":[660,218,178,112]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":8,"name":"text","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[676,230,44,24]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":8,"name":"text","text":"Conv 32\nReLU","textPreview":"Conv 32 | ReLU","textChars":12,"textLines":2,"bbox":[676,260,146,54]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":8,"bbox":[840,262,30,24]}
+{"kind":"shape","id":"sh/sfil0rqd","slide":8,"bbox":[856,218,178,112]}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":8,"name":"text","text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[872,230,44,24]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":8,"name":"text","text":"Linear 512\nReLU","textPreview":"Linear 512 | ReLU","textChars":15,"textLines":2,"bbox":[872,260,146,54]}
+{"kind":"shape","id":"sh/z61032ls","slide":8,"bbox":[1036,262,30,24]}
+{"kind":"shape","id":"sh/orytsvu9","slide":8,"bbox":[1052,218,178,112]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":8,"name":"text","text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1068,230,44,24]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":8,"name":"text","text":"Output\n13,689","textPreview":"Output | 13,689","textChars":13,"textLines":2,"bbox":[1068,260,146,54]}
+{"kind":"shape","id":"sh/zed8v6ps","slide":8,"bbox":[150,430,980,112]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":8,"name":"text","text":"設計取捨","textPreview":"設計取捨","textChars":4,"textLines":1,"bbox":[172,448,936,34]}
+{"kind":"textbox","id":"sh/wval87ed","slide":8,"name":"text","text":"模型容量不追求最大，而是能在 API 與搜尋流程中快速推論，提供候選手排序。","textPreview":"模型容量不追求最大，而是能在 API 與搜尋流程中快速推論，提供候選手排序。","textChars":38,"textLines":1,"bbox":[172,486,936,42]}
+{"kind":"shape","id":"sh/7adsji5s","slide":8,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/epkzupwb","slide":8,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":8,"name":"text","text":"8/14","textPreview":"8/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/kt50qd","slide":8,"text":"三層卷積擷取棋盤空間特徵，flatten 後接全連接層，最後輸出所有 move label 分數。\n因為它要被放進搜尋流程，所以速度也是設計考量。"}
+{"kind":"slide","id":"sl/oyd3xa","slide":9,"title":"TRAINING","textShapes":12}
+{"kind":"textbox","id":"sh/cj6tovah","slide":9,"name":"text","text":"TRAINING","textPreview":"TRAINING","textChars":8,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":9,"name":"text","text":"訓練方法：CrossEntropy + AdamW","textPreview":"訓練方法：CrossEntropy + AdamW","textChars":25,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":9,"name":"text","text":"Policy-only 訓練的目標是讓實戰下一手在所有 label 中得到最高機率。","textPreview":"Policy-only 訓練的目標是讓實戰下一手在所有 label 中得到最高機率。","textChars":42,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/5gbq1ory","slide":9,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/cvixczed","slide":9,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/nap4r65w","slide":9,"bbox":[90,216,335,154]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":9,"name":"text","text":"Loss","textPreview":"Loss","textChars":4,"textLines":1,"bbox":[112,234,291,34]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":9,"name":"text","text":"CrossEntropyLoss：把真實下一手當 target，懲罰模型沒有把該手排高。","textPreview":"CrossEntropyLoss：把真實下一手當 target，懲罰模型沒有把該手排高。","textChars":44,"textLines":1,"bbox":[112,272,291,84]}
+{"kind":"shape","id":"sh/c7u54zid","slide":9,"bbox":[472,216,335,154]}
+{"kind":"textbox","id":"sh/6xkf6dcb","slide":9,"name":"text","text":"Optimizer","textPreview":"Optimizer","textChars":9,"textLines":1,"bbox":[494,234,291,34]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":9,"name":"text","text":"AdamW：自適應梯度加上 weight decay，降低過擬合風險。","textPreview":"AdamW：自適應梯度加上 weight decay，降低過擬合風險。","textChars":35,"textLines":1,"bbox":[494,272,291,84]}
+{"kind":"shape","id":"sh/oza1gvy9","slide":9,"bbox":[854,216,335,154]}
+{"kind":"textbox","id":"sh/hk3q5o7q","slide":9,"name":"text","text":"Scheduler","textPreview":"Scheduler","textChars":9,"textLines":1,"bbox":[876,234,291,34]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":9,"name":"text","text":"CosineAnnealingLR：學習率逐步下降，讓後期訓練更穩定。","textPreview":"CosineAnnealingLR：學習率逐步下降，讓後期訓練更穩定。","textChars":35,"textLines":1,"bbox":[876,272,291,84]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":9,"name":"text","text":"資料切分：Train 3,882,230｜Validation 487,292｜Test 485,651","textPreview":"資料切分：Train 3,882,230｜Validation 487,292｜Test 485,651","textChars":52,"textLines":1,"bbox":[112,448,1056,56]}
+{"kind":"shape","id":"sh/obm58z25","slide":9,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/hwfyxobm","slide":9,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":9,"name":"text","text":"9/14","textPreview":"9/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/oyd3xa","slide":9,"text":"Cross entropy 是分類問題常用 loss，這裡就是多類別分類：下一手是哪一個 label。\nAdamW 和 cosine scheduler 是常見的深度學習訓練組合。"}
+{"kind":"slide","id":"sl/1a4n7u","slide":10,"title":"TRAINING RESULT","textShapes":13}
+{"kind":"textbox","id":"sh/2t83itgf","slide":10,"name":"text","text":"TRAINING RESULT","textPreview":"TRAINING RESULT","textChars":15,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/9knih4by","slide":10,"name":"text","text":"最新訓練結果與模型同步","textPreview":"最新訓練結果與模型同步","textChars":11,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/kzupwb2h","slide":10,"name":"text","text":"遠端 policy-only 訓練完成後，模型與驗證結果已同步回本地 models/policy_model.pt。","textPreview":"遠端 policy-only 訓練完成後，模型與驗證結果已同步回本地 models/policy_model.pt。","textChars":58,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/rqd4vmtw","slide":10,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/25kb6xkf","slide":10,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/9w3m94fu","slide":10,"bbox":[94,190,230,116]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":10,"name":"text","text":"2.2751","textPreview":"2.2751","textChars":6,"textLines":1,"bbox":[112,208,194,58]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":10,"name":"text","text":"Test policy loss","textPreview":"Test policy loss","textChars":16,"textLines":1,"bbox":[112,268,194,44]}
+{"kind":"shape","id":"sh/2hwfyxob","slide":10,"bbox":[370,190,230,116]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":10,"name":"text","text":"41.10%","textPreview":"41.10%","textChars":6,"textLines":1,"bbox":[388,208,194,58]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":10,"name":"text","text":"Top-1 accuracy","textPreview":"Top-1 accuracy","textChars":14,"textLines":1,"bbox":[388,268,194,44]}
+{"kind":"shape","id":"sh/ulwval87","slide":10,"bbox":[646,190,230,116]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":10,"name":"text","text":"65.24%","textPreview":"65.24%","textChars":6,"textLines":1,"bbox":[664,208,194,58]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":10,"name":"text","text":"Top-3 accuracy","textPreview":"Top-3 accuracy","textChars":14,"textLines":1,"bbox":[664,268,194,44]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":10,"bbox":[922,190,230,116]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":10,"name":"text","text":"74.49%","textPreview":"74.49%","textChars":6,"textLines":1,"bbox":[940,208,194,58]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":10,"name":"text","text":"Top-5 accuracy","textPreview":"Top-5 accuracy","textChars":14,"textLines":1,"bbox":[940,268,194,44]}
+{"kind":"shape","id":"sh/1w7mp0bi","slide":10,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":10,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":10,"name":"text","text":"10/14","textPreview":"10/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"chart","id":"ch/8jqh0fep","slide":10,"name":"","chartType":"bar","bbox":[190,370,900,190]}
+{"kind":"notes","id":"nt/1a4n7u","slide":10,"text":"Top-1 代表模型第一推薦就命中實戰走法的比例，Top-5 代表前五個候選包含實戰走法。\n在將棋分支很多的問題上，Top-5 超過七成代表它很適合拿來做候選手排序。"}
+{"kind":"slide","id":"sl/wi1udw","slide":11,"title":"INFERENCE","textShapes":19}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":11,"name":"text","text":"INFERENCE","textPreview":"INFERENCE","textChars":9,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":11,"name":"text","text":"推論時如何使用 policy model？","textPreview":"推論時如何使用 policy model？","textChars":21,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":11,"name":"text","text":"模型不直接決定勝負，而是把合法手依機率排序，交給搜尋演算法深入檢查。","textPreview":"模型不直接決定勝負，而是把合法手依機率排序，交給搜尋演算法深入檢查。","textChars":34,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/2t83itgf","slide":11,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/re1w7mp0","slide":11,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":11,"bbox":[72,220,178,112]}
+{"kind":"textbox","id":"sh/9knih4by","slide":11,"name":"text","text":"01","textPreview":"01","textChars":2,"textLines":1,"bbox":[88,232,44,24]}
+{"kind":"textbox","id":"sh/2p8nqxs7","slide":11,"name":"text","text":"目前棋盤\nBoard","textPreview":"目前棋盤 | Board","textChars":10,"textLines":2,"bbox":[88,262,146,54]}
+{"kind":"shape","id":"sh/ra5gbq1o","slide":11,"bbox":[252,264,30,24]}
+{"kind":"shape","id":"sh/3m94fu18","slide":11,"bbox":[268,220,178,112]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":11,"name":"text","text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[284,232,44,24]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":11,"name":"text","text":"轉成\n43 planes","textPreview":"轉成 | 43 planes","textChars":12,"textLines":2,"bbox":[284,262,146,54]}
+{"kind":"shape","id":"sh/s72x4nap","slide":11,"bbox":[448,264,30,24]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":11,"bbox":[464,220,178,112]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":11,"name":"text","text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[480,232,44,24]}
+{"kind":"textbox","id":"sh/h4byhgn2","slide":11,"name":"text","text":"PolicyNet\n輸出 logits","textPreview":"PolicyNet | 輸出 logits","textChars":19,"textLines":2,"bbox":[480,262,146,54]}
+{"kind":"shape","id":"sh/sji5snel","slide":11,"bbox":[644,264,30,24]}
+{"kind":"shape","id":"sh/za1gvy90","slide":11,"bbox":[660,220,178,112]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":11,"name":"text","text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[676,232,44,24]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":11,"name":"text","text":"過濾\n合法手","textPreview":"過濾 | 合法手","textChars":6,"textLines":2,"bbox":[676,262,146,54]}
+{"kind":"shape","id":"sh/rytsvu9k","slide":11,"bbox":[840,264,30,24]}
+{"kind":"shape","id":"sh/gfmlkjm1","slide":11,"bbox":[856,220,178,112]}
+{"kind":"textbox","id":"sh/90je9cvi","slide":11,"name":"text","text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[872,232,44,24]}
+{"kind":"textbox","id":"sh/y1kre1w7","slide":11,"name":"text","text":"排序\n候選手","textPreview":"排序 | 候選手","textChars":6,"textLines":2,"bbox":[872,262,146,54]}
+{"kind":"shape","id":"sh/rmhk3q5o","slide":11,"bbox":[1036,264,30,24]}
+{"kind":"shape","id":"sh/g7adsji5","slide":11,"bbox":[1052,220,178,112]}
+{"kind":"textbox","id":"sh/9s36hcrm","slide":11,"name":"text","text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1068,232,44,24]}
+{"kind":"textbox","id":"sh/yxobm58z","slide":11,"name":"text","text":"Alpha-beta\n優先搜尋","textPreview":"Alpha-beta | 優先搜尋","textChars":15,"textLines":2,"bbox":[1068,262,146,54]}
+{"kind":"shape","id":"sh/nih4byhg","slide":11,"bbox":[156,438,968,112]}
+{"kind":"textbox","id":"sh/dg7adsji","slide":11,"name":"text","text":"實戰意義","textPreview":"實戰意義","textChars":4,"textLines":1,"bbox":[178,456,924,34]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":11,"name":"text","text":"好的排序讓 alpha-beta 更早找到好手，剪枝更有效，有限時間內能搜尋更有價值的分支。","textPreview":"好的排序讓 alpha-beta 更早找到好手，剪枝更有效，有限時間內能搜尋更有價值的分支。","textChars":46,"textLines":1,"bbox":[178,494,924,42]}
+{"kind":"shape","id":"sh/vahoza1g","slide":11,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/6tovahoz","slide":11,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/d8v6psfi","slide":11,"name":"text","text":"11/14","textPreview":"11/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/wi1udw","slide":11,"text":"policy model 的任務是排序，不是判斷最終勝負。\n如果好手排在前面，alpha-beta 可以更快更新 alpha beta 邊界，剪掉更多不需要看的分支。"}
+{"kind":"slide","id":"sl/g7zqo1","slide":12,"title":"ALPHA BETA","textShapes":13}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":12,"name":"text","text":"ALPHA BETA","textPreview":"ALPHA BETA","textChars":10,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":12,"name":"text","text":"Alpha-beta 搜尋：少看但不漏掉最佳解","textPreview":"Alpha-beta 搜尋：少看但不漏掉最佳解","textChars":23,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/lwval87e","slide":12,"name":"text","text":"Alpha-beta 是 minimax 的剪枝版本，利用上下界避免搜尋不可能影響結果的分支。","textPreview":"Alpha-beta 是 minimax 的剪枝版本，利用上下界避免搜尋不可能影響結果的分支。","textChars":47,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/ex0nuxc3","slide":12,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/3itgfmlk","slide":12,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":12,"name":"text","text":"α：目前我方至少能保證的分數\nβ：對手目前最多願意接受的分數","textPreview":"α：目前我方至少能保證的分數 | β：對手目前最多願意接受的分數","textChars":30,"textLines":2,"bbox":[118,205,500,130]}
+{"kind":"shape","id":"sh/loj2t83i","slide":12,"bbox":[704,188,420,180]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":12,"name":"text","text":"當 α ≥ β 時\n後面的分支不必再看","textPreview":"當 α ≥ β 時 | 後面的分支不必再看","textChars":19,"textLines":2,"bbox":[744,230,340,94]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":12,"bbox":[122,430,310,128]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":12,"name":"text","text":"Negamax 寫法","textPreview":"Negamax 寫法","textChars":10,"textLines":1,"bbox":[144,448,266,34]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":12,"name":"text","text":"雙方分數互為相反數，可把 minimax 寫成同一個遞迴函式。","textPreview":"雙方分數互為相反數，可把 minimax 寫成同一個遞迴函式。","textChars":31,"textLines":1,"bbox":[144,486,266,58]}
+{"kind":"shape","id":"sh/loj2t83i","slide":12,"bbox":[486,430,310,128]}
+{"kind":"textbox","id":"sh/w3m94fu1","slide":12,"name":"text","text":"剪枝效果","textPreview":"剪枝效果","textChars":4,"textLines":1,"bbox":[508,448,266,34]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":12,"name":"text","text":"排序越好，越早找到強手，越容易剪掉不必要分支。","textPreview":"排序越好，越早找到強手，越容易剪掉不必要分支。","textChars":23,"textLines":1,"bbox":[508,486,266,58]}
+{"kind":"shape","id":"sh/e9cvixcz","slide":12,"bbox":[850,430,310,128]}
+{"kind":"textbox","id":"sh/lwval87e","slide":12,"name":"text","text":"仍需評估函數","textPreview":"仍需評估函數","textChars":6,"textLines":1,"bbox":[872,448,266,34]}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":12,"name":"text","text":"到達深度上限時，用評估函數估局面好壞。","textPreview":"到達深度上限時，用評估函數估局面好壞。","textChars":19,"textLines":1,"bbox":[872,486,266,58]}
+{"kind":"shape","id":"sh/32lszqtc","slide":12,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":12,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":12,"name":"text","text":"12/14","textPreview":"12/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/g7zqo1","slide":12,"text":"minimax 會假設雙方都下最好，逐層展開所有可能。\nalpha-beta 的技巧是：如果某個分支已經不可能比目前選擇更好，就不要浪費時間看它。"}
+{"kind":"slide","id":"sl/hj8y7p","slide":13,"title":"SEARCH ENGINEERING","textShapes":15}
+{"kind":"textbox","id":"sh/8bat47y1","slide":13,"name":"text","text":"SEARCH ENGINEERING","textPreview":"SEARCH ENGINEERING","textChars":18,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":13,"name":"text","text":"shogiAI 搜尋技術組合","textPreview":"shogiAI 搜尋技術組合","textChars":14,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/q5o7qpg3","slide":13,"name":"text","text":"實際 AI 不只是一個 alpha-beta，還需要多個工程技巧讓搜尋更快、更穩。","textPreview":"實際 AI 不只是一個 alpha-beta，還需要多個工程技巧讓搜尋更快、更穩。","textChars":41,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/18jqh0fe","slide":13,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/8nqxs72x","slide":13,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/j2t83itg","slide":13,"bbox":[72,196,350,142]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":13,"name":"text","text":"Quiescence Search","textPreview":"Quiescence Search","textChars":17,"textLines":1,"bbox":[94,214,306,34]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":13,"name":"text","text":"在吃子、王手等劇烈局面繼續延伸，避免停在戰術爆點。","textPreview":"在吃子、王手等劇烈局面繼續延伸，避免停在戰術爆點。","textChars":25,"textLines":1,"bbox":[94,252,306,72]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":13,"bbox":[465,196,350,142]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":13,"name":"text","text":"Transposition Table","textPreview":"Transposition Table","textChars":19,"textLines":1,"bbox":[487,214,306,34]}
+{"kind":"textbox","id":"sh/re1w7mp0","slide":13,"name":"text","text":"同一局面可能由不同手順到達，用 hash 快取搜尋結果。","textPreview":"同一局面可能由不同手順到達，用 hash 快取搜尋結果。","textChars":28,"textLines":1,"bbox":[487,252,306,72]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":13,"bbox":[858,196,350,142]}
+{"kind":"textbox","id":"sh/9knih4by","slide":13,"name":"text","text":"Killer / History","textPreview":"Killer / History","textChars":16,"textLines":1,"bbox":[880,214,306,34]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":13,"name":"text","text":"記錄曾造成剪枝的好手，提高相似節點搜尋優先權。","textPreview":"記錄曾造成剪枝的好手，提高相似節點搜尋優先權。","textChars":23,"textLines":1,"bbox":[880,252,306,72]}
+{"kind":"shape","id":"sh/rqd4vmtw","slide":13,"bbox":[265,400,350,142]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":13,"name":"text","text":"LMR","textPreview":"LMR","textChars":3,"textLines":1,"bbox":[287,418,306,34]}
+{"kind":"textbox","id":"sh/9w3m94fu","slide":13,"name":"text","text":"排序靠後且較不重要的分支，先用較淺深度搜尋。","textPreview":"排序靠後且較不重要的分支，先用較淺深度搜尋。","textChars":22,"textLines":1,"bbox":[287,456,306,72]}
+{"kind":"shape","id":"sh/2hwfyxob","slide":13,"bbox":[665,400,350,142]}
+{"kind":"textbox","id":"sh/r2p8nqxs","slide":13,"name":"text","text":"Policy Ordering","textPreview":"Policy Ordering","textChars":15,"textLines":1,"bbox":[687,418,306,34]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":13,"name":"text","text":"神經網路提供候選手 prior，讓搜尋優先檢查更像高手會下的手。","textPreview":"神經網路提供候選手 prior，讓搜尋優先檢查更像高手會下的手。","textChars":32,"textLines":1,"bbox":[687,456,306,72]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":13,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":13,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":13,"name":"text","text":"13/14","textPreview":"13/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/hj8y7p","slide":13,"text":"quiescence 解決搜尋停在戰術交換中途的問題。\ntransposition table 像搜尋快取。killer、history、LMR 和 policy ordering 都是在改善走法排序與搜尋效率。"}
+{"kind":"slide","id":"sl/j0s7za","slide":14,"title":"SUMMARY","textShapes":13}
+{"kind":"textbox","id":"sh/1032lszq","slide":14,"name":"text","text":"SUMMARY","textPreview":"SUMMARY","textChars":7,"textLines":1,"bbox":[64,42,720,24]}
+{"kind":"textbox","id":"sh/u9knih4b","slide":14,"name":"text","text":"結論：資料、模型與搜尋互相補強","textPreview":"結論：資料、模型與搜尋互相補強","textChars":15,"textLines":1,"bbox":[64,72,920,62]}
+{"kind":"textbox","id":"sh/judg7ads","slide":14,"name":"text","text":"policy-only 模型讓搜尋更聰明，alpha-beta 搜尋讓模型推薦更可靠。","textPreview":"policy-only 模型讓搜尋更聰明，alpha-beta 搜尋讓模型推薦更可靠。","textChars":43,"textLines":1,"bbox":[64,128,980,42]}
+{"kind":"shape","id":"sh/c7u54zid","slide":14,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/1orytsvu","slide":14,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":14,"bbox":[90,214,335,174]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":14,"name":"text","text":"資料面","textPreview":"資料面","textChars":3,"textLines":1,"bbox":[112,232,291,34]}
+{"kind":"textbox","id":"sh/cvixczed","slide":14,"name":"text","text":"MySQL 棋譜被轉成 4,855,173 筆 Position → Move 樣本，形成可重複訓練的資料集。","textPreview":"MySQL 棋譜被轉成 4,855,173 筆 Position → Move 樣本，形成可重複訓練的資料集。","textChars":55,"textLines":1,"bbox":[112,270,291,104]}
+{"kind":"shape","id":"sh/5gbq1ory","slide":14,"bbox":[472,214,335,174]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":14,"name":"text","text":"模型面","textPreview":"模型面","textChars":3,"textLines":1,"bbox":[494,232,291,34]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":14,"name":"text","text":"移除 value head 後，模型專注學習下一手 policy，Top-5 accuracy 達 74.49%。","textPreview":"移除 value head 後，模型專注學習下一手 policy，Top-5 accuracy 達 74.49%。","textChars":57,"textLines":1,"bbox":[494,270,291,104]}
+{"kind":"shape","id":"sh/j2t83itg","slide":14,"bbox":[854,214,335,174]}
+{"kind":"textbox","id":"sh/qh0fepkz","slide":14,"name":"text","text":"應用面","textPreview":"應用面","textChars":3,"textLines":1,"bbox":[876,232,291,34]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":14,"name":"text","text":"AI 對弈以 opening book、policy ordering 與 alpha-beta 搜尋共同產生下一手。","textPreview":"AI 對弈以 opening book、policy ordering 與 alpha-beta 搜尋共同產生下一手。","textChars":59,"textLines":1,"bbox":[876,270,291,104]}
+{"kind":"textbox","id":"sh/8bat47y1","slide":14,"name":"text","text":"未來方向：更大模型、更多資料品質標記、模型互打評估、搜尋參數自動調整。","textPreview":"未來方向：更大模型、更多資料品質標記、模型互打評估、搜尋參數自動調整。","textChars":35,"textLines":1,"bbox":[112,466,1056,58]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":14,"name":"text","text":"Q&A","textPreview":"Q&A","textChars":3,"textLines":1,"bbox":[0,548,1280,62]}
+{"kind":"shape","id":"sh/q5o7qpg3","slide":14,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":14,"name":"text","text":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textPreview":"shogiAI 數據科學｜Policy-only、資料前處理、訓練結果與 Alpha-beta 搜尋","textChars":50,"textLines":1,"bbox":[64,680,930,24]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":14,"name":"text","text":"14/14","textPreview":"14/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/j0s7za","slide":14,"text":"最後用三面總結：資料、模型、應用。\n強調這不是單純訓練一個模型，而是把資料庫、神經網路、搜尋演算法整合成完整 AI 系統。"}

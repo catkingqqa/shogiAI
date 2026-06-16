@@ -1,6 +1,6 @@
 \documentclass[12pt,a4paper,fontset=none]{ctexart}
 
-\usepackage[a4paper,margin=2.4cm]{geometry}
+\usepackage[a4paper,margin=2.35cm]{geometry}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{booktabs}
@@ -31,104 +31,119 @@
 \setlist[itemize]{leftmargin=2em}
 \setlist[enumerate]{leftmargin=2em}
 
-\title{\textbf{shogiAI 數據科學報告}\\
-\large 資料前處理、訓練邏輯、模型成果與 AI 設計}
+\title{\textbf{shogiAI 數據科學理論與應用報告}\\
+\large Policy-only 將棋模型、資料前處理與 Alpha-beta 搜尋整合}
 \author{shogiAI 專案}
-\date{2026 年 5 月}
+\date{2026 年 6 月}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-本報告說明 shogiAI 專案的數據科學流程。專案以 CSA 將棋棋譜作為資料來源，經過解析、合法性驗證、局面編碼、走法標籤化、勝負標籤建立與資料集切分後，訓練一個 policy/value 卷積神經網路。模型輸入為 $43 \times 9 \times 9$ 的棋盤張量，輸出包含 13,689 維 policy logits 與 $[-1,1]$ 的 value 預測。訓練後模型再與 alpha-beta 搜尋、啟發式評估、開局庫、走法排序、transposition table 等模組結合，形成可實際下棋與可評估模型強度的 AI 系統。
+本報告說明 shogiAI 專案的數據科學流程與 AI 應用。專案以大量 CSA 將棋棋譜作為資料來源，從 MySQL 匯出「局面、下一手」訓練樣本，將局面編碼成 $43 \times 9 \times 9$ 張量，將走法編碼成 13,689 類 move label，訓練 policy-only 卷積神經網路。新版模型移除 value head，專注於預測實戰下一手與排序合法候選手；局面計算則交由 alpha-beta 搜尋、quiescence search、transposition table、killer move、history heuristic 與手工評估函數完成。最新遠端訓練使用 4,855,173 筆樣本，測試 Top-1 accuracy 為 41.10\%，Top-5 accuracy 為 74.49\%。
 \end{abstract}
 
 \tableofcontents
 \newpage
 
-\section{資料科學目標}
+\section{數據科學目標}
 
-本專案的資料科學目標是讓 AI 從人類實戰棋譜中學習兩件事：
-
-\begin{enumerate}
-  \item \textbf{Policy：} 在某個局面下，實戰高手下一步通常會怎麼走。
-  \item \textbf{Value：} 在某個局面下，輪到行棋的一方最後贏棋的可能性。
-\end{enumerate}
+shogiAI 的數據科學目標是讓模型從人類實戰棋譜中學會「某個局面下，下一手最可能怎麼走」。新版模型採用 policy-only 設計，也就是模型只輸出走法機率，不再輸出局面勝率或 value。
 
 模型可表示為：
 
 \[
-f_\theta(s) = (p, v)
+f_\theta(s) = p
 \]
 
-其中 $s$ 是局面，$p$ 是所有可能走法的分數，$v$ 是局面勝負價值。Policy 用於排序候選手，Value 用於輔助局面評估。這兩者再與傳統 alpha-beta 搜尋結合，形成混合式 AI。
+其中 $s$ 是目前局面，$p$ 是長度 13,689 的 policy logits。每一個 logit 對應一種可能走法。推論時，系統只取目前局面的合法手，讀取這些合法手對應的 policy 分數，再排序給 alpha-beta 搜尋使用。
 
-\section{資料來源與規模}
+\section{問題定義}
 
-資料來源為 \texttt{data/} 目錄與 MySQL 中的 CSA 棋譜。CSA 是將棋常用棋譜格式，包含棋手、賽事、日期、初始局面、走法、耗時、註解與結果。
+本專案的機器學習任務是多類別分類。
 
-目前匯出的訓練資料集為 \texttt{out/policy\_dataset.npz}，實際統計如下：
-
-\begin{longtable}{p{0.45\textwidth}p{0.40\textwidth}}
+\begin{longtable}{p{0.28\textwidth}p{0.62\textwidth}}
 \toprule
-\textbf{項目} & \textbf{數值}\\
+\textbf{項目} & \textbf{內容}\\
 \midrule
 \endhead
-對局數 & 7,305 局\\
-訓練樣本數 & 832,773 筆\\
-狀態張量形狀 & $(832773, 43, 9, 9)$\\
-Policy 走法類別數 & 13,689 類\\
-Value 有標籤樣本 & 832,773 筆\\
-Value 無標籤樣本 & 0 筆\\
-是否以行棋方視角旋轉 & True\\
+輸入 & 將棋局面，編碼為 $43 \times 9 \times 9$ 張量。\\
+輸出 & 下一手 move label，總類別數為 13,689。\\
+標籤來源 & 人類實戰棋譜中的下一手。\\
+學習方法 & Supervised learning / imitation learning。\\
+Loss & CrossEntropyLoss。\\
+應用方式 & 排序合法手，輔助 alpha-beta 搜尋。\\
 \bottomrule
 \end{longtable}
 
-結果分布如下：
+這個任務不等於直接訓練一個能獨立下棋的模型。將棋局面往往有許多合理手，實戰下一手也不一定是唯一最佳手。因此模型的主要價值是把合理候選手排到前面，讓搜尋更有效率。
+
+\section{資料來源與最新規模}
+
+資料來源包含本地 CSA 檔案、遠端爬蟲蒐集的 CSA 檔案，以及 MySQL 中已匯入的棋譜資料。最新 policy-only 訓練是在遠端大數據主機上，從 MySQL 重新匯出資料集後執行。
 
 \begin{longtable}{p{0.45\textwidth}p{0.40\textwidth}}
 \toprule
-\textbf{結果} & \textbf{樣本數}\\
+\textbf{項目} & \textbf{最新數值}\\
 \midrule
 \endhead
-\texttt{TORYO} & 831,333\\
-\texttt{DRAW} & 104\\
-\texttt{SENNICHITE} & 1,336\\
+匯出資料集 & \texttt{out/policy\_dataset.policy\_only\_latest.npz}\\
+對局數 & 42,534 局\\
+訓練樣本總數 & 4,855,173 筆\\
+非法資料列 & 0 筆\\
+\texttt{TORYO} 樣本 & 4,829,692 筆\\
+\texttt{DRAW} 樣本 & 104 筆\\
+\texttt{SENNICHITE} 樣本 & 25,377 筆\\
+資料集大小 & 約 332 MB\\
 \bottomrule
 \end{longtable}
+
+這些樣本是從資料庫的 \texttt{positions} 與 \texttt{moves} join 得到。每筆樣本代表「某一手前的局面」與「該局面下實戰走出的下一手」。
 
 \section{資料前處理流程}
 
-資料前處理由 \texttt{src/csa\_preprocess.py} 與 \texttt{src/export\_policy\_dataset.py} 負責。整體流程如下：
+資料前處理主要由 \texttt{src/export\_policy\_dataset.py} 與 \texttt{src/csa\_preprocess.py} 負責。整體流程如下：
 
 \begin{center}
 \begin{tabular}{c}
-CSA / MySQL $\rightarrow$ \texttt{cshogi.Board} $\rightarrow$ state tensor\\
-$\rightarrow$ move label $\rightarrow$ value label $\rightarrow$ NPZ dataset
+MySQL \texttt{positions} + \texttt{moves} \\
+$\downarrow$ \\
+SFEN 重建 \texttt{cshogi.Board} \\
+$\downarrow$ \\
+合法手檢查 \\
+$\downarrow$ \\
+局面張量 \texttt{states} \\
+$\downarrow$ \\
+下一手 label \texttt{moves} \\
+$\downarrow$ \\
+壓縮保存為 \texttt{.npz}
 \end{tabular}
 \end{center}
 
-\subsection{解析棋譜}
-
-CSA 棋譜先由 \texttt{cshogi.CSA.Parser} 解析。若來源是 MySQL，系統會從 \texttt{positions} 與 \texttt{moves} 取出每一筆「局面加下一手」資料。解析後以 \texttt{cshogi.Board} 重建局面：
+核心 SQL 邏輯是將局面與下一手對齊：
 
 \begin{lstlisting}[style=cmd]
-board = cshogi.Board(sfen)
-move = board.move_from_usi(usi_move)
-board.is_legal(move)
+SELECT p.game_id, p.move_number, p.sfen, m.usi_move, g.result
+FROM positions p
+JOIN moves m
+  ON m.game_id = p.game_id
+ AND m.move_number = p.move_number + 1
+JOIN game_records g
+  ON g.game_id = p.game_id
+ORDER BY p.game_id, p.move_number;
 \end{lstlisting}
 
-若某一步不合法，該筆資料不會進入訓練集。這一步是資料品質控制的核心。
+在 Python 中，系統會用 \texttt{cshogi.Board(sfen)} 還原棋盤，用 \texttt{board.move\_from\_usi(usi\_move)} 取得 move，再以 \texttt{board.is\_legal(move)} 檢查合法性。非法資料不會進入訓練集。
 
-\subsection{局面編碼}
+\section{局面特徵編碼}
 
-神經網路不能直接吃 SFEN 字串，因此系統將棋盤轉成固定大小張量：
+神經網路不能直接讀 SFEN 字串，因此系統將局面轉成固定大小張量：
 
 \[
 state \in \mathbb{R}^{43 \times 9 \times 9}
 \]
 
-43 個 planes 的設計如下：
+43 個 planes 的意義如下：
 
 \begin{longtable}{p{0.25\textwidth}p{0.60\textwidth}}
 \toprule
@@ -137,84 +152,87 @@ state \in \mathbb{R}^{43 \times 9 \times 9}
 \endhead
 0--13 & 自方 14 種棋子在棋盤上的位置。\\
 14--27 & 對方 14 種棋子在棋盤上的位置。\\
-28--34 & 自方持駒數量，7 種持駒各一個 plane。\\
-35--41 & 對方持駒數量，7 種持駒各一個 plane。\\
-42 & 行棋方 plane。使用行棋方視角時通常為常數。\\
+28--34 & 自方 7 種持駒數量。\\
+35--41 & 對方 7 種持駒數量。\\
+42 & 行棋方 plane。\\
 \bottomrule
 \end{longtable}
 
-這種設計讓 CNN 可以把棋子位置、持駒資訊與行棋方資訊視為影像通道處理。
+這種表示法類似影像中的多通道資料。棋盤是 $9 \times 9$ 空間，棋種、陣營、持駒與行棋方則作為 channel。CNN 可以在這種表示中學習局部形狀，例如攻防、升變區、玉周圍防守與棋子協同。
 
-\subsection{行棋方視角旋轉}
+\section{行棋方視角旋轉}
 
-專案預設 \texttt{orient\_to\_turn=True}。當輪到後手行棋時，棋盤會旋轉 180 度，使模型永遠從「自己要下」的角度看局面。
+專案預設 \texttt{orient\_to\_turn=True}。若輪到後手行棋，系統會把棋盤旋轉 180 度，讓模型永遠從「目前要下棋的一方」的視角看盤。
 
 這個設計有三個好處：
 
 \begin{enumerate}
   \item 減少先手與後手對稱造成的學習負擔。
-  \item 讓同樣戰型在不同顏色下更容易被模型視為相似資料。
-  \item 讓 value label 可以統一解讀為「目前行棋方是否有利」。
+  \item 讓同一戰型在不同顏色下能共享特徵。
+  \item 讓模型輸出永遠表示「自己下一手」而不是固定先手或後手。
 \end{enumerate}
 
-\subsection{走法標籤化}
+例如後手局面會被轉成自方在下方的視角，後手的棋子會進入「自方棋子」planes。這使 policy network 不必另外學一套後手座標系。
 
-Policy head 需要把每個合法走法對應到一個整數 label。將棋走法分成一般移動與打入持駒。
+\section{走法標籤設計}
 
-一般移動考慮來源格、目標格與是否升變：
+Policy head 需要固定輸出維度，但每個局面的合法手數量不同。因此系統將所有可能走法編成固定 label，再在推論時只篩選合法手。
+
+\subsection{一般移動}
+
+一般移動由來源格、目標格與是否升變組成：
 
 \[
 81 \times 81 \times 2 = 13,122
 \]
 
-打入持駒考慮 7 種可打入棋子與 81 個目標格：
+其中 81 是棋盤格數，乘以 2 是因為同一個來源與目標可能有升變與不升變兩種。
+
+\subsection{打入持駒}
+
+將棋有持駒打入規則。可打入棋子共有 7 種，目標格有 81 格：
 
 \[
 7 \times 81 = 567
 \]
 
-因此總類別數為：
+\subsection{總類別數}
 
 \[
 13,122 + 567 = 13,689
 \]
 
-這就是模型 policy 輸出的維度。訓練時使用 \texttt{CrossEntropyLoss}，目標是讓實戰下一手的 label 分數最高。
+因此模型最後一層輸出 13,689 維 logits。訓練時使用實戰下一手的 label 作為 target。
 
-\subsection{Value 標籤}
+\section{從 Policy/Value 改成 Policy-only}
 
-Value label 表示目前行棋方最後的勝負結果：
+專案早期曾設計 policy/value network，模型同時輸出下一手 policy 與局面 value。Value head 的概念是用最終勝負作為標籤，讓模型學習目前行棋方最後會贏、輸或和棋：
 
 \[
-z =
-\begin{cases}
-1, & \text{目前行棋方最後獲勝}\\
-0, & \text{和棋或千日手}\\
--1, & \text{目前行棋方最後落敗}
-\end{cases}
+z \in \{-1,0,1\}
 \]
 
-若結果是 \texttt{TORYO}，系統根據最終局面的行棋方推定投降方與勝方；若是 \texttt{DRAW} 或 \texttt{SENNICHITE}，則標記為 0。
+後來實作與測試後，專案改成 policy-only。主要原因如下。
 
-\section{資料處理邏輯與原理}
+\subsection{Value 標籤訊號太粗}
 
-\subsection{為什麼用 supervised learning}
+Value label 來自一盤棋最後結果，但中盤局面距離終局很遠。某一方最後獲勝，不代表他在中盤每一手都真的佔優。用最終勝負硬套到所有中間局面，會讓 value target 含有大量噪音。
 
-專案目前的資料是實戰棋譜，最直接的學習方式是模仿學習：把每個局面的人類下一手當作 policy 標籤，把最終勝負當作 value 標籤。這種方法不需要先讓 AI 自我對弈，即可快速得到可用的走法排序模型。
+\subsection{投降資料使局面價值不精準}
 
-\subsection{為什麼保存 metadata}
+許多棋譜以 \texttt{TORYO} 結束。投降能指出勝負方，但無法提供每個中間局面的精確勝率。尤其在將棋中，局面可能因一手戰術而突然逆轉，用整局結果回填所有局面會讓 value head 學到不穩定訊號。
 
-NPZ 中的 \texttt{meta} 會保存 \texttt{game\_id}、\texttt{ply}、\texttt{sfen}、\texttt{move\_usi}、\texttt{result} 等資訊。這讓每筆樣本都能追溯，方便除錯與回答「這筆訓練資料從哪盤棋來」。
+\subsection{小型 CNN 容量有限}
 
-\subsection{為什麼用 game-level split}
+目前模型是輕量 CNN，適合快速訓練與排序候選手，但要準確評估將棋複雜局面需要更深模型、更多搜尋標籤或自我對弈。若同時要求模型學 policy 與 value，可能分散有限模型容量。
 
-訓練集、驗證集、測試集不是隨機切單手，而是按 \texttt{game\_id} 分割。原因是同一盤棋相鄰局面非常相似，如果同一盤棋的前半出現在訓練集、後半出現在測試集，測試結果會過度樂觀。因此專案使用 game-level split 降低資料洩漏。
+\subsection{實際應用以候選手排序為主}
 
-\section{模型架構}
+本專案 AI 最終仍使用 alpha-beta 搜尋計算變化。神經網路最需要做的是把好手排到前面，提高剪枝效率。局面評估則由傳統評估函數、搜尋深度與 quiescence search 負責。因此移除 value head 後，系統更簡單，也更符合目前需求。
 
-模型定義於 \texttt{src/policy\_model.py}，名稱為 \texttt{SmallPolicyValueNet}。模型分成共同特徵抽取器、policy head 與 value head。
+\section{Policy-only 模型架構}
 
-\subsection{Feature Extractor}
+模型定義於 \texttt{src/policy\_model.py}，名稱為 \texttt{SmallPolicyNet}。架構如下：
 
 \begin{lstlisting}[style=cmd]
 Conv2d(43, 64, kernel_size=3, padding=1)
@@ -223,66 +241,21 @@ Conv2d(64, 64, kernel_size=3, padding=1)
 ReLU
 Conv2d(64, 32, kernel_size=3, padding=1)
 ReLU
-\end{lstlisting}
-
-卷積層保留 $9 \times 9$ 空間結構，適合學習棋子局部關係，例如攻防、保護、升變區與棋子協同。
-
-\subsection{Policy Head}
-
-\begin{lstlisting}[style=cmd]
 Flatten
 Linear(32 * 9 * 9, 512)
 ReLU
 Linear(512, 13689)
 \end{lstlisting}
 
-Policy head 輸出 13,689 維 logits。推論時只取合法手對應的 label 分數，再排序合法手，避免 AI 選到不合法走法。
-
-\subsection{Value Head}
-
-\begin{lstlisting}[style=cmd]
-Flatten
-Linear(32 * 9 * 9, 128)
-ReLU
-Linear(128, 1)
-Tanh
-\end{lstlisting}
-
-最後使用 \texttt{Tanh}，使輸出落在 $[-1,1]$，與 value label 的範圍一致。
+前半段卷積層保留棋盤空間結構，後半段 fully connected layer 將特徵轉成所有 move labels 的 logits。新版沒有 value head，因此模型只輸出 policy。
 
 \section{訓練方法}
 
-訓練腳本為 \texttt{src/train\_policy.py}。資料切分與訓練設定如下：
-
-\begin{longtable}{p{0.45\textwidth}p{0.40\textwidth}}
-\toprule
-\textbf{項目} & \textbf{數值}\\
-\midrule
-\endhead
-Train samples & 667,345\\
-Validation samples & 81,882\\
-Test samples & 83,546\\
-Optimizer & AdamW\\
-Learning rate & 0.001\\
-Minimum learning rate & 0.00001\\
-Weight decay & 0.0001\\
-Epochs & 12\\
-Value loss weight & 0.25\\
-\bottomrule
-\end{longtable}
+訓練腳本為 \texttt{src/train\_policy.py}。新版訓練流程只包含 policy 分類。
 
 \subsection{Loss Function}
 
-總損失為：
-
-\[
-\mathcal{L}
-=
-\mathcal{L}_{policy}
-+ \lambda \mathcal{L}_{value}
-\]
-
-其中 policy loss 使用 cross entropy：
+使用 cross entropy：
 
 \[
 \mathcal{L}_{policy}
@@ -292,137 +265,183 @@ Value loss weight & 0.25\\
 {\sum_j \exp(\hat{p}_j)}
 \]
 
-Value loss 使用 MSE，並乘上 value mask：
+其中 $a$ 是實戰下一手的 move label，$\hat{p}$ 是模型輸出的 logits。
 
-\[
-\mathcal{L}_{value}
-=
-m(\hat{v}-z)^2
-\]
+\subsection{Optimizer}
 
-本次資料集所有樣本都有 value label，因此 value mask 全部為 1。保留 mask 設計是為了未來支援沒有明確勝負結果的資料。
+使用 AdamW。AdamW 將 adaptive gradient 與 weight decay 分離，通常比傳統 Adam 加 L2 regularization 更穩定。
 
-\subsection{Optimizer 與 Scheduler}
+\subsection{Learning Rate Scheduler}
 
-專案使用 AdamW 與 CosineAnnealingLR。AdamW 將權重衰減與 Adam 更新分離，比傳統 Adam 加 L2 regularization 更穩定；Cosine annealing 則讓 learning rate 從較大值逐漸降低，後期訓練更細緻。
+使用 CosineAnnealingLR。Learning rate 從初始值逐漸降低到最小值，使前期快速學習，後期微調模型。
 
-\section{訓練成果}
+\subsection{Game-level Split}
 
-最新 checkpoint \texttt{out/policy\_model.pt} 的測試集成果如下：
+資料切分不是隨機切每一手，而是依 \texttt{game\_id} 切分。原因是同一盤棋相鄰局面非常相似，如果同一盤棋的前半放進訓練集、後半放進測試集，測試結果會過度樂觀。Game-level split 可以降低資料洩漏。
 
-\begin{longtable}{p{0.45\textwidth}p{0.40\textwidth}}
-\toprule
-\textbf{指標} & \textbf{數值}\\
-\midrule
-\endhead
-Test policy loss & 3.0271\\
-Top-1 accuracy & 0.3337\\
-Top-3 accuracy & 0.5381\\
-Top-5 accuracy & 0.6244\\
-Value loss & 1.0201\\
-Value MAE & 0.9425\\
-\bottomrule
-\end{longtable}
+\section{最新訓練結果}
 
-最後一個 epoch 的 validation 指標如下：
+最新 policy-only 模型在遠端大數據主機訓練，並已同步回本地 \texttt{models/policy\_model.pt}。模型 SHA-256 為：
+
+\begin{lstlisting}[style=cmd]
+79bee4f2299667004803ec2265ba67a06c3236d08735372a7594a711b34b0ab0
+\end{lstlisting}
 
 \begin{longtable}{p{0.45\textwidth}p{0.40\textwidth}}
 \toprule
-\textbf{指標} & \textbf{數值}\\
+\textbf{項目} & \textbf{數值}\\
 \midrule
 \endhead
-Train loss & 1.8179\\
-Validation policy loss & 3.3369\\
-Validation Top-1 accuracy & 0.3500\\
-Validation Top-3 accuracy & 0.5566\\
-Validation Top-5 accuracy & 0.6392\\
-Validation value loss & 1.1268\\
-Validation value MAE & 0.9134\\
+Train samples & 3,882,230\\
+Validation samples & 487,292\\
+Test samples & 485,651\\
+Test policy loss & 2.2751\\
+Top-1 accuracy & 41.10\%\\
+Top-3 accuracy & 65.24\%\\
+Top-5 accuracy & 74.49\%\\
 \bottomrule
 \end{longtable}
 
-\subsection{成果解讀}
+初始局面的前五個 policy 候選手如下：
 
-Top-1 accuracy 約 33.37\%，代表模型直接猜中實戰下一手的比例。將棋分支因子高，而且同一局面可能有多個合理手，所以 Top-3 與 Top-5 更能反映 policy 是否把合理候選手排在前面。Top-5 約 62.44\%，表示模型已能提供有價值的候選手排序，適合用來輔助 alpha-beta 搜尋。
+\begin{longtable}{p{0.30\textwidth}p{0.30\textwidth}}
+\toprule
+\textbf{走法} & \textbf{機率}\\
+\midrule
+\endhead
+\texttt{7g7f} & 61.10\%\\
+\texttt{2g2f} & 33.92\%\\
+\texttt{5g5f} & 3.34\%\\
+\texttt{2h7h} & 1.15\%\\
+\texttt{9g9f} & 0.15\%\\
+\bottomrule
+\end{longtable}
 
-Value MAE 約 0.94，代表 value head 仍有改進空間。原因可能包含：只用最終勝負標籤會使中盤局面的 value 訊號較粗糙；投降資料會讓最後勝負明確，但中間局面未必能直接判斷；模型架構較小，對複雜局面估值能力有限。
+\section{結果解讀}
 
-\section{AI 設計}
+Top-1 accuracy 表示模型直接猜中實戰下一手的比例。最新模型 Top-1 為 41.10\%，代表在測試局面中，模型第一候選手有約四成與實戰相同。
 
-shogiAI 不是只用神經網路直接選最大 policy 的走法，而是將模型與搜尋結合。核心模組位於 \texttt{src/ai\_search.py}、\texttt{src/policy\_model.py} 與 \texttt{src/csa\_browser\_api.py}。
+Top-5 accuracy 更適合評估本專案用途。將棋每個局面常有多個合理手，而模型主要用於搜尋前的 move ordering。Top-5 為 74.49\%，表示實戰下一手大約四分之三會出現在模型前五候選手中，這對 alpha-beta 剪枝很有幫助。
 
-\subsection{傳統搜尋核心}
+\section{模型推論與快取}
 
-AI 使用 negamax 形式的 alpha-beta search：
+推論封裝為 \texttt{PolicyPredictor}。它負責：
+
+\begin{itemize}
+  \item 載入 \texttt{.pt} checkpoint。
+  \item 將 \texttt{cshogi.Board} 轉成 $43 \times 9 \times 9$ state。
+  \item 執行模型取得 logits。
+  \item 只取合法手對應的 label 分數。
+  \item 對合法手分數做 softmax，得到候選手機率。
+  \item 依 score 排序回傳 \texttt{PolicyCandidate}。
+  \item 用 \texttt{board.zobrist\_hash()} 做 prediction cache，減少重複局面推論。
+\end{itemize}
+
+這裡的 softmax 只在合法手集合內計算，因此機率表示「在目前合法手中，模型偏好此手的比例」。
+
+\section{Alpha-beta 搜尋概論}
+
+只靠 policy network 直接選最高機率手，容易漏看短期戰術，例如吃子交換、王手、詰將棋或防守手。因此 shogiAI 將神經網路與傳統搜尋結合。搜尋核心位於 \texttt{src/ai\_search.py}。
+
+\subsection{Minimax 與 Negamax}
+
+棋類遊戲是雙人零和遊戲。若一方得分越高，另一方就越低。Minimax 的想法是：我方選擇能讓自己最好的走法，對方也會選擇讓我最差的應手。
+
+Negamax 是 minimax 的簡化形式，利用零和性質：
 
 \[
 score(s) = \max_a -score(T(s,a))
 \]
 
-搜尋模組包含：
+其中 $T(s,a)$ 表示在局面 $s$ 下走 $a$ 後的新局面。每往下一層，視角會切換到對手，所以分數取負。
+
+\subsection{Alpha-beta Pruning}
+
+Alpha-beta 是 minimax 的剪枝最佳化。它維護兩個界線：
 
 \begin{itemize}
-  \item \textbf{Alpha-beta pruning：} 剪掉不可能影響結果的分支。
-  \item \textbf{Quiescence search：} 在葉節點延伸吃子、升變等戰術手，降低 horizon effect。
-  \item \textbf{Transposition table：} 用 Zobrist hash 快取已搜尋局面。
-  \item \textbf{Killer move：} 記錄同層造成 beta cutoff 的安靜手。
-  \item \textbf{History heuristic：} 累積過去有效走法的排序分數。
-  \item \textbf{Late move reduction：} 對排序靠後且安靜的走法降低搜尋深度。
+  \item $\alpha$：目前已知我方至少能拿到的分數。
+  \item $\beta$：目前對方允許我方拿到的上限。
 \end{itemize}
 
-\subsection{手工評估函數}
+若搜尋中發現某分支已不可能影響最終選擇，就停止展開該分支。剪枝不改變理論結果，但可大幅減少節點數。
 
-\texttt{evaluate\_position} 不只計算子力，還加入位置與戰術特徵：
+\section{shogiAI 搜尋技術}
+
+\subsection{Quiescence Search}
+
+普通 alpha-beta 若剛好在戰術交換中停止，可能出現 horizon effect。例如葉節點看起來我方多一子，但下一手對方能吃回。Quiescence search 會在葉節點繼續延伸戰術手，例如吃子、升變或王手，直到局面較安靜再評估。
+
+\subsection{Transposition Table}
+
+不同走法順序可能到達同一局面。Transposition table 用 Zobrist hash 記錄已搜尋局面的分數、深度與最佳手。若搜尋再次遇到相同局面，可以直接使用快取結果或縮小 alpha-beta 範圍。
+
+\subsection{Killer Move}
+
+Killer move heuristic 記錄在同一搜尋深度曾造成 beta cutoff 的安靜手。若某手曾讓對手無法接受，之後同層搜尋可優先嘗試它，提高剪枝機會。
+
+\subsection{History Heuristic}
+
+History heuristic 統計某個走法在過去搜尋中造成 cutoff 的頻率與深度。越常在深層造成 cutoff 的走法，排序分數越高。
+
+\subsection{Late Move Reduction}
+
+若走法排序已經把較可能的好手放前面，後面排序很低且不是王手、不是戰術手的走法，可以先用較低深度搜尋。若低深度結果意外很好，再回頭完整搜尋。這可以節省大量時間。
+
+\section{手工評估函數}
+
+搜尋到葉節點時，需要評估局面分數。 \texttt{evaluate\_position} 不是只算子力，還加入多種將棋特徵：
 
 \begin{itemize}
-  \item 子力價值與持駒價值。
-  \item 棋子位置分數，例如推進與中央控制。
-  \item 升變區獎勵。
-  \item 機動力。
-  \item 玉安全與周圍保護。
-  \item 懸空棋子懲罰。
-  \item 持駒對敵玉周圍的壓力。
-  \item 節奏 bonus。
+  \item \textbf{子力價值：} 飛、角、金、銀、桂、香、步與升變子的基礎價值。
+  \item \textbf{持駒價值：} 將棋持駒可打入，因此持駒也有分數。
+  \item \textbf{位置分數：} 棋子靠近中央、進入升變區或位置活躍會加分。
+  \item \textbf{機動力：} 可行走法越多，局面越靈活。
+  \item \textbf{玉安全：} 玉周圍保護、敵方壓力與直線攻擊。
+  \item \textbf{懸空棋子：} 被攻擊但保護不足的棋子會扣分。
+  \item \textbf{持駒壓力：} 持駒對敵玉周圍可打入威脅會加分。
+  \item \textbf{節奏：} 輪到行棋方可能有主動權 bonus。
 \end{itemize}
 
-這些特徵讓 AI 即使沒有神經網路，也能用傳統方法下出合理棋。
+這些手工特徵提供基本棋力，使 AI 即使沒有神經網路，也能以 alpha-beta 下出合理走法。
 
-\subsection{Policy 網路如何介入搜尋}
+\section{Policy Network 如何結合 Alpha-beta}
 
-Policy 網路主要用於 move ordering。流程如下：
+Policy network 不直接取代 alpha-beta，而是作為 move ordering。
 
-\[
-\text{legal moves}
-\rightarrow
-\text{policy logits}
-\rightarrow
-\text{sorted candidate moves}
-\rightarrow
-\text{alpha-beta search}
-\]
+\begin{center}
+\begin{tabular}{c}
+目前局面 \\
+$\downarrow$ \\
+列出合法手 \\
+$\downarrow$ \\
+Policy network 對合法手評分 \\
+$\downarrow$ \\
+合法手排序 \\
+$\downarrow$ \\
+Alpha-beta 依排序搜尋 \\
+$\downarrow$ \\
+選出實際走法
+\end{tabular}
+\end{center}
 
-Alpha-beta 的效率高度依賴走法排序。如果好手排在前面，就更容易提早產生 cutoff，搜尋同樣深度時可少看很多節點。因此目前模型的 Top-5 表現對 AI 實戰很有價值。
+Alpha-beta 的效率非常依賴走法排序。如果好手越早被搜尋，$\alpha$ 或 $\beta$ 越快更新，就能越早剪掉其他分支。新版模型 Top-5 accuracy 達 74.49\%，表示它能有效把實戰合理手排在前面。
 
-\subsection{Value 網路如何介入搜尋}
+\section{Opening Book}
 
-Value head 可用於局面加權：
+除了 policy network，AI 開局也可使用 opening book。Opening book 由 MySQL 統計前若干手常見局面與下一手頻率。若目前 SFEN 在 book 中，且某走法出現次數達到門檻，AI 可以直接採用該走法。
 
-\[
-\text{score}
-=
-\text{handcrafted evaluation}
-+ w \cdot V_\theta(s)
-\]
+Opening book 的優點是：
 
-\texttt{--value-weight} 控制 value head 影響力。若設為 0，代表只用傳統評估；若設為 100 或 200，代表讓神經網路估值參與根節點或局面評估。實務上 value head 目前仍較粗糙，所以需要謹慎調整權重。
+\begin{itemize}
+  \item 開局階段快速，不必消耗搜尋時間。
+  \item 走法來自真實棋譜，較符合人類常見戰型。
+  \item 可避免早期搜尋深度不足導致怪異開局。
+\end{itemize}
 
-\subsection{開局庫}
+\section{模型互打與評估}
 
-AI 可從 MySQL 建立 opening book。系統統計前若干手每個 SFEN 對應的常見下一手，如果某手出現次數達到門檻，就可作為開局走法。這能讓 AI 在開局階段更接近實戰棋譜，降低早期搜尋成本。
-
-\section{模型評估與比賽}
-
-\texttt{src/compare\_ai\_models.py} 可讓兩個模型對弈。比賽時會輪流交換先後手，避免先手優勢造成偏差。輸出包含：
+\texttt{src/compare\_ai\_models.py} 可讓兩個模型互相對弈。它會交替先後手，避免先手優勢影響判斷。輸出包含：
 
 \begin{itemize}
   \item 新模型勝場。
@@ -430,85 +449,93 @@ AI 可從 MySQL 建立 opening book。系統統計前若干手每個 SFEN 對應
   \item 和棋數。
   \item 新模型得分率。
   \item 平均手數。
-  \item 每盤棋的 USI 手順。
+  \item 每盤棋 USI 手順。
 \end{itemize}
 
-目前 smoke test 中 1 盤短對局結果為和棋，得分率 0.5，主要用於驗證流程能跑通，不代表完整棋力評估。若要更可靠，需要增加對局數、搜尋深度與時間限制。
+需要注意的是，Top-k accuracy 衡量的是「模仿實戰下一手」，模型互打才更接近棋力評估。但模型互打需要較多局數、固定深度與固定時間限制，結果才有統計意義。
+
+\section{前端展示與應用}
+
+前端 AI 對弈頁面會顯示：
+
+\begin{itemize}
+  \item 搜尋評分。
+  \item 搜尋深度。
+  \item 搜尋節點數。
+  \item PV，也就是主要變化。
+  \item Policy 候選手與機率。
+\end{itemize}
+
+新版前端已移除「局面值」欄位，因為模型不再輸出 value。這能避免使用者誤以為神經網路仍在估計勝率。
 
 \section{限制與改進方向}
 
-\subsection{資料限制}
+\subsection{模型容量限制}
 
-目前資料來自實戰棋譜，品質依賴原始 CSA 是否完整。非法棋譜會被過濾，但對局結果與投降時間仍可能影響 value 標籤品質。
+目前模型是小型 CNN，訓練與推論速度快，但容量有限。若要提升 policy 準確率，可改用 residual CNN 或 attention-based 架構。
 
-\subsection{模型限制}
+\subsection{資料標籤限制}
 
-目前模型是小型 CNN，沒有 residual block 或 attention。它適合快速訓練與作為 move ordering，但若要追求更高棋力，可改成 residual CNN、Transformer 或加入合法手 mask 的 policy loss。
+模型學的是人類實戰下一手，而不是數學上的最佳手。同一局面可能有多個好手，但資料只標一手。因此 Top-1 不應被解讀為唯一棋力指標。
 
-\subsection{Value label 限制}
+\subsection{Legal Move Mask}
 
-Value label 直接取最終勝負，對中盤局面可能太粗糙。例如某方最後獲勝，不代表中途每一個局面都明顯有利。未來可以加入搜尋評分、自我對弈結果或多步 bootstrap 方式改良 value target。
+目前模型輸出所有 13,689 類，推論時再挑合法手。未來可在 loss 中加入合法手 mask 或改良 label 設計，讓模型更專注於實際可行走法。
 
-\subsection{評估限制}
+\subsection{自我對弈}
 
-Top-k accuracy 衡量的是模仿人類下一手，不完全等於棋力。真正棋力仍需靠模型對弈、固定時間測試與更多局數統計。
+若要讓模型不只模仿人類，可加入 self-play。透過目前 AI 搜尋產生新棋譜，再用結果訓練模型，逐步提升棋力。
 
-\section{教授可能提問與回答}
+\subsection{Value 的未來可能}
 
-\subsection{為什麼不用 one-hot 表示整個棋盤就好}
-
-本專案其實就是把棋盤轉為多通道 one-hot 與數量 plane。不同棋種與持駒分開 channel，可以讓 CNN 更容易學到「哪種棋子在哪裡」以及「持駒會造成什麼威脅」。
-
-\subsection{為什麼 policy 輸出 13,689 類，而不是只輸出合法手}
-
-神經網路輸出維度需要固定，但每個局面的合法手數量不同。因此模型輸出所有可能走法的固定 label，推論時再只挑合法手。這是棋類 policy network 常見做法。
-
-\subsection{Top-1 只有 33\%，是否太低}
-
-將棋每個局面有很多合法手，而且多個走法都可能合理。模型目標是提供候選手排序，不一定要直接取代搜尋。Top-5 約 62\%，代表它能把實戰合理手放進前幾名，對 alpha-beta move ordering 已經有幫助。
-
-\subsection{為什麼還需要 alpha-beta，不直接用模型下}
-
-只用模型會缺少戰術計算，容易漏看將死、吃子交換與短期陷阱。Alpha-beta 能計算變化，policy/value 則幫助排序與估值。混合設計比單獨使用其中一種更穩定。
-
-\subsection{Value head 為什麼效果較差}
-
-Value 只用最終勝負監督，而中盤到終局距離很長，訊號雜訊比 policy 更高。此外小型 CNN 容量有限，難以完全評估複雜局面。改進方式包含更多資料、更深模型、自我對弈與搜尋產生的評估標籤。
+Value head 目前被移除，不代表永遠不能使用。若未來要重新嘗試 value，建議不要直接用最終勝負套到所有中間局面，而是使用搜尋評分、自我對弈結果、或更細緻的 bootstrap target。這樣 value 訊號會比單純終局勝負更穩定。
 
 \section{結論}
 
-shogiAI 的數據科學流程從原始 CSA 棋譜出發，經由合法性驗證、局面張量化、走法標籤化與勝負標籤化，建立 832,773 筆 policy/value 訓練樣本。模型以小型 CNN 同時預測下一手與局面價值，測試 Top-1 accuracy 約 33.37\%，Top-5 accuracy 約 62.44\%。在 AI 設計上，模型不是孤立使用，而是與 alpha-beta 搜尋、手工評估函數、開局庫與多種搜尋最佳化結合。這使專案同時具備資料處理、模型訓練、棋力搜尋與前端互動展示的完整流程。
+shogiAI 的數據科學流程已從早期 policy/value 模型調整為 policy-only 模型。新版設計讓神經網路專注於從大量實戰棋譜中學習下一手分布，並把學到的知識用於 alpha-beta 搜尋的走法排序。最新資料集包含 4,855,173 筆樣本，測試 Top-1 accuracy 達 41.10\%，Top-5 accuracy 達 74.49\%。整體系統結合了資料庫、特徵工程、CNN 分類模型、opening book 與傳統棋類搜尋，使專案具備從資料蒐集到實際 AI 對弈的完整流程。
 
 \appendix
 \section{常用指令}
 
-\subsection{匯出訓練資料}
+\subsection{匯出資料集}
 
 \begin{lstlisting}[style=cmd]
 python src\export_policy_dataset.py ^
-  --output out\policy_dataset.npz ^
+  --output out\policy_dataset.policy_only_latest.npz ^
   --host 140.135.65.53 ^
   --port 3306 ^
   --user 11211213 ^
   --database DB11211213
 \end{lstlisting}
 
-\subsection{訓練模型}
+\subsection{訓練 policy-only 模型}
 
 \begin{lstlisting}[style=cmd]
 python src\train_policy.py ^
-  --input out\policy_dataset.npz ^
-  --output out\policy_model.pt ^
-  --batch-size 256 ^
-  --value-loss-weight 0.25
+  --input out\policy_dataset.policy_only_latest.npz ^
+  --output out\policy_model.policy_only.pt ^
+  --batch-size 256
 \end{lstlisting}
 
-\subsection{模型對弈測試}
+\subsection{啟動 AI 瀏覽器}
+
+\begin{lstlisting}[style=cmd]
+python src\csa_browser_api.py ^
+  --source mysql ^
+  --db-host 140.135.65.53 ^
+  --db-port 3306 ^
+  --db-user 11211213 ^
+  --db-name DB11211213 ^
+  --policy-model models\policy_model.pt ^
+  --policy-order-ply 2
+\end{lstlisting}
+
+\subsection{模型互打}
 
 \begin{lstlisting}[style=cmd]
 python src\compare_ai_models.py ^
   --old-model out\policy_model.prev.pt ^
-  --new-model out\policy_model.pt ^
+  --new-model models\policy_model.pt ^
   --games 20 ^
   --depth 3 ^
   --time-limit-ms 1000

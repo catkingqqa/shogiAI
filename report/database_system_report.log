@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.4) (preloaded format=xelatex 2025.12.16)  26 MAY 2026 16:27
+This is XeTeX, Version 3.141592653-2.6-0.999997 (MiKTeX 25.4) (preloaded format=xelatex 2025.12.16)  17 JUN 2026 01:47
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -659,15 +659,15 @@ LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
 * layout: <same size as paper>
 * layoutoffset:(h,v)=(0.0pt,0.0pt)
 * modes: 
-* h-part:(L,W,R)=(68.28644pt, 460.935pt, 68.28644pt)
-* v-part:(T,H,B)=(68.28644pt, 708.47397pt, 68.28644pt)
+* h-part:(L,W,R)=(66.86414pt, 463.7796pt, 66.86414pt)
+* v-part:(T,H,B)=(66.86414pt, 711.31857pt, 66.86414pt)
 * \paperwidth=597.50787pt
 * \paperheight=845.04684pt
-* \textwidth=460.935pt
-* \textheight=708.47397pt
-* \oddsidemargin=-3.98355pt
-* \evensidemargin=-3.98355pt
-* \topmargin=-40.98355pt
+* \textwidth=463.7796pt
+* \textheight=711.31857pt
+* \oddsidemargin=-5.40585pt
+* \evensidemargin=-5.40585pt
+* \topmargin=-42.40585pt
 * \headheight=12.0pt
 * \headsep=25.0pt
 * \topskip=12.0pt
@@ -719,7 +719,20 @@ LaTeX Font Warning: Font shape `TU/MicrosoftJhengHei(0)/m/sl' undefined
 7.
 
 [2]
-Overfull \hbox (33.16475pt too wide) in paragraph at lines 82--83
+
+[3]
+Overfull \hbox (20.08344pt too wide) in paragraph at lines 107--108
+[]\TU/lmtt/m/n/12 sync_repo.ps1\TU/MicrosoftJhengHei(0)/m/n/12 ：|  本 地 \TU/lmr/
+m/n/12 Windows \TU/MicrosoftJhengHei(0)/m/n/12 使 用，|  負 責 \TU/lmtt/m/n/12 git a
+dd\TU/MicrosoftJhengHei(0)/m/n/12 、| \TU/lmtt/m/n/12 commit\TU/MicrosoftJhengHe
+i(0)/m/n/12 、| \TU/lmtt/m/n/12 pull --rebase\TU/MicrosoftJhengHei(0)/m/n/12 、| 
+\TU/lmtt/m/n/12 push\TU/MicrosoftJhengHei(0)/m/n/12 。| 
+ []
+
+
+
+[4]
+Overfull \hbox (30.32014pt too wide) in paragraph at lines 126--127
 []\TU/MicrosoftJhengHei(0)/m/n/12 因 此 資 料 庫 拆 成 五 張 主 要 資 料 表：| \TU/lmtt/m/n/12
  users\TU/MicrosoftJhengHei(0)/m/n/12 、| \TU/lmtt/m/n/12 players\TU/MicrosoftJh
 engHei(0)/m/n/12 、| \TU/lmtt/m/n/12 game_records\TU/MicrosoftJhengHei(0)/m/n/12
@@ -727,46 +740,83 @@ engHei(0)/m/n/12 、| \TU/lmtt/m/n/12 game_records\TU/MicrosoftJhengHei(0)/m/n/1
 itions\TU/MicrosoftJhengHei(0)/m/n/12 。|
  []
 
+LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <14.4> not available
+(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 146.
 
-Overfull \hbox (16.61401pt too wide) in paragraph at lines 91--92
-[]\TU/MicrosoftJhengHei(0)/b/n/12 訓 練 資 料 難 匯 出：|  \TU/lmr/m/n/12 AI \TU/Micros
-oftJhengHei(0)/m/n/12 訓 練 需 要 的 是  |「局 面 加 下 一 手」|  樣 本，|  如 果 沒 有 獨 立 的 \TU/lm
-tt/m/n/12 positions
+Underfull \hbox (badness 10000) in paragraph at lines 157--157
+[]|\TU/lmr/m/n/12 VARCHAR
  []
 
 
 
-[3]
-LaTeX Font Info:    Font shape `TU/lmtt/bx/n' in size <14.4> not available
-(Font)              Font shape `TU/lmtt/b/n' tried instead on input line 109.
-
-Underfull \hbox (badness 10000) in paragraph at lines 159--160
+[5]
+Underfull \hbox (badness 4378) in paragraph at lines 196--197
 []|\TU/MicrosoftJhengHei(0)/m/n/12 結 果，|  例 如 \TU/lmr/m/n/12 TORYO\TU/Microsoft
 JhengHei(0)/m/n/12 、| \TU/lmr/m/n/12 DRAW\TU/MicrosoftJhengHei(0)/m/n/12 、|
  []
 
-
-
-[4]
-
-[5]
-
 [6]
-Overfull \hbox (35.80519pt too wide) in paragraph at lines 263--264
-[]\TU/lmtt/m/n/12 original_file_name \TU/MicrosoftJhengHei(0)/m/n/12 可 用 來 判 斷 
-某 個 \TU/lmr/m/n/12 CSA \TU/MicrosoftJhengHei(0)/m/n/12 檔 案 是 否 已 匯 入。|  如 果 使 用
- \TU/lmtt/m/n/12 --skip-existing\TU/MicrosoftJhengHei(0)/m/n/12 ，|
+
+[7]
+Overfull \hbox (4.2659pt too wide) in paragraph at lines 266--267
+[]\TU/MicrosoftJhengHei(0)/m/n/12 資 料 品 質 最 重 要 的 步 驟 是 合 法 性 檢 查。| \TU/lmr/m/n
+/12 CSA \TU/MicrosoftJhengHei(0)/m/n/12 走 法 在 寫 入 資 料 庫 前 會 轉 成 \TU/lmr/m/n/12 
+cshogi move\TU/MicrosoftJhengHei(0)/m/n/12 ，|
+ []
+
+
+Overfull \hbox (14.4096pt too wide) in paragraph at lines 270--271
+[]\TU/lmtt/m/n/12 original_file_name \TU/MicrosoftJhengHei(0)/m/n/12 可 用 於 快 速 
+判 斷 同 名 \TU/lmr/m/n/12 CSA \TU/MicrosoftJhengHei(0)/m/n/12 是 否 已 經 匯 入。|  使 用 \
+TU/lmtt/m/n/12 --skip-existing
+ []
+
+
+Overfull \hbox (17.71146pt too wide) in paragraph at lines 296--297
+[]\TU/MicrosoftJhengHei(0)/m/n/12 後 端 位 於 \TU/lmtt/m/n/12 src/csa_browser_api.p
+y\TU/MicrosoftJhengHei(0)/m/n/12 ，|  使 用 \TU/lmr/m/n/12 Python \TU/MicrosoftJhe
+ngHei(0)/m/n/12 標 準 函 式 庫 的 \TU/lmtt/m/n/12 ThreadingHTTPServer
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 311--311
+[]|\TU/lmtt/m/n/12 POST
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 312--312
+[]|\TU/lmtt/m/n/12 POST
  []
 
 
 
-[7]
-
 [8]
+Overfull \hbox (15.20313pt too wide) in paragraph at lines 321--322
+[]\TU/MicrosoftJhengHei(0)/m/n/12 前 端 位 於 \TU/lmtt/m/n/12 web/index.html\TU/Mic
+rosoftJhengHei(0)/m/n/12 、| \TU/lmtt/m/n/12 web/app.js \TU/MicrosoftJhengHei(0)
+/m/n/12 與 \TU/lmtt/m/n/12 web/styles.css\TU/MicrosoftJhengHei(0)/m/n/12 。|  它 是
+ 一 個 原 生 \TU/lmr/m/n/12 JavaScript
+ []
+
+
 
 [9]
+Overfull \hbox (14.8271pt too wide) in paragraph at lines 341--342
+[]\TU/lmtt/m/n/12 src/export_policy_dataset.py \TU/MicrosoftJhengHei(0)/m/n/12 
+從 \TU/lmr/m/n/12 MySQL \TU/MicrosoftJhengHei(0)/m/n/12 取 出 每 個 \TU/lmtt/m/n/12 
+Position_t \TU/MicrosoftJhengHei(0)/m/n/12 與 下 一 手 \TU/lmtt/m/n/12 Move_t+1\TU/
+MicrosoftJhengHei(0)/m/n/12 ：| 
+ []
+
+
 
 [10]
+Overfull \hbox (99.08476pt too wide) in paragraph at lines 408--409
+[]\TU/lmtt/m/n/12 idx_positions_game_number \TU/MicrosoftJhengHei(0)/m/n/12 對 前
+ 端 回 放 最 重 要，|  因 為 每 次 跳 手 數 都 會 用 到。| \TU/lmtt/m/n/12 idx_moves_game_number
+ []
+
+
 
 [11]
 
@@ -783,15 +833,15 @@ LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `database_system_report.out' has not changed.
 
-(rerunfilecheck)             Checksum: 87820BE58681D7B7C6AACE1E02210F8E;4818.
+(rerunfilecheck)             Checksum: F43B843AC29E6E5D6217C1B62A155FE2;3661.
  ) 
 Here is how much of TeX's memory you used:
- 17884 strings out of 405057
- 378135 string characters out of 5499577
- 866155 words of memory out of 5000000
- 44303 multiletter control sequences out of 15000+600000
- 636351 words of font info for 107 fonts, out of 8000000 for 9000
+ 17833 strings out of 405057
+ 374694 string characters out of 5499577
+ 837979 words of memory out of 5000000
+ 44255 multiletter control sequences out of 15000+600000
+ 636335 words of font info for 105 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
- 93i,11n,95p,363b,1039s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 93i,7n,95p,363b,1815s stack positions out of 10000i,1000n,20000p,200000b,200000s
 
 Output written on database_system_report.pdf (13 pages).

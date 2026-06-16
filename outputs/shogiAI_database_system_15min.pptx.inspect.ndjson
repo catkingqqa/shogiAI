@@ -1,0 +1,275 @@
+{"kind":"deck","id":"pr/dre71p","name":"Deck"}
+{"kind":"layout","layoutId":"69b42313-472e-4e8c-b701-150f1d261519","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"a1aff09b-9e47-4cf9-a7f7-287269c87113","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/dxkojo","slide":1,"title":"SHOGIAI DATABASE DESIGN REPORT","textShapes":8}
+{"kind":"shape","id":"sh/h4byhgn2","slide":1,"bbox":[0,0,1280,720]}
+{"kind":"shape","id":"sh/adsji5sn","slide":1,"bbox":[0,0,20,720]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":1,"bbox":[20,0,10,720]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":1,"name":"text","text":"SHOGIAI DATABASE DESIGN REPORT","textPreview":"SHOGIAI DATABASE DESIGN REPORT","textChars":30,"textLines":1,"bbox":[84,82,680,28]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":1,"name":"text","text":"shogiAI\n資料庫設計報告","textPreview":"shogiAI | 資料庫設計報告","textChars":15,"textLines":2,"bbox":[84,150,760,150]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":1,"name":"text","text":"資料表設計、關聯架構、查詢用途與 AI 資料支援","textPreview":"資料表設計、關聯架構、查詢用途與 AI 資料支援","textChars":24,"textLines":1,"bbox":[88,322,700,80]}
+{"kind":"shape","id":"sh/3m94fu18","slide":1,"bbox":[860,132,292,360]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":1,"name":"text","text":"15 分鐘主軸","textPreview":"15 分鐘主軸","textChars":7,"textLines":1,"bbox":[892,164,230,32]}
+{"kind":"textbox","id":"sh/hoza1gvy","slide":1,"name":"text","text":"• 資料庫設計目標\n• ER 架構與表關聯\n• 正規化與資料品質\n• 查詢、API、AI 用途","textPreview":"• 資料庫設計目標 | • ER 架構與表關聯 | • 正規化與資料品質 | • 查詢、API、AI 用途","textChars":47,"textLines":4,"bbox":[894,214,226,170]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":1,"name":"text","text":"2026 年 6 月｜課堂報告用簡報","textPreview":"2026 年 6 月｜課堂報告用簡報","textChars":18,"textLines":1,"bbox":[88,594,700,30]}
+{"kind":"shape","id":"sh/gn29gr2p","slide":1,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/n29gr2p8","slide":1,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/yhgn29gr","slide":1,"name":"text","text":"1/14","textPreview":"1/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/dxkojo","slide":1,"text":"開場直接說這份重點是資料庫設計。\n爬蟲與前端只是資料庫用途的周邊，主軸要放在為什麼這樣拆表、表之間怎麼連、如何支援查詢與 AI。"}
+{"kind":"slide","id":"sl/x5yofb","slide":2,"title":"DESIGN GOAL","textShapes":12}
+{"kind":"textbox","id":"sh/judg7ads","slide":2,"name":"text","text":"DESIGN GOAL","textPreview":"DESIGN GOAL","textChars":11,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/cfa9w3m9","slide":2,"name":"text","text":"資料庫設計目標：把棋譜變成可查詢的結構","textPreview":"資料庫設計目標：把棋譜變成可查詢的結構","textChars":19,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/1032lszq","slide":2,"name":"text","text":"核心不是保存 CSA 文字，而是把棋局拆成能被查詢、回放、分析與訓練的資料模型。","textPreview":"核心不是保存 CSA 文字，而是把棋局拆成能被查詢、回放、分析與訓練的資料模型。","textChars":40,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":2,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/jm1cfa9w","slide":2,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/c7u54zid","slide":2,"bbox":[80,210,340,166]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":2,"name":"text","text":"查詢導向","textPreview":"查詢導向","textChars":4,"textLines":1,"bbox":[102,228,296,34]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":2,"name":"text","text":"使用者要能依棋手、日期、賽事、開局、結果搜尋棋局，也能快速跳到任一手。","textPreview":"使用者要能依棋手、日期、賽事、開局、結果搜尋棋局，也能快速跳到任一手。","textChars":35,"textLines":1,"bbox":[102,266,296,96]}
+{"kind":"shape","id":"sh/nap4r65w","slide":2,"bbox":[470,210,340,166]}
+{"kind":"textbox","id":"sh/7u54zido","slide":2,"name":"text","text":"一致性導向","textPreview":"一致性導向","textChars":5,"textLines":1,"bbox":[492,228,296,34]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":2,"name":"text","text":"同一位棋手、同一盤棋、同一手走法不應重複散落，資料要能維持關聯一致。","textPreview":"同一位棋手、同一盤棋、同一手走法不應重複散落，資料要能維持關聯一致。","textChars":34,"textLines":1,"bbox":[492,266,296,96]}
+{"kind":"shape","id":"sh/l0rqd4vm","slide":2,"bbox":[860,210,340,166]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":2,"name":"text","text":"AI 導向","textPreview":"AI 導向","textChars":5,"textLines":1,"bbox":[882,228,296,34]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":2,"name":"text","text":"positions 與 moves 必須能對齊，才能匯出 Position_t → Move_{t+1} 的訓練樣本。","textPreview":"positions 與 moves 必須能對齊，才能匯出 Position_t → Move_{t+1} 的訓練樣本。","textChars":59,"textLines":1,"bbox":[882,266,296,96]}
+{"kind":"textbox","id":"sh/eloj2t83","slide":2,"name":"text","text":"設計問題：一盤棋同時包含 metadata、棋手、手順、每手局面、訓練標籤，所以必須拆表。","textPreview":"設計問題：一盤棋同時包含 metadata、棋手、手順、每手局面、訓練標籤，所以必須拆表。","textChars":45,"textLines":1,"bbox":[118,456,1040,70]}
+{"kind":"shape","id":"sh/lc7u54zi","slide":2,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":2,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":2,"name":"text","text":"2/14","textPreview":"2/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/x5yofb","slide":2,"text":"這張先講設計目標。\n如果只存 CSA 檔案，就沒有辦法快速搜尋、分頁、回放與匯出 AI 訓練資料。\n所以資料庫設計要從用途倒推：前端查詢、局面回放、AI 訓練都需要什麼欄位。"}
+{"kind":"slide","id":"sl/wfwa6k","slide":3,"title":"SCHEMA OVERVIEW","textShapes":20}
+{"kind":"textbox","id":"sh/wb2hwfyx","slide":3,"name":"text","text":"SCHEMA OVERVIEW","textPreview":"SCHEMA OVERVIEW","textChars":15,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":3,"name":"text","text":"ER 架構總覽：五張表各自負責一種概念","textPreview":"ER 架構總覽：五張表各自負責一種概念","textChars":19,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/e9cvixcz","slide":3,"name":"text","text":"users、players、game_records、moves、positions 分別處理上傳者、棋手、棋局、走法與局面。","textPreview":"users、players、game_records、moves、positions 分別處理上傳者、棋手、棋局、走法與局面。","textChars":63,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/loj2t83i","slide":3,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/w3m94fu1","slide":3,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/3itgfmlk","slide":3,"bbox":[70,238,185,140]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":3,"name":"text","text":"users","textPreview":"users","textChars":5,"textLines":1,"bbox":[84,250,157,28]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":3,"name":"text","text":"user_id PK\nusername\nemail UNIQUE\nrole","textPreview":"user_id PK | username | email UNIQUE | role","textChars":37,"textLines":4,"bbox":[90,290,145,78]}
+{"kind":"shape","id":"sh/szqtcj6t","slide":3,"bbox":[326,198,205,140]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":3,"name":"text","text":"players","textPreview":"players","textChars":7,"textLines":1,"bbox":[340,210,177,28]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":3,"name":"text","text":"player_id PK\nplayer_name\nrank_name","textPreview":"player_id PK | player_name | rank_name","textChars":34,"textLines":3,"bbox":[346,250,165,78]}
+{"kind":"shape","id":"sh/0rqd4vmt","slide":3,"bbox":[592,238,230,174]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":3,"name":"text","text":"game_records","textPreview":"game_records","textChars":12,"textLines":1,"bbox":[606,250,202,28]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":3,"name":"text","text":"game_id PK\nblack_player_id FK\nwhite_player_id FK\nevent/result\nplayed_at","textPreview":"game_id PK | black_player_id FK | white_player_id FK | event/result | played_at","textChars":71,"textLines":5,"bbox":[612,290,190,112]}
+{"kind":"shape","id":"sh/byhgn29g","slide":3,"bbox":[890,188,210,150]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":3,"name":"text","text":"moves","textPreview":"moves","textChars":5,"textLines":1,"bbox":[904,200,182,28]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":3,"name":"text","text":"move_id PK\ngame_id FK\nmove_number\nusi_move","textPreview":"move_id PK | game_id FK | move_number | usi_move","textChars":42,"textLines":4,"bbox":[910,240,170,88]}
+{"kind":"shape","id":"sh/i9s36hcr","slide":3,"bbox":[890,398,210,158]}
+{"kind":"textbox","id":"sh/bulwval8","slide":3,"name":"text","text":"positions","textPreview":"positions","textChars":9,"textLines":1,"bbox":[904,410,182,28]}
+{"kind":"textbox","id":"sh/3itgfmlk","slide":3,"name":"text","text":"position_id PK\ngame_id FK\nmove_number\nsfen\nsfen_hash","textPreview":"position_id PK | game_id FK | move_number | sfen | sfen_hash","textChars":52,"textLines":5,"bbox":[910,450,170,96]}
+{"kind":"shape","id":"sh/ex0nuxc3","slide":3,"bbox":[255,308,337,2]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":3,"name":"text","text":"1:N","textPreview":"1:N","textChars":3,"textLines":1,"bbox":[387.5,293,72,24]}
+{"kind":"shape","id":"sh/w3m94fu1","slide":3,"bbox":[531,268,61,18]}
+{"kind":"textbox","id":"sh/3q5o7qpg","slide":3,"name":"text","text":"N:1","textPreview":"N:1","textChars":3,"textLines":1,"bbox":[525.5,261,72,24]}
+{"kind":"shape","id":"sh/e9cvixcz","slide":3,"bbox":[822,264,68,28]}
+{"kind":"textbox","id":"sh/lwval87e","slide":3,"name":"text","text":"1:N","textPreview":"1:N","textChars":3,"textLines":1,"bbox":[820,262,72,24]}
+{"kind":"shape","id":"sh/wb2hwfyx","slide":3,"bbox":[822,346,68,126]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":3,"name":"text","text":"1:N","textPreview":"1:N","textChars":3,"textLines":1,"bbox":[820,393,72,24]}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":3,"name":"text","text":"game_records 是中心表：一盤棋連到兩位 players，也連到多筆 moves 與 positions。","textPreview":"game_records 是中心表：一盤棋連到兩位 players，也連到多筆 moves 與 positions。","textChars":58,"textLines":1,"bbox":[150,584,980,44]}
+{"kind":"shape","id":"sh/knih4byh","slide":3,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":3,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":3,"name":"text","text":"3/14","textPreview":"3/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/wfwa6k","slide":3,"text":"這張是 ER 圖，講關聯。\ngame_records 是中心表；players 透過 black_player_id 和 white_player_id 連進來。\n一盤棋會有多筆 moves，也會有多筆 positions。users 代表資料上傳或匯入來源。"}
+{"kind":"slide","id":"sl/b2d7az","slide":4,"title":"TABLE DESIGN","textShapes":6}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":4,"name":"text","text":"TABLE DESIGN","textPreview":"TABLE DESIGN","textChars":12,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":4,"name":"text","text":"核心資料表設計：每張表的責任邊界","textPreview":"核心資料表設計：每張表的責任邊界","textChars":16,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":4,"name":"text","text":"好的資料表要有清楚責任，不把棋局 metadata、棋手名稱、走法和局面混在一起。","textPreview":"好的資料表要有清楚責任，不把棋局 metadata、棋手名稱、走法和局面混在一起。","textChars":41,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/9knih4by","slide":4,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":4,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/2t83itgf","slide":4,"name":"text","text":"責任拆清楚後，查詢與更新都比較穩：改棋手資料不必修改所有棋局，查某盤棋也能分層取得。","textPreview":"責任拆清楚後，查詢與更新都比較穩：改棋手資料不必修改所有棋局，查某盤棋也能分層取得。","textChars":42,"textLines":1,"bbox":[116,570,1048,52]}
+{"kind":"shape","id":"sh/9gr2p8nq","slide":4,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/gvy90je9","slide":4,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/yd0z6103","slide":4,"name":"text","text":"4/14","textPreview":"4/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"table","id":"tb/2hwfyxob","slide":4,"name":"","rows":6,"cols":4,"preview":"資料表 | 主鍵 | 主要內容 | 設計理由","bbox":[74,206,1132,330]}
+{"kind":"notes","id":"nt/b2d7az","slide":4,"text":"這張逐表說明。\n可以強調正規化精神：不要把棋手名字在每盤棋重複存，改成 players 表。\ngame_records 放一盤棋的基本資訊；moves 和 positions 是一對多的明細表。"}
+{"kind":"slide","id":"sl/to23r9","slide":5,"title":"NORMALIZATION","textShapes":12}
+{"kind":"textbox","id":"sh/bq1oryts","slide":5,"name":"text","text":"NORMALIZATION","textPreview":"NORMALIZATION","textChars":13,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":5,"name":"text","text":"正規化設計：降低重複與更新錯誤","textPreview":"正規化設計：降低重複與更新錯誤","textChars":15,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":5,"name":"text","text":"資料庫拆表不是為了複雜，而是讓相同事實只存一份，避免資料不一致。","textPreview":"資料庫拆表不是為了複雜，而是讓相同事實只存一份，避免資料不一致。","textChars":32,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":5,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":5,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/4nap4r65","slide":5,"bbox":[90,214,330,150]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":5,"name":"text","text":"第一層：棋手獨立","textPreview":"第一層：棋手獨立","textChars":8,"textLines":1,"bbox":[112,232,286,34]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":5,"name":"text","text":"players 表保存棋手名稱與段位，game_records 只保存 player_id。","textPreview":"players 表保存棋手名稱與段位，game_records 只保存 player_id。","textChars":46,"textLines":1,"bbox":[112,270,286,80]}
+{"kind":"shape","id":"sh/bat47y1k","slide":5,"bbox":[475,214,330,150]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":5,"name":"text","text":"第二層：棋局與明細分離","textPreview":"第二層：棋局與明細分離","textChars":11,"textLines":1,"bbox":[497,232,286,34]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":5,"name":"text","text":"game_records 存一盤棋；moves 與 positions 存多筆細節，符合一對多關係。","textPreview":"game_records 存一盤棋；moves 與 positions 存多筆細節，符合一對多關係。","textChars":50,"textLines":1,"bbox":[497,270,286,80]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":5,"bbox":[860,214,330,150]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":5,"name":"text","text":"第三層：衍生用途分離","textPreview":"第三層：衍生用途分離","textChars":10,"textLines":1,"bbox":[882,232,286,34]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":5,"name":"text","text":"positions 另存 SFEN 與 hash，讓回放、查局面、AI 匯出不需每次重算。","textPreview":"positions 另存 SFEN 與 hash，讓回放、查局面、AI 匯出不需每次重算。","textChars":45,"textLines":1,"bbox":[882,270,286,80]}
+{"kind":"textbox","id":"sh/ulwval87","slide":5,"name":"text","text":"正規化後的好處：減少重複、方便維護、查詢語意清楚，也更容易建立索引。","textPreview":"正規化後的好處：減少重複、方便維護、查詢語意清楚，也更容易建立索引。","textChars":34,"textLines":1,"bbox":[146,450,988,70]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":5,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":5,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":5,"name":"text","text":"5/14","textPreview":"5/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/to23r9","slide":5,"text":"這張講資料庫課堂很重要的正規化。\n重點不是背第幾正規化，而是說清楚為什麼 players、game_records、moves、positions 要分開。\npositions 也可以被視為為了系統用途而保存的可查詢局面快取。"}
+{"kind":"slide","id":"sl/1cpup0","slide":6,"title":"RELATIONSHIP DETAIL","textShapes":7}
+{"kind":"textbox","id":"sh/3m94fu18","slide":6,"name":"text","text":"RELATIONSHIP DETAIL","textPreview":"RELATIONSHIP DETAIL","textChars":19,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/s72x4nap","slide":6,"name":"text","text":"關聯與約束：用 Primary Key / Foreign Key 串起資料","textPreview":"關聯與約束：用 Primary Key / Foreign Key 串起資料","textChars":38,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":6,"name":"text","text":"每個 ID 都有意義：主鍵識別單筆資料，外鍵保證明細資料屬於某一盤棋或某位棋手。","textPreview":"每個 ID 都有意義：主鍵識別單筆資料，外鍵保證明細資料屬於某一盤棋或某位棋手。","textChars":40,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/adsji5sn","slide":6,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/3ylc7u54","slide":6,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":6,"bbox":[178,548,924,82]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":6,"name":"text","text":"資料完整性","textPreview":"資料完整性","textChars":5,"textLines":1,"bbox":[200,566,880,34]}
+{"kind":"textbox","id":"sh/za1gvy90","slide":6,"name":"text","text":"如果 game_records 不存在，理論上 moves 與 positions 不應該單獨存在；這就是外鍵約束想保護的資料一致性。","textPreview":"如果 game_records 不存在，理論上 moves 與 positions 不應該單獨存在；這就是外鍵約束想保護的資料一致性。","textChars":67,"textLines":1,"bbox":[200,604,880,12]}
+{"kind":"shape","id":"sh/z61032ls","slide":6,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":6,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":6,"name":"text","text":"6/14","textPreview":"6/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"table","id":"tb/d8v6psfi","slide":6,"name":"","rows":6,"cols":3,"preview":"關聯 | 型態 | 用途","bbox":[92,208,1096,300]}
+{"kind":"notes","id":"nt/1cpup0","slide":6,"text":"這張講 PK/FK 與關聯。\n可以說主鍵是每筆資料的身分證，外鍵是關聯到別張表的線。\n這樣前端查某盤棋時，可以從 game_records 找到 moves 和 positions。"}
+{"kind":"slide","id":"sl/ks71de","slide":7,"title":"POSITION MOVE DESIGN","textShapes":13}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":7,"name":"text","text":"POSITION MOVE DESIGN","textPreview":"POSITION MOVE DESIGN","textChars":20,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":7,"name":"text","text":"Position 與 Move 的對齊設計","textPreview":"Position 與 Move 的對齊設計","textChars":21,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":7,"name":"text","text":"這是本專案最重要的資料庫設計：局面與下一手要能一一配對。","textPreview":"這是本專案最重要的資料庫設計：局面與下一手要能一一配對。","textChars":28,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":7,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":7,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/ulwval87","slide":7,"name":"text","text":"Position_t  +  Move_{t+1}  →  Position_{t+1}","textPreview":"Position_t  +  Move_{t+1}  →  Position_{t+1}","textChars":44,"textLines":1,"bbox":[142,210,996,84]}
+{"kind":"shape","id":"sh/j6tovaho","slide":7,"bbox":[110,346,330,140]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":7,"name":"text","text":"positions.move_number","textPreview":"positions.move_number","textChars":21,"textLines":1,"bbox":[132,364,286,34]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":7,"name":"text","text":"0 代表初始局面；n 代表走完第 n 手後的 SFEN。","textPreview":"0 代表初始局面；n 代表走完第 n 手後的 SFEN。","textChars":28,"textLines":1,"bbox":[132,402,286,70]}
+{"kind":"shape","id":"sh/psfil0rq","slide":7,"bbox":[475,346,330,140]}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":7,"name":"text","text":"moves.move_number","textPreview":"moves.move_number","textChars":17,"textLines":1,"bbox":[497,364,286,34]}
+{"kind":"textbox","id":"sh/7mp0bi9s","slide":7,"name":"text","text":"1 代表第一手；n 代表第 n 手的 CSA/USI 走法。","textPreview":"1 代表第一手；n 代表第 n 手的 CSA/USI 走法。","textChars":30,"textLines":1,"bbox":[497,402,286,70]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":7,"bbox":[840,346,330,140]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":7,"name":"text","text":"AI 樣本形成","textPreview":"AI 樣本形成","textChars":7,"textLines":1,"bbox":[862,364,286,34]}
+{"kind":"textbox","id":"sh/wval87ed","slide":7,"name":"text","text":"用第 t 手局面預測第 t+1 手走法，直接匯出 supervised learning 樣本。","textPreview":"用第 t 手局面預測第 t+1 手走法，直接匯出 supervised learning 樣本。","textChars":48,"textLines":1,"bbox":[862,402,286,70]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":7,"name":"text","text":"這個設計同時服務前端回放、任意手查詢、opening book 統計與 policy-only 訓練。","textPreview":"這個設計同時服務前端回放、任意手查詢、opening book 統計與 policy-only 訓練。","textChars":51,"textLines":1,"bbox":[134,552,1010,42]}
+{"kind":"shape","id":"sh/epkzupwb","slide":7,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":7,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":7,"name":"text","text":"7/14","textPreview":"7/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/ks71de","slide":7,"text":"這張是最核心。\npositions 的 move_number 和 moves 的 move_number 差一手，因為第 t 個局面要預測下一手。\n這樣就能從資料庫直接匯出 AI 訓練資料，不需要重新解析原始棋譜。"}
+{"kind":"slide","id":"sl/irxlmh","slide":8,"title":"QUERY DESIGN","textShapes":12}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":8,"name":"text","text":"QUERY DESIGN","textPreview":"QUERY DESIGN","textChars":12,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":8,"name":"text","text":"查詢設計：讓常見操作不用掃完整資料庫","textPreview":"查詢設計：讓常見操作不用掃完整資料庫","textChars":18,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":8,"name":"text","text":"資料庫設計要考慮實際查詢模式，而不是只把資料放進去。","textPreview":"資料庫設計要考慮實際查詢模式，而不是只把資料放進去。","textChars":26,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":8,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":8,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/j6tovaho","slide":8,"bbox":[78,210,330,146]}
+{"kind":"textbox","id":"sh/ulwval87","slide":8,"name":"text","text":"棋局列表","textPreview":"棋局列表","textChars":4,"textLines":1,"bbox":[100,228,286,34]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":8,"name":"text","text":"依 played_at、game_id 排序；支援 event、date、player、opening 條件過濾。","textPreview":"依 played_at、game_id 排序；支援 event、date、player、opening 條件過濾。","textChars":57,"textLines":1,"bbox":[100,266,286,76]}
+{"kind":"shape","id":"sh/8nqxs72x","slide":8,"bbox":[475,210,330,146]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":8,"name":"text","text":"局面回放","textPreview":"局面回放","textChars":4,"textLines":1,"bbox":[497,228,286,34]}
+{"kind":"textbox","id":"sh/z61032ls","slide":8,"name":"text","text":"用 positions(game_id, move_number) 直接查第 n 手，不必從第一手重播。","textPreview":"用 positions(game_id, move_number) 直接查第 n 手，不必從第一手重播。","textChars":52,"textLines":1,"bbox":[497,266,286,76]}
+{"kind":"shape","id":"sh/orytsvu9","slide":8,"bbox":[872,210,330,146]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":8,"name":"text","text":"手順顯示","textPreview":"手順顯示","textChars":4,"textLines":1,"bbox":[894,228,286,34]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":8,"name":"text","text":"用 moves.game_id 撈出整盤手順，依 move_number 排序。","textPreview":"用 moves.game_id 撈出整盤手順，依 move_number 排序。","textChars":40,"textLines":1,"bbox":[894,266,286,76]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":8,"bbox":[154,422,972,100]}
+{"kind":"textbox","id":"sh/sfil0rqd","slide":8,"name":"text","text":"典型流程：GET /api/games 搜尋棋局 → GET /api/games/{id}?ply=n 讀第 n 手 → 前端 renderState 畫棋盤","textPreview":"典型流程：GET /api/games 搜尋棋局 → GET /api/games/{id}?ply=n 讀第 n 手 → 前端 renderState 畫棋盤","textChars":80,"textLines":1,"bbox":[188,450,904,42]}
+{"kind":"shape","id":"sh/h0fepkzu","slide":8,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":8,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":8,"name":"text","text":"8/14","textPreview":"8/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/irxlmh","slide":8,"text":"這張把資料庫設計和查詢用途連起來。\n可以說索引要根據查詢模式設計：棋局列表需要 played_at，回放需要 game_id 和 move_number。\nAPI 只是把這些查詢包成前端能用的 JSON。"}
+{"kind":"slide","id":"sl/bacxp7","slide":9,"title":"INDEX STRATEGY","textShapes":6}
+{"kind":"textbox","id":"sh/bq1oryts","slide":9,"name":"text","text":"INDEX STRATEGY","textPreview":"INDEX STRATEGY","textChars":14,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":9,"name":"text","text":"索引策略：把常用查詢變快","textPreview":"索引策略：把常用查詢變快","textChars":12,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":9,"name":"text","text":"索引不是越多越好，而是針對高頻查詢與 join 條件建立。","textPreview":"索引不是越多越好，而是針對高頻查詢與 join 條件建立。","textChars":29,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":9,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":9,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":9,"name":"text","text":"索引改善讀取速度，但會增加寫入成本；所以要根據前端、API、AI 匯出的實際需求選擇。","textPreview":"索引改善讀取速度，但會增加寫入成本；所以要根據前端、API、AI 匯出的實際需求選擇。","textChars":43,"textLines":1,"bbox":[116,574,1048,42]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":9,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":9,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":9,"name":"text","text":"9/14","textPreview":"9/14","textChars":4,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"table","id":"tb/lszqtcj6","slide":9,"name":"","rows":7,"cols":2,"preview":"索引候選 | 加速用途","bbox":[116,206,1048,334]}
+{"kind":"notes","id":"nt/bacxp7","slide":9,"text":"這張講效能設計。\n資料庫課堂常會問索引，這裡可以說索引是為查詢服務，不是看到欄位就全部加。\npositions(game_id, move_number) 是最重要的回放索引之一。"}
+{"kind":"slide","id":"sl/eeu181","slide":10,"title":"DATA QUALITY","textShapes":13}
+{"kind":"textbox","id":"sh/bulwval8","slide":10,"name":"text","text":"DATA QUALITY","textPreview":"DATA QUALITY","textChars":12,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":10,"name":"text","text":"資料品質設計：合法性、去重與交易控制","textPreview":"資料品質設計：合法性、去重與交易控制","textChars":18,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/p0bi9s36","slide":10,"name":"text","text":"乾淨資料比大量資料更重要，因為後續前端與 AI 都依賴資料庫。","textPreview":"乾淨資料比大量資料更重要，因為後續前端與 AI 都依賴資料庫。","textChars":31,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/ixczed8v","slide":10,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/bi9s36hc","slide":10,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/032lszqt","slide":10,"bbox":[82,208,330,158]}
+{"kind":"textbox","id":"sh/tovahoza","slide":10,"name":"text","text":"合法性檢查","textPreview":"合法性檢查","textChars":5,"textLines":1,"bbox":[104,226,286,34]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":10,"name":"text","text":"匯入時用 cshogi 驗證 CSA 走法是否合法，非法棋譜不寫入正式資料。","textPreview":"匯入時用 cshogi 驗證 CSA 走法是否合法，非法棋譜不寫入正式資料。","textChars":38,"textLines":1,"bbox":[104,264,286,88]}
+{"kind":"shape","id":"sh/b6xkf6dc","slide":10,"bbox":[475,208,330,158]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":10,"name":"text","text":"重複控制","textPreview":"重複控制","textChars":4,"textLines":1,"bbox":[497,226,286,34]}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":10,"name":"text","text":"original_file_name 與棋局指紋可避免同一盤棋被重複匯入。","textPreview":"original_file_name 與棋局指紋可避免同一盤棋被重複匯入。","textChars":37,"textLines":1,"bbox":[497,264,286,88]}
+{"kind":"shape","id":"sh/l87ed8ba","slide":10,"bbox":[868,208,330,158]}
+{"kind":"textbox","id":"sh/sneloj2t","slide":10,"name":"text","text":"交易控制","textPreview":"交易控制","textChars":4,"textLines":1,"bbox":[890,226,286,34]}
+{"kind":"textbox","id":"sh/3ex0nuxc","slide":10,"name":"text","text":"整盤棋匯入成功才 commit；中途出錯 rollback，避免 moves 或 positions 缺一半。","textPreview":"整盤棋匯入成功才 commit；中途出錯 rollback，避免 moves 或 positions 缺一半。","textChars":55,"textLines":1,"bbox":[890,264,286,88]}
+{"kind":"shape","id":"sh/at47y1kr","slide":10,"bbox":[276,430,728,90]}
+{"kind":"textbox","id":"sh/lkjm1cfa","slide":10,"name":"text","text":"可追蹤性","textPreview":"可追蹤性","textChars":4,"textLines":1,"bbox":[298,448,684,34]}
+{"kind":"textbox","id":"sh/szqtcj6t","slide":10,"name":"text","text":"users 與檔案名稱保留來源資訊，方便日後檢查是哪一次匯入造成問題。","textPreview":"users 與檔案名稱保留來源資訊，方便日後檢查是哪一次匯入造成問題。","textChars":35,"textLines":1,"bbox":[298,486,684,20]}
+{"kind":"shape","id":"sh/3itgfmlk","slide":10,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/ex0nuxc3","slide":10,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/i9s36hcr","slide":10,"name":"text","text":"10/14","textPreview":"10/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/eeu181","slide":10,"text":"這張講資料品質。\n重點是資料庫不是只要能寫入，更要保證寫入的內容可信。\n交易控制能避免資料庫裡出現只有半盤棋的狀況。"}
+{"kind":"slide","id":"sl/2gtknn","slide":11,"title":"ARCHITECTURE USAGE","textShapes":17}
+{"kind":"textbox","id":"sh/sneloj2t","slide":11,"name":"text","text":"ARCHITECTURE USAGE","textPreview":"ARCHITECTURE USAGE","textChars":18,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/32lszqtc","slide":11,"name":"text","text":"系統架構中的資料庫角色","textPreview":"系統架構中的資料庫角色","textChars":11,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/ahoza1gv","slide":11,"name":"text","text":"資料庫位在中心，向上服務 API 與前端，向下承接匯入流程，向旁邊支援 AI。","textPreview":"資料庫位在中心，向上服務 API 與前端，向下承接匯入流程，向旁邊支援 AI。","textChars":39,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/lkjm1cfa","slide":11,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/szqtcj6t","slide":11,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/3ex0nuxc","slide":11,"bbox":[80,270,220,150]}
+{"kind":"textbox","id":"sh/at47y1kr","slide":11,"name":"text","text":"CSA 匯入流程","textPreview":"CSA 匯入流程","textChars":8,"textLines":1,"bbox":[94,282,192,28]}
+{"kind":"textbox","id":"sh/loj2t83i","slide":11,"name":"text","text":"解析 CSA\n驗證合法手\n寫入 MySQL","textPreview":"解析 CSA | 驗證合法手 | 寫入 MySQL","textChars":21,"textLines":3,"bbox":[100,322,180,88]}
+{"kind":"shape","id":"sh/w3m94fu1","slide":11,"bbox":[530,238,240,188]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":11,"name":"text","text":"MySQL 資料庫","textPreview":"MySQL 資料庫","textChars":9,"textLines":1,"bbox":[544,250,212,28]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":11,"name":"text","text":"players / games\nmoves / positions\nindexes / constraints","textPreview":"players / games | moves / positions | indexes / constraints","textChars":55,"textLines":3,"bbox":[550,290,200,126]}
+{"kind":"shape","id":"sh/cj6tovah","slide":11,"bbox":[980,270,220,150]}
+{"kind":"textbox","id":"sh/54zidony","slide":11,"name":"text","text":"API / 前端","textPreview":"API / 前端","textChars":8,"textLines":1,"bbox":[994,282,192,28]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":11,"name":"text","text":"搜尋棋局\n跳到任意手\n上傳與互動","textPreview":"搜尋棋局 | 跳到任意手 | 上傳與互動","textChars":16,"textLines":3,"bbox":[1000,322,180,88]}
+{"kind":"shape","id":"sh/nap4r65w","slide":11,"bbox":[530,476,240,124]}
+{"kind":"textbox","id":"sh/cvixczed","slide":11,"name":"text","text":"AI 用途","textPreview":"AI 用途","textChars":5,"textLines":1,"bbox":[544,488,212,28]}
+{"kind":"textbox","id":"sh/5gbq1ory","slide":11,"name":"text","text":"policy dataset\nopening book\nmodel match","textPreview":"policy dataset | opening book | model match","textChars":39,"textLines":3,"bbox":[550,528,200,62]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":11,"bbox":[300,330,230,14]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":11,"name":"text","text":"寫入","textPreview":"寫入","textChars":2,"textLines":1,"bbox":[379,321,72,24]}
+{"kind":"shape","id":"sh/bm58z25k","slide":11,"bbox":[770,330,210,14]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":11,"name":"text","text":"查詢","textPreview":"查詢","textChars":2,"textLines":1,"bbox":[839,321,72,24]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":11,"bbox":[650,426,1,50]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":11,"name":"text","text":"匯出","textPreview":"匯出","textChars":2,"textLines":1,"bbox":[614,435,72,24]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":11,"name":"text","text":"資料庫是「中介層」：把一次性的棋譜檔案轉成多個功能都能共用的資料資產。","textPreview":"資料庫是「中介層」：把一次性的棋譜檔案轉成多個功能都能共用的資料資產。","textChars":35,"textLines":1,"bbox":[124,190,1032,40]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":11,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/tgfmlkjm","slide":11,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":11,"name":"text","text":"11/14","textPreview":"11/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/2gtknn","slide":11,"text":"這張講架構與用途。\nCSA 匯入流程把資料寫進資料庫；API 和前端從資料庫讀資料；AI 從資料庫匯出訓練資料或建立 opening book。\n所以資料庫是系統中心，而不是附屬檔案夾。"}
+{"kind":"slide","id":"sl/guxq8w","slide":12,"title":"API FROM DATABASE","textShapes":6}
+{"kind":"textbox","id":"sh/oj2t83it","slide":12,"name":"text","text":"API FROM DATABASE","textPreview":"API FROM DATABASE","textChars":17,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":12,"name":"text","text":"API 用途：把資料庫查詢包成 JSON","textPreview":"API 用途：把資料庫查詢包成 JSON","textChars":20,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/6dcbulwv","slide":12,"name":"text","text":"API 的價值是讓前端不用知道 SQL，只要照約定呼叫網址取得資料。","textPreview":"API 的價值是讓前端不用知道 SQL，只要照約定呼叫網址取得資料。","textChars":34,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/dsji5sne","slide":12,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/o7qpg3ex","slide":12,"bbox":[1082,44,58,10]}
+{"kind":"textbox","id":"sh/61032lsz","slide":12,"name":"text","text":"API 是用途層；真正支撐 API 的，是底下清楚的 schema 與索引設計。","textPreview":"API 是用途層；真正支撐 API 的，是底下清楚的 schema 與索引設計。","textChars":40,"textLines":1,"bbox":[160,570,960,42]}
+{"kind":"shape","id":"sh/dg7adsji","slide":12,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":12,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/mtwra5gb","slide":12,"name":"text","text":"12/14","textPreview":"12/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"table","id":"tb/a9w3m94f","slide":12,"name":"","rows":6,"cols":3,"preview":"API | 背後資料表 | 用途","bbox":[92,208,1096,326]}
+{"kind":"notes","id":"nt/guxq8w","slide":12,"text":"這張把 API 拉回資料庫設計。\n老師如果問 API 與資料庫關係，可以說 API 是包裝 SQL 查詢的介面。\n前端看不到資料表細節，但後端 API 會依據 schema 去 join 與組 JSON。"}
+{"kind":"slide","id":"sl/cwsnwq","slide":13,"title":"AI USAGE","textShapes":12}
+{"kind":"textbox","id":"sh/j2t83itg","slide":13,"name":"text","text":"AI USAGE","textPreview":"AI USAGE","textChars":8,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":13,"name":"text","text":"AI 用途：資料庫如何支援訓練與搜尋","textPreview":"AI 用途：資料庫如何支援訓練與搜尋","textChars":18,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":13,"name":"text","text":"資料庫不是只為前端服務，也支援 policy-only 模型與 alpha-beta 搜尋。","textPreview":"資料庫不是只為前端服務，也支援 policy-only 模型與 alpha-beta 搜尋。","textChars":46,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/q5o7qpg3","slide":13,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/jqh0fepk","slide":13,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/8bat47y1","slide":13,"bbox":[84,210,340,158]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":13,"name":"text","text":"訓練資料匯出","textPreview":"訓練資料匯出","textChars":6,"textLines":1,"bbox":[106,228,296,34]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":13,"name":"text","text":"positions + moves 形成 4,855,173 筆 Position → Move 樣本，輸出 policy-only .npz。","textPreview":"positions + moves 形成 4,855,173 筆 Position → Move 樣本，輸出 policy-only .npz。","textChars":72,"textLines":1,"bbox":[106,266,296,88]}
+{"kind":"shape","id":"sh/ji5snelo","slide":13,"bbox":[470,210,340,158]}
+{"kind":"textbox","id":"sh/vu9knih4","slide":13,"name":"text","text":"Opening Book","textPreview":"Opening Book","textChars":12,"textLines":1,"bbox":[492,228,296,34]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":13,"name":"text","text":"用 sfen_hash 統計同局面常見走法，AI 開局可優先採用實戰高頻手。","textPreview":"用 sfen_hash 統計同局面常見走法，AI 開局可優先採用實戰高頻手。","textChars":38,"textLines":1,"bbox":[492,266,296,88]}
+{"kind":"shape","id":"sh/d0z61032","slide":13,"bbox":[856,210,340,158]}
+{"kind":"textbox","id":"sh/kf6dcbul","slide":13,"name":"text","text":"模型同步後使用","textPreview":"模型同步後使用","textChars":7,"textLines":1,"bbox":[878,228,296,34]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":13,"name":"text","text":"遠端訓練完成後模型同步回本地，API 載入 policy model 產生候選手。","textPreview":"遠端訓練完成後模型同步回本地，API 載入 policy model 產生候選手。","textChars":41,"textLines":1,"bbox":[878,266,296,88]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":13,"name":"text","text":"資料庫設計若沒有保存 positions 與 sfen_hash，AI 訓練與 opening book 都會變得困難。","textPreview":"資料庫設計若沒有保存 positions 與 sfen_hash，AI 訓練與 opening book 都會變得困難。","textChars":60,"textLines":1,"bbox":[132,454,1016,70]}
+{"kind":"shape","id":"sh/d8bat47y","slide":13,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/knih4byh","slide":13,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/val87ed8","slide":13,"name":"text","text":"13/14","textPreview":"13/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/cwsnwq","slide":13,"text":"這張講 AI 用途，但仍然從資料庫設計角度說。\npositions 和 moves 的對齊是訓練資料來源，sfen_hash 則有助於統計相同局面的常見手。\n這說明資料庫設計會影響 AI 系統能力。"}
+{"kind":"slide","id":"sl/llckj4","slide":14,"title":"SUMMARY","textShapes":12}
+{"kind":"textbox","id":"sh/ed8bat47","slide":14,"name":"text","text":"SUMMARY","textPreview":"SUMMARY","textChars":7,"textLines":1,"bbox":[64,42,760,24]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":14,"name":"text","text":"結論：資料庫設計決定整個系統能做什麼","textPreview":"結論：資料庫設計決定整個系統能做什麼","textChars":18,"textLines":1,"bbox":[64,72,990,62]}
+{"kind":"textbox","id":"sh/wfyxobm5","slide":14,"name":"text","text":"shogiAI 的資料庫設計把棋譜資料轉成可搜尋、可回放、可訓練、可擴充的結構。","textPreview":"shogiAI 的資料庫設計把棋譜資料轉成可搜尋、可回放、可訓練、可擴充的結構。","textChars":40,"textLines":1,"bbox":[64,128,1040,44]}
+{"kind":"shape","id":"sh/36hcrmhk","slide":14,"bbox":[1152,44,64,10]}
+{"kind":"shape","id":"sh/eloj2t83","slide":14,"bbox":[1082,44,58,10]}
+{"kind":"shape","id":"sh/lc7u54zi","slide":14,"bbox":[90,214,335,174]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":14,"name":"text","text":"設計重點","textPreview":"設計重點","textChars":4,"textLines":1,"bbox":[112,232,291,34]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":14,"name":"text","text":"五張核心表分工清楚，game_records 作為中心，moves 與 positions 支援明細與局面。","textPreview":"五張核心表分工清楚，game_records 作為中心，moves 與 positions 支援明細與局面。","textChars":54,"textLines":1,"bbox":[112,270,291,104]}
+{"kind":"shape","id":"sh/epkzupwb","slide":14,"bbox":[472,214,335,174]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":14,"name":"text","text":"架構重點","textPreview":"架構重點","textChars":4,"textLines":1,"bbox":[494,232,291,34]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":14,"name":"text","text":"匯入流程、API、前端、AI 都圍繞 MySQL schema 運作，資料庫是系統中心。","textPreview":"匯入流程、API、前端、AI 都圍繞 MySQL schema 運作，資料庫是系統中心。","textChars":44,"textLines":1,"bbox":[494,270,291,104]}
+{"kind":"shape","id":"sh/qd4vmtwr","slide":14,"bbox":[854,214,335,174]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":14,"name":"text","text":"用途重點","textPreview":"用途重點","textChars":4,"textLines":1,"bbox":[876,232,291,34]}
+{"kind":"textbox","id":"sh/8v6psfil","slide":14,"name":"text","text":"支援棋譜搜尋、任意手回放、CSA 上傳、opening book、policy-only 訓練資料匯出。","textPreview":"支援棋譜搜尋、任意手回放、CSA 上傳、opening book、policy-only 訓練資料匯出。","textChars":52,"textLines":1,"bbox":[876,270,291,104]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":14,"name":"text","text":"Q&A","textPreview":"Q&A","textChars":3,"textLines":1,"bbox":[0,492,1280,72]}
+{"kind":"shape","id":"sh/qpg3ex0n","slide":14,"bbox":[64,672,1152,0]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":14,"name":"text","text":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textPreview":"shogiAI 資料庫系統｜資料庫設計、架構、用途","textChars":25,"textLines":1,"bbox":[64,680,940,24]}
+{"kind":"textbox","id":"sh/8z25kb6x","slide":14,"name":"text","text":"14/14","textPreview":"14/14","textChars":5,"textLines":1,"bbox":[1120,678,96,26]}
+{"kind":"notes","id":"nt/llckj4","slide":14,"text":"結尾強調三點：設計、架構、用途。\n如果要一句話總結：這個資料庫讓棋譜從靜態檔案變成可被系統與 AI 重複利用的資料資產。"}

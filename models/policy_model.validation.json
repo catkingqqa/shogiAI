@@ -1,42 +1,37 @@
 {
-  "model": "out/policy_model.pt",
-  "size": 35057053,
-  "epochs": 12,
+  "model": "out/policy_model.policy_only.pt",
+  "size": 33727445,
   "splits": {
-    "train_samples": 2715245,
-    "validation_samples": 339384,
-    "test_samples": 341735,
-    "value_labeled_samples": 3396364,
-    "value_unlabeled_samples": 0
+    "train_samples": 3882230,
+    "validation_samples": 487292,
+    "test_samples": 485651
   },
   "test_metrics": {
-    "policy_loss": 2.379208876134423,
-    "accuracy": 0.39873293633956136,
-    "top3_accuracy": 0.6378948600523797,
-    "top5_accuracy": 0.7322925658770685,
-    "value_loss": 0.9715833804203684,
-    "value_mae": 0.9072440554881592
+    "policy_loss": 2.27511775635303,
+    "accuracy": 0.4110317903185621,
+    "top3_accuracy": 0.6523861785520878,
+    "top5_accuracy": 0.7448888193373431
   },
   "initial_candidates": [
     {
       "move": "7g7f",
-      "probability": 0.5170307159423828
+      "probability": 0.6109782457351685
     },
     {
       "move": "2g2f",
-      "probability": 0.42083415389060974
+      "probability": 0.33916938304901123
     },
     {
       "move": "5g5f",
-      "probability": 0.04446829855442047
+      "probability": 0.033433351665735245
     },
     {
       "move": "2h7h",
-      "probability": 0.01276126317679882
+      "probability": 0.011529739946126938
     },
     {
       "move": "9g9f",
-      "probability": 0.0016753830714151263
+      "probability": 0.001477777841500938
     }
   ]
 }

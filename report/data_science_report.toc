@@ -1,44 +1,50 @@
-\contentsline {section}{\numberline {1}資料科學目標}{3}{section.1}%
-\contentsline {section}{\numberline {2}資料來源與規模}{3}{section.2}%
-\contentsline {section}{\numberline {3}資料前處理流程}{4}{section.3}%
-\contentsline {subsection}{\numberline {3.1}解析棋譜}{4}{subsection.3.1}%
-\contentsline {subsection}{\numberline {3.2}局面編碼}{4}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}行棋方視角旋轉}{4}{subsection.3.3}%
-\contentsline {subsection}{\numberline {3.4}走法標籤化}{5}{subsection.3.4}%
-\contentsline {subsection}{\numberline {3.5}Value 標籤}{5}{subsection.3.5}%
-\contentsline {section}{\numberline {4}資料處理邏輯與原理}{5}{section.4}%
-\contentsline {subsection}{\numberline {4.1}為什麼用 supervised learning}{5}{subsection.4.1}%
-\contentsline {subsection}{\numberline {4.2}為什麼保存 metadata}{6}{subsection.4.2}%
-\contentsline {subsection}{\numberline {4.3}為什麼用 game-level split}{6}{subsection.4.3}%
-\contentsline {section}{\numberline {5}模型架構}{6}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Feature Extractor}{6}{subsection.5.1}%
-\contentsline {subsection}{\numberline {5.2}Policy Head}{6}{subsection.5.2}%
-\contentsline {subsection}{\numberline {5.3}Value Head}{6}{subsection.5.3}%
-\contentsline {section}{\numberline {6}訓練方法}{7}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Loss Function}{7}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Optimizer 與 Scheduler}{8}{subsection.6.2}%
-\contentsline {section}{\numberline {7}訓練成果}{8}{section.7}%
-\contentsline {subsection}{\numberline {7.1}成果解讀}{8}{subsection.7.1}%
-\contentsline {section}{\numberline {8}AI 設計}{9}{section.8}%
-\contentsline {subsection}{\numberline {8.1}傳統搜尋核心}{9}{subsection.8.1}%
-\contentsline {subsection}{\numberline {8.2}手工評估函數}{9}{subsection.8.2}%
-\contentsline {subsection}{\numberline {8.3}Policy 網路如何介入搜尋}{10}{subsection.8.3}%
-\contentsline {subsection}{\numberline {8.4}Value 網路如何介入搜尋}{10}{subsection.8.4}%
-\contentsline {subsection}{\numberline {8.5}開局庫}{10}{subsection.8.5}%
-\contentsline {section}{\numberline {9}模型評估與比賽}{10}{section.9}%
-\contentsline {section}{\numberline {10}限制與改進方向}{11}{section.10}%
-\contentsline {subsection}{\numberline {10.1}資料限制}{11}{subsection.10.1}%
-\contentsline {subsection}{\numberline {10.2}模型限制}{11}{subsection.10.2}%
-\contentsline {subsection}{\numberline {10.3}Value label 限制}{11}{subsection.10.3}%
-\contentsline {subsection}{\numberline {10.4}評估限制}{11}{subsection.10.4}%
-\contentsline {section}{\numberline {11}教授可能提問與回答}{11}{section.11}%
-\contentsline {subsection}{\numberline {11.1}為什麼不用 one-hot 表示整個棋盤就好}{11}{subsection.11.1}%
-\contentsline {subsection}{\numberline {11.2}為什麼 policy 輸出 13,689 類，而不是只輸出合法手}{11}{subsection.11.2}%
-\contentsline {subsection}{\numberline {11.3}Top-1 只有 33\%，是否太低}{11}{subsection.11.3}%
-\contentsline {subsection}{\numberline {11.4}為什麼還需要 alpha-beta，不直接用模型下}{12}{subsection.11.4}%
-\contentsline {subsection}{\numberline {11.5}Value head 為什麼效果較差}{12}{subsection.11.5}%
-\contentsline {section}{\numberline {12}結論}{12}{section.12}%
-\contentsline {section}{\numberline {A}常用指令}{12}{appendix.A}%
-\contentsline {subsection}{\numberline {A.1}匯出訓練資料}{12}{subsection.A.1}%
-\contentsline {subsection}{\numberline {A.2}訓練模型}{12}{subsection.A.2}%
-\contentsline {subsection}{\numberline {A.3}模型對弈測試}{13}{subsection.A.3}%
+\contentsline {section}{\numberline {1}數據科學目標}{4}{section.1}%
+\contentsline {section}{\numberline {2}問題定義}{4}{section.2}%
+\contentsline {section}{\numberline {3}資料來源與最新規模}{4}{section.3}%
+\contentsline {section}{\numberline {4}資料前處理流程}{5}{section.4}%
+\contentsline {section}{\numberline {5}局面特徵編碼}{6}{section.5}%
+\contentsline {section}{\numberline {6}行棋方視角旋轉}{6}{section.6}%
+\contentsline {section}{\numberline {7}走法標籤設計}{6}{section.7}%
+\contentsline {subsection}{\numberline {7.1}一般移動}{7}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}打入持駒}{7}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}總類別數}{7}{subsection.7.3}%
+\contentsline {section}{\numberline {8}從 Policy/Value 改成 Policy-only}{7}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Value 標籤訊號太粗}{7}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}投降資料使局面價值不精準}{7}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}小型 CNN 容量有限}{8}{subsection.8.3}%
+\contentsline {subsection}{\numberline {8.4}實際應用以候選手排序為主}{8}{subsection.8.4}%
+\contentsline {section}{\numberline {9}Policy-only 模型架構}{8}{section.9}%
+\contentsline {section}{\numberline {10}訓練方法}{8}{section.10}%
+\contentsline {subsection}{\numberline {10.1}Loss Function}{8}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}Optimizer}{9}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}Learning Rate Scheduler}{9}{subsection.10.3}%
+\contentsline {subsection}{\numberline {10.4}Game-level Split}{9}{subsection.10.4}%
+\contentsline {section}{\numberline {11}最新訓練結果}{9}{section.11}%
+\contentsline {section}{\numberline {12}結果解讀}{10}{section.12}%
+\contentsline {section}{\numberline {13}模型推論與快取}{10}{section.13}%
+\contentsline {section}{\numberline {14}Alpha-beta 搜尋概論}{10}{section.14}%
+\contentsline {subsection}{\numberline {14.1}Minimax 與 Negamax}{11}{subsection.14.1}%
+\contentsline {subsection}{\numberline {14.2}Alpha-beta Pruning}{11}{subsection.14.2}%
+\contentsline {section}{\numberline {15}shogiAI 搜尋技術}{11}{section.15}%
+\contentsline {subsection}{\numberline {15.1}Quiescence Search}{11}{subsection.15.1}%
+\contentsline {subsection}{\numberline {15.2}Transposition Table}{11}{subsection.15.2}%
+\contentsline {subsection}{\numberline {15.3}Killer Move}{11}{subsection.15.3}%
+\contentsline {subsection}{\numberline {15.4}History Heuristic}{12}{subsection.15.4}%
+\contentsline {subsection}{\numberline {15.5}Late Move Reduction}{12}{subsection.15.5}%
+\contentsline {section}{\numberline {16}手工評估函數}{12}{section.16}%
+\contentsline {section}{\numberline {17}Policy Network 如何結合 Alpha-beta}{12}{section.17}%
+\contentsline {section}{\numberline {18}Opening Book}{13}{section.18}%
+\contentsline {section}{\numberline {19}模型互打與評估}{13}{section.19}%
+\contentsline {section}{\numberline {20}前端展示與應用}{14}{section.20}%
+\contentsline {section}{\numberline {21}限制與改進方向}{14}{section.21}%
+\contentsline {subsection}{\numberline {21.1}模型容量限制}{14}{subsection.21.1}%
+\contentsline {subsection}{\numberline {21.2}資料標籤限制}{14}{subsection.21.2}%
+\contentsline {subsection}{\numberline {21.3}Legal Move Mask}{14}{subsection.21.3}%
+\contentsline {subsection}{\numberline {21.4}自我對弈}{15}{subsection.21.4}%
+\contentsline {subsection}{\numberline {21.5}Value 的未來可能}{15}{subsection.21.5}%
+\contentsline {section}{\numberline {22}結論}{15}{section.22}%
+\contentsline {section}{\numberline {A}常用指令}{15}{appendix.A}%
+\contentsline {subsection}{\numberline {A.1}匯出資料集}{15}{subsection.A.1}%
+\contentsline {subsection}{\numberline {A.2}訓練 policy-only 模型}{15}{subsection.A.2}%
+\contentsline {subsection}{\numberline {A.3}啟動 AI 瀏覽器}{16}{subsection.A.3}%
+\contentsline {subsection}{\numberline {A.4}模型互打}{16}{subsection.A.4}%
