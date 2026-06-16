@@ -29,7 +29,7 @@ from compare_ai_models import (
     summarize,
     terminal_result,
 )
-from policy_model import PolicyValuePredictor
+from policy_model import PolicyPredictor
 
 try:
     import pymysql
@@ -1102,7 +1102,6 @@ def serialize_ai_play_state(
     search: dict[str, Any] | None = None,
     resigned_side: str | None = None,
     policy_candidates: list[dict[str, Any]] | None = None,
-    value_estimate: float | None = None,
 ) -> dict[str, Any]:
     """功能：處理 serialize_ai_play_state 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
     state = serialize_self_play_state(board, moves, max_repetition_count)
@@ -1118,7 +1117,6 @@ def serialize_ai_play_state(
     state["search"] = search
     state["resignedSide"] = resigned_side
     state["policyCandidates"] = policy_candidates or []
-    state["valueEstimate"] = value_estimate
     state["isCheckmate"] = state["legalMovesCount"] == 0 and state["isCheck"]
     state["isGameOver"] = bool(
         state["isSennichite"] or state["isCheckmate"] or resigned_side is not None
@@ -1262,10 +1260,9 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
     server_version = "CsaBrowser/0.2"
     source: GameSource
     mysql_config: MySqlConfig | None = None
-    policy_predictor: PolicyValuePredictor | None = None
+    policy_predictor: PolicyPredictor | None = None
     opening_book: OpeningBook | None = None
     match_engine_cache: dict[tuple[str, str, int, int, int], MatchEngine] = {}
-    value_weight = 0
     policy_order_ply = 2
 
     def do_GET(self) -> None:
@@ -1360,7 +1357,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             resigned_side = self.parse_optional_side(payload.get("resignedSide"))
             board, records, _, max_repetition_count = replay_usi_moves(moves)
             policy_candidates = self.serialize_policy_candidates(board, limit=5)
-            value_estimate = self.value_estimate(board)
             self.send_json(
                 serialize_ai_play_state(
                     board,
@@ -1369,7 +1365,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                     player_side=player_side,
                     resigned_side=resigned_side,
                     policy_candidates=policy_candidates,
-                    value_estimate=value_estimate,
                 )
             )
             return
@@ -1416,9 +1411,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                     depth,
                     time_limit_ms,
                     move_orderer=self.order_moves_with_policy if self.policy_predictor else None,
-                    root_move_evaluator=self.root_value_bonus
-                    if self.policy_predictor and self.value_weight > 0
-                    else None,
                     move_orderer_max_ply=self.policy_order_ply,
                 )
                 selected_move = result.move
@@ -1438,7 +1430,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                 max_repetition_count = max(max_repetition_count, position_counts[key])
 
             policy_candidates = self.serialize_policy_candidates(board, limit=5)
-            value_estimate = self.value_estimate(board)
             self.send_json(
                 serialize_ai_play_state(
                     board,
@@ -1447,7 +1438,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
                     player_side=player_side,
                     search=search_payload,
                     policy_candidates=policy_candidates,
-                    value_estimate=value_estimate,
                 )
             )
             return
@@ -1458,7 +1448,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             self.send_json(
                 {
                     "available": self.policy_predictor is not None,
-                    "valueEstimate": self.value_estimate(board),
                     "candidates": self.serialize_policy_candidates(
                         board,
                         limit=self.parse_candidate_limit(payload),
@@ -1717,25 +1706,6 @@ class CsaBrowserHandler(BaseHTTPRequestHandler):
             serialized["probability"] = candidate.probability
             candidates.append(serialized)
         return candidates
-
-    def evaluate_with_value_head(self, board: cshogi.Board) -> int:
-        """功能：處理 evaluate_with_value_head 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        if self.policy_predictor is None:
-            return evaluate_position(board)
-        value_bonus = int(round(self.policy_predictor.value_for_board(board) * self.value_weight))
-        return evaluate_position(board) + value_bonus
-
-    def root_value_bonus(self, board_after_ai_move: cshogi.Board) -> int:
-        """功能：處理 root_value_bonus 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        if self.policy_predictor is None:
-            return 0
-        return int(round(-self.policy_predictor.value_for_board(board_after_ai_move) * self.value_weight))
-
-    def value_estimate(self, board: cshogi.Board) -> float | None:
-        """功能：處理 value_estimate 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
-        if self.policy_predictor is None:
-            return None
-        return self.policy_predictor.value_for_board(board)
 
     def model_match_models(self) -> list[dict[str, Any]]:
         models = []
@@ -2078,12 +2048,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--db-name", default=os.getenv("MYSQL_DATABASE", "DB11211213"))
     parser.add_argument("--policy-model", type=Path, default=ROOT / "out" / "policy_model.pt")
     parser.add_argument(
-        "--value-weight",
-        type=int,
-        default=0,
-        help="Value-head bonus weight for root move scoring; 0 disables value scoring",
-    )
-    parser.add_argument(
         "--policy-order-ply",
         type=int,
         default=2,
@@ -2131,7 +2095,7 @@ def load_optional_ai_features(args: argparse.Namespace, mysql_config: MySqlConfi
     """Load slower optional AI helpers after the web server starts accepting requests."""
     if args.policy_model.is_file():
         try:
-            CsaBrowserHandler.policy_predictor = PolicyValuePredictor(args.policy_model)
+            CsaBrowserHandler.policy_predictor = PolicyPredictor(args.policy_model)
             print(f"Policy model loaded: {args.policy_model}", flush=True)
         except Exception as exc:
             print(f"Policy model disabled: {exc}", flush=True)
@@ -2162,7 +2126,6 @@ def main() -> int:
     CsaBrowserHandler.mysql_config = mysql_config
     CsaBrowserHandler.policy_predictor = None
     CsaBrowserHandler.opening_book = None
-    CsaBrowserHandler.value_weight = max(0, args.value_weight)
     CsaBrowserHandler.policy_order_ply = max(0, args.policy_order_ply)
     server = ThreadingHTTPServer((args.host, args.port), CsaBrowserHandler)
     print(f"CSA browser running at http://{args.host}:{args.port}", flush=True)

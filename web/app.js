@@ -78,7 +78,6 @@ const resignAiPlayBtn = document.querySelector("#resignAiPlayBtn");
 const aiScore = document.querySelector("#aiScore");
 const aiSearchDepth = document.querySelector("#aiSearchDepth");
 const aiNodes = document.querySelector("#aiNodes");
-const aiValue = document.querySelector("#aiValue");
 const aiPv = document.querySelector("#aiPv");
 const aiCandidateCount = document.querySelector("#aiCandidateCount");
 const aiCandidateList = document.querySelector("#aiCandidateList");
@@ -722,7 +721,7 @@ function aiResultLabel(state) {
 }
 
 // 功能：處理 renderAiSearch 前端流程，負責狀態讀寫、API 互動或 DOM 畫面更新。
-function renderAiSearch(search, valueEstimate) {
+function renderAiSearch(search) {
   if (search?.source === "openingBook") {
     aiScore.textContent = `Book ${Math.round((search.bookRate || 0) * 100)}%`;
     aiSearchDepth.textContent = "Book";
@@ -732,7 +731,6 @@ function renderAiSearch(search, valueEstimate) {
     aiSearchDepth.textContent = search ? String(search.depth) : "-";
     aiNodes.textContent = search ? String(search.nodes) : "-";
   }
-  aiValue.textContent = valueEstimate == null ? "-" : valueEstimate.toFixed(3);
   aiPv.textContent = search?.pv?.length ? search.pv.join(" ") : "-";
 }
 
@@ -777,7 +775,7 @@ function renderAiPlayState(state) {
     !state.isGameOver && state.turn !== state.playerSide ? "輪到 AI" : "",
     state.isSennichite ? "已偵測千日手" : "",
   ].filter(Boolean).join(" · ");
-  renderAiSearch(state.search, state.valueEstimate);
+  renderAiSearch(state.search);
   renderAiCandidates(state.policyCandidates || []);
   renderBoardInto(aiBoard, state, { selectedSource: aiSelectedSource, legalTargets });
   renderHandsInto(aiBlackHands, state.hands["+"] || {}, state, {

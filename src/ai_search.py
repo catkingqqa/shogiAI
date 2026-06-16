@@ -96,7 +96,6 @@ class SearchContext:
     deadline: float | None
     move_orderer: Callable[[cshogi.Board, Iterable[int]], Iterable[int]] | None
     evaluator: Callable[[cshogi.Board], int] | None
-    root_move_evaluator: Callable[[cshogi.Board], int] | None = None
     move_orderer_max_ply: int = 2
     nodes: list[int] = field(default_factory=lambda: [0])
     tt: dict[tuple[int, int], TTEntry] = field(default_factory=dict)
@@ -641,8 +640,6 @@ def negamax(
                     next_extension_count,
                 )
                 score = -score
-        if ply == 0 and context.root_move_evaluator is not None:
-            score += context.root_move_evaluator(child)
         if score > best_score:
             best_score = score
             best_line = [move, *line]
@@ -671,7 +668,6 @@ def search_best_move(
     time_limit_ms: int | None,
     move_orderer: Callable[[cshogi.Board, Iterable[int]], Iterable[int]] | None = None,
     evaluator: Callable[[cshogi.Board], int] | None = None,
-    root_move_evaluator: Callable[[cshogi.Board], int] | None = None,
     move_orderer_max_ply: int = 2,
 ) -> SearchResult:
     """功能：處理 search_best_move 流程，整理輸入資料、執行核心邏輯，並回傳後續程式需要的結果。"""
@@ -698,7 +694,6 @@ def search_best_move(
         deadline=deadline,
         move_orderer=move_orderer,
         evaluator=evaluator,
-        root_move_evaluator=root_move_evaluator,
         move_orderer_max_ply=max(0, move_orderer_max_ply),
     )
     for depth in range(1, max_depth + 1):

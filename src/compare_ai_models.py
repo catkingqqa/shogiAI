@@ -10,13 +10,13 @@ from typing import Iterable
 import cshogi
 
 from ai_search import evaluate_position, repetition_key, search_best_move
-from policy_model import PolicyValuePredictor
+from policy_model import PolicyPredictor
 
 
 @dataclass(frozen=True)
 class MatchEngine:
     name: str
-    predictor: PolicyValuePredictor | None
+    predictor: PolicyPredictor | None
     depth: int = 3
     time_limit_ms: int = 1000
     policy_order_ply: int = 2
@@ -84,7 +84,7 @@ def load_engine(
         raise FileNotFoundError(f"model not found: {model_path}")
     return MatchEngine(
         name=name,
-        predictor=PolicyValuePredictor(model_path),
+        predictor=PolicyPredictor(model_path),
         depth=depth,
         time_limit_ms=time_limit_ms,
         policy_order_ply=policy_order_ply,
