@@ -1,4 +1,5 @@
 """訓練 HalfKP NNUE 局面評估器。
+
 標籤由教師引擎搜尋分數與最終勝負混合而成。
 """
 from __future__ import annotations
@@ -151,6 +152,7 @@ class NNUEPositionDataset(Dataset[PositionSample]):
         metas = data["meta"]
         teacher_scores, self.teacher_score_key = find_teacher_scores(data, teacher_score_key)
         values = data["values"].astype(np.float32) if "values" in data.files else None
+        value_masks = data["value_masks"].astype(np.float32) if "value_masks" in data.files else None
         if values is None and teacher_scores is None:
             raise ValueError(
                 "資料集至少需要 values 或 teacher_scores；"
@@ -158,6 +160,8 @@ class NNUEPositionDataset(Dataset[PositionSample]):
             )
         if values is not None and len(metas) != len(values):
             raise ValueError(f"meta/value 長度不同：meta={len(metas)}, values={len(values)}")
+        if value_masks is not None and len(metas) != len(value_masks):
+            raise ValueError(f"meta/value_masks 長度不同：meta={len(metas)}, value_masks={len(value_masks)}")
         if teacher_scores is not None and len(teacher_scores) != len(metas):
             raise ValueError(f"meta/teacher_scores 長度不同：meta={len(metas)}, teacher_scores={len(teacher_scores)}")
 
@@ -180,7 +184,8 @@ class NNUEPositionDataset(Dataset[PositionSample]):
                     continue
                 board = cshogi.Board(meta["sfen"])
                 teacher_score = None if teacher_scores is None else float(teacher_scores[row_index])
-                result_value = None if values is None else float(values[row_index])
+                has_result = values is not None and (value_masks is None or float(value_masks[row_index]) > 0.5)
+                result_value = float(values[row_index]) if has_result else None
                 target, weight, has_teacher = make_target(
                     result_value=result_value,
                     teacher_score=teacher_score,
