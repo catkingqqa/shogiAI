@@ -1,4 +1,4 @@
-"""替既有 NNUE .npz 資料集加入固定節點數的 USI 教師分數。
+"""替既有 NNUE .npz資料集加入固定節點數的 USI 教師分數。
 """
 from __future__ import annotations
 

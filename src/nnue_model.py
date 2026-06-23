@@ -1,4 +1,5 @@
 """將棋 HalfKP NNUE 局面評估模型。
+
 模型分別維護先手王與後手王視角的累加器，兩邊共享權重，再依目前手番
 調整串接順序，最後輸出不受範圍限制的 logit。正值表示目前手番較有利。
 搜尋分數由 logit 換算；勝率則使用 sigmoid(logit) 換算。
@@ -90,8 +91,6 @@ def halfkp_hand_index(
 
 def halfkp_feature_indices(board: cshogi.Board, perspective: int) -> list[int]:
     """取得指定玩家視角下，目前啟用的 HalfKP 特徵編號。
-    每個特徵都由「該方王的位置」與一個非王盤面／持駒特徵組成。
-    後手視角會旋轉棋盤，使先後手兩個視角可以共用同一組權重。
     """
     king_square = int(board.king_square(perspective))
     if not 0 <= king_square < BOARD_SQUARES:
