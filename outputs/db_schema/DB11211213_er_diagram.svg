@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1900" height="1180" viewBox="0 0 1900 1180">
+<rect width="1900" height="1180" fill="#F6F8FA"/>
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#94A3B8"/></marker></defs>
+<text x="90" y="95" font-family="Microsoft JhengHei, Noto Sans TC" font-size="20" font-weight="700" fill="#0F766E">RELATIONAL MODEL</text>
+<text x="90" y="150" font-family="Microsoft JhengHei, Noto Sans TC" font-size="44" font-weight="700" fill="#1E2A3A">DB11211213 資料庫結構圖</text>
+<text x="90" y="200" font-family="Microsoft JhengHei, Noto Sans TC" font-size="24" font-weight="400" fill="#5E6B7A">由 mysqldump --no-data 匯出的 schema 產生，呈現資料表、主鍵、外鍵與主要關聯。</text>
+<line x1="470" y1="455" x2="690" y2="470" stroke="#7CA3D8" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="528" y="454" font-family="Microsoft JhengHei, Noto Sans TC" font-size="17" font-weight="400" fill="#5E6B7A">1:N uploader</text>
+<line x1="470" y1="785" x2="690" y2="590" stroke="#7CA3D8" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="528" y="679" font-family="Microsoft JhengHei, Noto Sans TC" font-size="17" font-weight="400" fill="#5E6B7A">1:N black / white</text>
+<line x1="1190" y1="475" x2="1390" y2="445" stroke="#7FC8A9" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="1238" y="452" font-family="Microsoft JhengHei, Noto Sans TC" font-size="17" font-weight="400" fill="#5E6B7A">1:N game_id</text>
+<line x1="1190" y1="675" x2="1390" y2="835" stroke="#E2A44E" stroke-width="4" marker-end="url(#arrow)"/>
+<text x="1238" y="747" font-family="Microsoft JhengHei, Noto Sans TC" font-size="17" font-weight="400" fill="#5E6B7A">1:N game_id</text>
+<rect x="120" y="330" width="350" height="245" rx="12" fill="#FFFFFF" stroke="#B8C6D8" stroke-width="2"/>
+<rect x="120" y="330" width="350" height="58" rx="12" fill="#1D4ED8"/>
+<text x="142" y="369" font-family="Microsoft JhengHei, Noto Sans TC" font-size="29" font-weight="700" fill="white">users</text>
+<text x="144" y="427" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">PK  user_id int</text>
+<text x="144" y="461" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    username varchar(100)</text>
+<text x="144" y="495" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">UQ  email varchar(255)</text>
+<text x="144" y="529" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    password_hash varchar(255)</text>
+<text x="144" y="563" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    role varchar(50)</text>
+<text x="144" y="597" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    created_at datetime</text>
+<rect x="120" y="665" width="350" height="235" rx="12" fill="#FFFFFF" stroke="#B8C6D8" stroke-width="2"/>
+<rect x="120" y="665" width="350" height="58" rx="12" fill="#1D4ED8"/>
+<text x="142" y="704" font-family="Microsoft JhengHei, Noto Sans TC" font-size="29" font-weight="700" fill="white">players</text>
+<text x="144" y="762" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">PK  player_id int</text>
+<text x="144" y="796" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    player_name varchar(100)</text>
+<text x="144" y="830" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    rank_name varchar(50)</text>
+<text x="144" y="864" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    created_at datetime</text>
+<rect x="690" y="360" width="500" height="430" rx="12" fill="#FFFFFF" stroke="#B8C6D8" stroke-width="2"/>
+<rect x="690" y="360" width="500" height="58" rx="12" fill="#0F766E"/>
+<text x="712" y="399" font-family="Microsoft JhengHei, Noto Sans TC" font-size="29" font-weight="700" fill="white">game_records</text>
+<text x="714" y="457" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">PK  game_id int</text>
+<text x="714" y="491" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">FK  uploader_id -&gt; users</text>
+<text x="714" y="525" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">FK  black_player_id -&gt; players</text>
+<text x="714" y="559" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">FK  white_player_id -&gt; players</text>
+<text x="714" y="593" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    event_name / site / opening</text>
+<text x="714" y="627" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    result / source_format</text>
+<text x="714" y="661" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    original_file_name</text>
+<text x="714" y="695" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    played_at date</text>
+<text x="714" y="729" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    created_at datetime</text>
+<rect x="1390" y="300" width="395" height="290" rx="12" fill="#FFFFFF" stroke="#B8C6D8" stroke-width="2"/>
+<rect x="1390" y="300" width="395" height="58" rx="12" fill="#059669"/>
+<text x="1412" y="339" font-family="Microsoft JhengHei, Noto Sans TC" font-size="29" font-weight="700" fill="white">moves</text>
+<text x="1414" y="397" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">PK  move_id int</text>
+<text x="1414" y="431" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">FK  game_id -&gt; game_records</text>
+<text x="1414" y="465" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    move_number int</text>
+<text x="1414" y="499" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    side_to_move enum</text>
+<text x="1414" y="533" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    original_move / usi_move</text>
+<text x="1414" y="567" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    move_time / comment</text>
+<text x="1414" y="601" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    created_at datetime</text>
+<rect x="1390" y="690" width="395" height="315" rx="12" fill="#FFFFFF" stroke="#B8C6D8" stroke-width="2"/>
+<rect x="1390" y="690" width="395" height="58" rx="12" fill="#D97706"/>
+<text x="1412" y="729" font-family="Microsoft JhengHei, Noto Sans TC" font-size="29" font-weight="700" fill="white">positions</text>
+<text x="1414" y="787" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">PK  position_id int</text>
+<text x="1414" y="821" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">FK  game_id -&gt; game_records</text>
+<text x="1414" y="855" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    move_number int</text>
+<text x="1414" y="889" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    side_to_move enum</text>
+<text x="1414" y="923" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    sfen text</text>
+<text x="1414" y="957" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    sfen_hash char(64)</text>
+<text x="1414" y="991" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    is_check</text>
+<text x="1414" y="1025" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    legal_moves_count</text>
+<text x="1414" y="1059" font-family="Consolas, Microsoft JhengHei" font-size="20" font-weight="400" fill="#1E2A3A">    created_at datetime</text>
+<rect x="90" y="1040" width="1720" height="68" rx="12" fill="#EAF3F7" stroke="#B9D6E2" stroke-width="2"/>
+<text x="120" y="1080" font-family="Microsoft JhengHei, Noto Sans TC" font-size="22" font-weight="400" fill="#1E2A3A">設計重點：game_records 是棋局主表；moves 與 positions 透過 game_id 關聯到棋局，並用 move_number 支援回放與訓練資料對齊。</text>
+<text x="90" y="1150" font-family="Microsoft JhengHei, Noto Sans TC" font-size="17" font-weight="400" fill="#5E6B7A">shogiAI 資料庫系統｜Schema ER Diagram｜DB11211213_schema_20260624.sql</text>
+</svg>

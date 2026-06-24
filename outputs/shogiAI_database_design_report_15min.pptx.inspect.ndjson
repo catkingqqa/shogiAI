@@ -1,0 +1,389 @@
+{"kind":"deck","id":"pr/ejilwk","name":"Deck"}
+{"kind":"layout","layoutId":"86d39fac-a382-4a2d-9b55-e599d2379d79","name":"Master","type":"master"}
+{"kind":"layout","layoutId":"53e207b8-9f6c-41a7-8cea-1b4bf2713a0b","name":"Title Slide","type":"title"}
+{"kind":"slide","id":"sl/2cd87q","slide":1,"title":"shogiAI","textShapes":8}
+{"kind":"textbox","id":"sh/bq1oryts","slide":1,"text":"shogiAI","textPreview":"shogiAI","textChars":7,"textLines":1,"bbox":[70,56,500,40]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":1,"text":"資料庫設計報告","textPreview":"資料庫設計報告","textChars":7,"textLines":1,"bbox":[70,142,780,80]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":1,"text":"ER 圖、Relational Model、建表 SQL、查詢與 API 實作","textPreview":"ER 圖、Relational Model、建表 SQL、查詢與 API 實作","textChars":39,"textLines":1,"bbox":[74,236,900,40]}
+{"kind":"shape","id":"sh/mhk3q5o7","slide":1,"name":"cover-a","bbox":[770,124,160,92]}
+{"kind":"textbox","id":"sh/b2hwfyxo","slide":1,"text":"game_records","textPreview":"game_records","textChars":12,"textLines":1,"bbox":[785,150,135,26]}
+{"kind":"shape","id":"sh/4nap4r65","slide":1,"name":"cover-b","bbox":[990,72,140,82]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":1,"text":"moves","textPreview":"moves","textChars":5,"textLines":1,"bbox":[1020,102,80,24]}
+{"kind":"shape","id":"sh/mp0bi9s3","slide":1,"name":"cover-c","bbox":[1000,238,160,82]}
+{"kind":"textbox","id":"sh/bat47y1k","slide":1,"text":"positions","textPreview":"positions","textChars":9,"textLines":1,"bbox":[1020,268,120,24]}
+{"kind":"shape","id":"sh/ji5snelo","slide":1,"name":"cover-d","bbox":[760,320,140,82]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":1,"text":"players","textPreview":"players","textChars":7,"textLines":1,"bbox":[790,350,90,24]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":1,"bbox":[930,113,60,57]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":1,"bbox":[930,170,70,109]}
+{"kind":"shape","id":"sh/j6tovaho","slide":1,"bbox":[850,216,50,145]}
+{"kind":"textbox","id":"sh/ulwval87","slide":1,"text":"課堂報告版｜約 15 分鐘","textPreview":"課堂報告版｜約 15 分鐘","textChars":13,"textLines":1,"bbox":[74,632,420,26]}
+{"kind":"notes","id":"nt/2cd87q","slide":1,"text":"開場先說明這份簡報聚焦於資料庫設計，不只是介紹表格，而是說明 shogiAI 如何用資料庫支援棋譜瀏覽、CSA 匯入、AI 訓練與 API。"}
+{"kind":"slide","id":"sl/h8o8rq","slide":2,"title":"01 系統目標","textShapes":15}
+{"kind":"textbox","id":"sh/orytsvu9","slide":2,"text":"01 系統目標","textPreview":"01 系統目標","textChars":7,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/z61032ls","slide":2,"text":"資料庫在系統中負責把棋譜變成可查、可訓練的資料","textPreview":"資料庫在系統中負責把棋譜變成可查、可訓練的資料","textChars":23,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/al87ed8b","slide":2,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/h0fepkzu","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/sfil0rqd","slide":2,"name":"goal1","bbox":[80,170,340,150]}
+{"kind":"textbox","id":"sh/zupwb2hw","slide":2,"text":"棋譜保存","textPreview":"棋譜保存","textChars":4,"textLines":1,"bbox":[98,184,304,28]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":2,"text":"把 CSA 檔案拆成對局、棋手、每一步與每個局面，避免只有原始檔案難以查詢。","textPreview":"把 CSA 檔案拆成對局、棋手、每一步與每個局面，避免只有原始檔案難以查詢。","textChars":38,"textLines":1,"bbox":[98,222,304,86]}
+{"kind":"shape","id":"sh/hwfyxobm","slide":2,"name":"goal2","bbox":[470,170,340,150]}
+{"kind":"textbox","id":"sh/obm58z25","slide":2,"text":"前端查詢","textPreview":"前端查詢","textChars":4,"textLines":1,"bbox":[488,184,304,28]}
+{"kind":"textbox","id":"sh/e1w7mp0b","slide":2,"text":"支援列表、搜尋、分頁、指定手數回放，讓瀏覽器可以快速取得需要的資料。","textPreview":"支援列表、搜尋、分頁、指定手數回放，讓瀏覽器可以快速取得需要的資料。","textChars":34,"textLines":1,"bbox":[488,222,304,86]}
+{"kind":"shape","id":"sh/7mp0bi9s","slide":2,"name":"goal3","bbox":[860,170,340,150]}
+{"kind":"textbox","id":"sh/w7mp0bi9","slide":2,"text":"AI 資料出口","textPreview":"AI 資料出口","textChars":7,"textLines":1,"bbox":[878,184,304,28]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":2,"text":"將 positions 與 moves 對齊，產生 supervised learning 所需的「局面 -> 下一手」。","textPreview":"將 positions 與 moves 對齊，產生 supervised learning 所需的「局面 -> 下一手」。","textChars":61,"textLines":1,"bbox":[878,222,304,86]}
+{"kind":"shape","id":"sh/epkzupwb","slide":2,"name":"pipe1","bbox":[130,420,180,64]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":2,"text":"CSA 檔案","textPreview":"CSA 檔案","textChars":6,"textLines":1,"bbox":[168,442,120,24]}
+{"kind":"shape","id":"sh/wval87ed","slide":2,"name":"pipe2","bbox":[380,420,210,64]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":2,"text":"MySQL Schema","textPreview":"MySQL Schema","textChars":12,"textLines":1,"bbox":[410,442,150,24]}
+{"kind":"shape","id":"sh/eloj2t83","slide":2,"name":"pipe3","bbox":[660,420,190,64]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":2,"text":"API 查詢","textPreview":"API 查詢","textChars":6,"textLines":1,"bbox":[706,442,100,24]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":2,"name":"pipe4","bbox":[920,420,180,64]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":2,"text":"AI 訓練","textPreview":"AI 訓練","textChars":5,"textLines":1,"bbox":[966,442,100,24]}
+{"kind":"shape","id":"sh/h0fepkzu","slide":2,"bbox":[310,452,70,0]}
+{"kind":"shape","id":"sh/sfil0rqd","slide":2,"bbox":[590,452,70,0]}
+{"kind":"shape","id":"sh/z61032ls","slide":2,"bbox":[590,452,330,0]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":2,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/hcrmhk3q","slide":2,"text":"02","textPreview":"02","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/h8o8rq","slide":2,"text":"這頁講系統需求：資料庫不是附屬品，而是把原始棋譜轉成應用可以使用的結構化資料。\n用四個功能串起後面的設計：保存、查詢、API、AI 訓練。"}
+{"kind":"slide","id":"sl/rx25ve","slide":3,"title":"02 Schema 全貌","textShapes":16}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":3,"text":"02 Schema 全貌","textPreview":"02 Schema 全貌","textChars":12,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":3,"text":"五張表分工：game_records 是中心，moves 與 positions 是訓練資料核心","textPreview":"五張表分工：game_records 是中心，moves 與 positions 是訓練資料核心","textChars":48,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/il0rqd4v","slide":3,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/0je9cvix","slide":3,"name":"entity-game_records","bbox":[485,250,310,160]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":3,"text":"game_records","textPreview":"game_records","textChars":12,"textLines":1,"bbox":[499,260,282,26]}
+{"kind":"textbox","id":"sh/idonyd0z","slide":3,"text":"PK game_id\nFK uploader_id\nFK black_player_id\nFK white_player_id\nevent/opening/result","textPreview":"PK game_id | FK uploader_id | FK black_player_id | FK white_player_id | event/opening/result","textChars":84,"textLines":5,"bbox":[499,294,282,108]}
+{"kind":"shape","id":"sh/p0bi9s36","slide":3,"name":"entity-users","bbox":[110,140,245,130]}
+{"kind":"textbox","id":"sh/0fepkzup","slide":3,"text":"users","textPreview":"users","textChars":5,"textLines":1,"bbox":[124,150,217,26]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":3,"text":"PK user_id\nusername\nemail\nrole","textPreview":"PK user_id | username | email | role","textChars":30,"textLines":4,"bbox":[124,184,217,78]}
+{"kind":"shape","id":"sh/7ed8bat4","slide":3,"name":"entity-players","bbox":[110,430,245,120]}
+{"kind":"textbox","id":"sh/0z61032l","slide":3,"text":"players","textPreview":"players","textChars":7,"textLines":1,"bbox":[124,440,217,26]}
+{"kind":"textbox","id":"sh/pkzupwb2","slide":3,"text":"PK player_id\nplayer_name\nrank_name","textPreview":"PK player_id | player_name | rank_name","textChars":34,"textLines":3,"bbox":[124,474,217,68]}
+{"kind":"shape","id":"sh/ih4byhgn","slide":3,"name":"entity-moves","bbox":[915,140,245,130]}
+{"kind":"textbox","id":"sh/72x4nap4","slide":3,"text":"moves","textPreview":"moves","textChars":5,"textLines":1,"bbox":[929,150,217,26]}
+{"kind":"textbox","id":"sh/0nuxc3yl","slide":3,"text":"PK move_id\nFK game_id\nmove_number\nusi_move","textPreview":"PK move_id | FK game_id | move_number | usi_move","textChars":42,"textLines":4,"bbox":[929,184,217,78]}
+{"kind":"shape","id":"sh/p8nqxs72","slide":3,"name":"entity-positions","bbox":[915,430,245,140]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":3,"text":"positions","textPreview":"positions","textChars":9,"textLines":1,"bbox":[929,440,217,26]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":3,"text":"PK position_id\nFK game_id\nmove_number\nsfen\nsfen_hash","textPreview":"PK position_id | FK game_id | move_number | sfen | sfen_hash","textChars":52,"textLines":5,"bbox":[929,474,217,88]}
+{"kind":"shape","id":"sh/j6tovaho","slide":3,"bbox":[355,205,130,125]}
+{"kind":"shape","id":"sh/ulwval87","slide":3,"bbox":[355,330,130,160]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":3,"bbox":[795,205,120,125]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":3,"bbox":[795,330,120,170]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":3,"text":"設計重點：把「一場棋」與「每一步 / 每個局面」拆開，查詢與訓練就能各取所需。","textPreview":"設計重點：把「一場棋」與「每一步 / 每個局面」拆開，查詢與訓練就能各取所需。","textChars":39,"textLines":1,"bbox":[210,610,860,34]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":3,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":3,"text":"03","textPreview":"03","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/rx25ve","slide":3,"text":"用 ER 的角度快速帶過五張表。game_records 是父表，moves 和 positions 是高量資料表，也是後面查詢和 AI 訓練最常碰到的地方。"}
+{"kind":"slide","id":"sl/3pebah","slide":4,"title":"03 ER Diagram","textShapes":19}
+{"kind":"textbox","id":"sh/x0nuxc3y","slide":4,"text":"03 ER Diagram","textPreview":"03 ER Diagram","textChars":13,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/m94fu18j","slide":4,"text":"ER 圖呈現上傳者、棋手、對局、著手與局面的關係","textPreview":"ER 圖呈現上傳者、棋手、對局、著手與局面的關係","textChars":24,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/fu18jqh0","slide":4,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/83itgfml","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/xobm58z2","slide":4,"name":"entity-users","bbox":[90,175,230,112]}
+{"kind":"textbox","id":"sh/qxs72x4n","slide":4,"text":"users","textPreview":"users","textChars":5,"textLines":1,"bbox":[104,185,202,26]}
+{"kind":"textbox","id":"sh/fil0rqd4","slide":4,"text":"user_id PK\nusername\nemail","textPreview":"user_id PK | username | email","textChars":25,"textLines":3,"bbox":[104,219,202,60]}
+{"kind":"shape","id":"sh/4zidonyd","slide":4,"name":"entity-players","bbox":[90,425,230,118]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":4,"text":"players","textPreview":"players","textChars":7,"textLines":1,"bbox":[104,435,202,26]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":4,"text":"player_id PK\nplayer_name\nrank_name","textPreview":"player_id PK | player_name | rank_name","textChars":34,"textLines":3,"bbox":[104,469,202,66]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":4,"name":"entity-game_records","bbox":[485,280,310,150]}
+{"kind":"textbox","id":"sh/ji5snelo","slide":4,"text":"game_records","textPreview":"game_records","textChars":12,"textLines":1,"bbox":[499,290,282,26]}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":4,"text":"game_id PK\nuploader_id FK\nblack_player_id FK\nwhite_player_id FK","textPreview":"game_id PK | uploader_id FK | black_player_id FK | white_player_id FK","textChars":63,"textLines":4,"bbox":[499,324,282,98]}
+{"kind":"shape","id":"sh/1cfa9w3m","slide":4,"name":"entity-moves","bbox":[940,175,240,126]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":4,"text":"moves","textPreview":"moves","textChars":5,"textLines":1,"bbox":[954,185,212,26]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":4,"text":"move_id PK\ngame_id FK\nmove_number\nusi_move","textPreview":"move_id PK | game_id FK | move_number | usi_move","textChars":42,"textLines":4,"bbox":[954,219,212,74]}
+{"kind":"shape","id":"sh/ulwval87","slide":4,"name":"entity-positions","bbox":[940,425,240,126]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":4,"text":"positions","textPreview":"positions","textChars":9,"textLines":1,"bbox":[954,435,212,26]}
+{"kind":"textbox","id":"sh/8nqxs72x","slide":4,"text":"position_id PK\ngame_id FK\nmove_number\nsfen","textPreview":"position_id PK | game_id FK | move_number | sfen","textChars":42,"textLines":4,"bbox":[954,469,212,74]}
+{"kind":"shape","id":"sh/oj2t83it","slide":4,"bbox":[320,231,165,124]}
+{"kind":"textbox","id":"sh/d4vmtwra","slide":4,"text":"1:N\n上傳","textPreview":"1:N | 上傳","textChars":6,"textLines":2,"bbox":[348,210,80,42]}
+{"kind":"shape","id":"sh/6dcbulwv","slide":4,"bbox":[320,355,165,129]}
+{"kind":"textbox","id":"sh/vy90je9c","slide":4,"text":"1:N\n先手/後手","textPreview":"1:N | 先手/後手","textChars":9,"textLines":2,"bbox":[345,455,92,42]}
+{"kind":"shape","id":"sh/o7qpg3ex","slide":4,"bbox":[795,238,145,117]}
+{"kind":"textbox","id":"sh/dsji5sne","slide":4,"text":"1:N\n著手序列","textPreview":"1:N | 著手序列","textChars":8,"textLines":2,"bbox":[815,215,95,42]}
+{"kind":"shape","id":"sh/61032lsz","slide":4,"bbox":[795,355,145,133]}
+{"kind":"textbox","id":"sh/vmtwra5g","slide":4,"text":"1:N\n局面序列","textPreview":"1:N | 局面序列","textChars":8,"textLines":2,"bbox":[815,460,95,42]}
+{"kind":"textbox","id":"sh/ovahoza1","slide":4,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/dg7adsji","slide":4,"text":"04","textPreview":"04","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/3pebah","slide":4,"text":"這頁可以說 ER 圖的讀法。users 到 game_records 是一位使用者可上傳多場棋；players 透過兩個 FK 對應先手與後手；一場棋會有多個 moves 和多個 positions。"}
+{"kind":"slide","id":"sl/axepqk","slide":5,"title":"04 Relational Model","textShapes":24}
+{"kind":"textbox","id":"sh/uxc3ylc7","slide":5,"text":"04 Relational Model","textPreview":"04 Relational Model","textChars":19,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":5,"text":"Relational Model 用 PK / FK 把資料完整性固定下來","textPreview":"Relational Model 用 PK / FK 把資料完整性固定下來","textChars":37,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":5,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/j6tovaho","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/ulwval87","slide":5,"bbox":[90,170,220,58]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":5,"text":"資料表","textPreview":"資料表","textChars":3,"textLines":1,"bbox":[104,186,192,28]}
+{"kind":"shape","id":"sh/crmhk3q5","slide":5,"bbox":[310,170,210,58]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":5,"text":"Primary Key","textPreview":"Primary Key","textChars":11,"textLines":1,"bbox":[324,186,182,28]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":5,"bbox":[520,170,690,58]}
+{"kind":"textbox","id":"sh/s36hcrmh","slide":5,"text":"Foreign Key / 角色","textPreview":"Foreign Key / 角色","textChars":16,"textLines":1,"bbox":[534,186,662,28]}
+{"kind":"shape","id":"sh/hoza1gvy","slide":5,"bbox":[90,228,220,58]}
+{"kind":"textbox","id":"sh/a1gvy90j","slide":5,"text":"users","textPreview":"users","textChars":5,"textLines":1,"bbox":[104,244,192,28]}
+{"kind":"shape","id":"sh/zidonyd0","slide":5,"bbox":[310,228,210,58]}
+{"kind":"textbox","id":"sh/svu9knih","slide":5,"text":"user_id","textPreview":"user_id","textChars":7,"textLines":1,"bbox":[324,244,182,28]}
+{"kind":"shape","id":"sh/hgn29gr2","slide":5,"bbox":[520,228,690,58]}
+{"kind":"textbox","id":"sh/ap4r65wj","slide":5,"text":"上傳者帳號與權限","textPreview":"上傳者帳號與權限","textChars":8,"textLines":1,"bbox":[534,244,662,28]}
+{"kind":"shape","id":"sh/za1gvy90","slide":5,"bbox":[90,286,220,58]}
+{"kind":"textbox","id":"sh/sji5snel","slide":5,"text":"players","textPreview":"players","textChars":7,"textLines":1,"bbox":[104,302,192,28]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":5,"bbox":[310,286,210,58]}
+{"kind":"textbox","id":"sh/psfil0rq","slide":5,"text":"player_id","textPreview":"player_id","textChars":9,"textLines":1,"bbox":[324,302,182,28]}
+{"kind":"shape","id":"sh/w7mp0bi9","slide":5,"bbox":[520,286,690,58]}
+{"kind":"textbox","id":"sh/7mp0bi9s","slide":5,"text":"棋手姓名與段位","textPreview":"棋手姓名與段位","textChars":7,"textLines":1,"bbox":[534,302,662,28]}
+{"kind":"shape","id":"sh/e1w7mp0b","slide":5,"bbox":[90,344,220,58]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":5,"text":"game_records","textPreview":"game_records","textChars":12,"textLines":1,"bbox":[104,360,192,28]}
+{"kind":"shape","id":"sh/wval87ed","slide":5,"bbox":[310,344,210,58]}
+{"kind":"textbox","id":"sh/7adsji5s","slide":5,"text":"game_id","textPreview":"game_id","textChars":7,"textLines":1,"bbox":[324,360,182,28]}
+{"kind":"shape","id":"sh/epkzupwb","slide":5,"bbox":[520,344,690,58]}
+{"kind":"textbox","id":"sh/lc7u54zi","slide":5,"text":"uploader_id, black_player_id, white_player_id","textPreview":"uploader_id, black_player_id, white_player_id","textChars":45,"textLines":1,"bbox":[534,360,662,28]}
+{"kind":"shape","id":"sh/wra5gbq1","slide":5,"bbox":[90,402,220,58]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":5,"text":"moves","textPreview":"moves","textChars":5,"textLines":1,"bbox":[104,418,192,28]}
+{"kind":"shape","id":"sh/z61032ls","slide":5,"bbox":[310,402,210,58]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":5,"text":"move_id","textPreview":"move_id","textChars":7,"textLines":1,"bbox":[324,418,182,28]}
+{"kind":"shape","id":"sh/hcrmhk3q","slide":5,"bbox":[520,402,690,58]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":5,"text":"game_id，保存每一步","textPreview":"game_id，保存每一步","textChars":13,"textLines":1,"bbox":[534,418,662,28]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":5,"bbox":[90,460,220,58]}
+{"kind":"textbox","id":"sh/sfil0rqd","slide":5,"text":"positions","textPreview":"positions","textChars":9,"textLines":1,"bbox":[104,476,192,28]}
+{"kind":"shape","id":"sh/h0fepkzu","slide":5,"bbox":[310,460,210,58]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":5,"text":"position_id","textPreview":"position_id","textChars":11,"textLines":1,"bbox":[324,476,182,28]}
+{"kind":"shape","id":"sh/zqtcj6to","slide":5,"bbox":[520,460,690,58]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":5,"text":"game_id，保存每個局面 SFEN","textPreview":"game_id，保存每個局面 SFEN","textChars":19,"textLines":1,"bbox":[534,476,662,28]}
+{"kind":"textbox","id":"sh/q1orytsv","slide":5,"text":"為什麼要拆表？避免重複資料、讓查詢更快、讓 AI 匯出可以用 JOIN 精準對齊。","textPreview":"為什麼要拆表？避免重複資料、讓查詢更快、讓 AI 匯出可以用 JOIN 精準對齊。","textChars":41,"textLines":1,"bbox":[108,560,980,36]}
+{"kind":"textbox","id":"sh/xs72x4na","slide":5,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/87ed8bat","slide":5,"text":"05","textPreview":"05","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/axepqk","slide":5,"text":"這頁把 relational model 解釋成資料表之間的契約。PK 是每筆資料的身份證，FK 是資料之間的連線規則。"}
+{"kind":"slide","id":"sl/8slerk","slide":6,"title":"05 欄位設計","textShapes":13}
+{"kind":"textbox","id":"sh/54zidony","slide":6,"text":"05 欄位設計","textPreview":"05 欄位設計","textChars":7,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/udg7adsj","slide":6,"text":"資料庫設計不是只存資料，而是配合使用情境做欄位取捨","textPreview":"資料庫設計不是只存資料，而是配合使用情境做欄位取捨","textChars":25,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/nyd0z610","slide":6,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/cvixczed","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/5gbq1ory","slide":6,"name":"designA","bbox":[90,170,330,190]}
+{"kind":"textbox","id":"sh/upwb2hwf","slide":6,"text":"game_records：一場棋的 metadata","textPreview":"game_records：一場棋的 metadata","textChars":26,"textLines":1,"bbox":[108,184,294,28]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":6,"text":"event_name、site、opening、result、played_at、original_file_name，用來列表、搜尋與去重。","textPreview":"event_name、site、opening、result、played_at、original_file_name，用來列表、搜尋與去重。","textChars":71,"textLines":1,"bbox":[108,222,294,126]}
+{"kind":"shape","id":"sh/c7u54zid","slide":6,"name":"designB","bbox":[475,170,330,190]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":6,"text":"moves：人類可讀與模型可用的著手","textPreview":"moves：人類可讀與模型可用的著手","textChars":18,"textLines":1,"bbox":[493,184,294,28]}
+{"kind":"textbox","id":"sh/l0rqd4vm","slide":6,"text":"original_move 保留 CSA 原始記法，usi_move 給 cshogi / AI 使用，move_number 維持順序。","textPreview":"original_move 保留 CSA 原始記法，usi_move 給 cshogi / AI 使用，move_number 維持順序。","textChars":69,"textLines":1,"bbox":[493,222,294,126]}
+{"kind":"shape","id":"sh/wfyxobm5","slide":6,"name":"designC","bbox":[860,170,330,190]}
+{"kind":"textbox","id":"sh/7u54zido","slide":6,"text":"positions：每一步後的盤面狀態","textPreview":"positions：每一步後的盤面狀態","textChars":19,"textLines":1,"bbox":[878,184,294,28]}
+{"kind":"textbox","id":"sh/ed8bat47","slide":6,"text":"sfen 保存完整局面，sfen_hash 用於快速查詢，is_check / legal_moves_count 做品質與分析。","textPreview":"sfen 保存完整局面，sfen_hash 用於快速查詢，is_check / legal_moves_count 做品質與分析。","textChars":65,"textLines":1,"bbox":[878,222,294,126]}
+{"kind":"shape","id":"sh/lc7u54zi","slide":6,"name":"code-block","bbox":[220,430,840,116]}
+{"kind":"textbox","id":"sh/wra5gbq1","slide":6,"text":"AI 資料對齊規則","textPreview":"AI 資料對齊規則","textChars":9,"textLines":1,"bbox":[238,444,804,22]}
+{"kind":"textbox","id":"sh/36hcrmhk","slide":6,"text":"positions.move_number + 1 = moves.move_number\n\nSFEN  ->  下一手 usi_move\n局面  ->  policy label","textPreview":"positions.move_number + 1 = moves.move_number |  | SFEN  ->  下一手 usi_move | 局面  ->  policy label","textChars":90,"textLines":4,"bbox":[238,474,804,60]}
+{"kind":"textbox","id":"sh/eloj2t83","slide":6,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/pg3ex0nu","slide":6,"text":"06","textPreview":"06","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/8slerk","slide":6,"text":"這頁強調欄位是為了功能設計。moves 和 positions 不只為瀏覽服務，也為後面的 AI supervised learning 服務。"}
+{"kind":"slide","id":"sl/71ypgh","slide":7,"title":"06 建表 SQL","textShapes":10}
+{"kind":"textbox","id":"sh/8v6psfil","slide":7,"text":"06 建表 SQL","textPreview":"06 建表 SQL","textChars":9,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/fa9w3m94","slide":7,"text":"CREATE 階段先建立資料庫，再建立五張 InnoDB / utf8mb4 表","textPreview":"CREATE 階段先建立資料庫，再建立五張 InnoDB / utf8mb4 表","textChars":40,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/qpg3ex0n","slide":7,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/8jqh0fep","slide":7,"name":"code-block","bbox":[80,160,520,170]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":7,"text":"建立資料庫","textPreview":"建立資料庫","textChars":5,"textLines":1,"bbox":[98,174,484,22]}
+{"kind":"textbox","id":"sh/qd4vmtwr","slide":7,"text":"CREATE DATABASE IF NOT EXISTS DB11211213\n  DEFAULT CHARACTER SET utf8mb4\n  DEFAULT COLLATE utf8mb4_unicode_ci;\n\nUSE DB11211213;","textPreview":"CREATE DATABASE IF NOT EXISTS DB11211213 |   DEFAULT CHARACTER SET utf8mb4 |   DEFAULT COLLATE utf8mb4_unicode_ci; |  | USE DB11211213;","textChars":127,"textLines":5,"bbox":[98,204,484,114]}
+{"kind":"shape","id":"sh/xs72x4na","slide":7,"name":"code-block","bbox":[645,160,555,380]}
+{"kind":"textbox","id":"sh/87ed8bat","slide":7,"text":"父表範例：game_records","textPreview":"父表範例：game_records","textChars":17,"textLines":1,"bbox":[663,174,519,22]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":7,"text":"CREATE TABLE IF NOT EXISTS game_records (\n  game_id INT AUTO_INCREMENT PRIMARY KEY,\n  uploader_id INT,\n  black_player_id INT,\n  white_player_id INT,\n  event_name VARCHAR(255),\n  opening VARCHAR(100),\n  result VARCHAR(50),\n  original_file_name VARCHAR(255),\n  played_at DATE,\n  FOREIGN KEY (uploader_id) REFERENCES users(user_id),\n  FOREIGN KEY (black_player_id) REFERENCES players(player_id),\n  FOREIGN KEY (white_player_id) REFERENCES players(player_id)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;","textPreview":"CREATE TABLE IF NOT EXISTS game_records ( |   game_id INT AUTO_INCREMENT PRIMARY KEY, |   uploader_id INT, |   black_player_id INT, |   w...","textChars":495,"textLines":14,"bbox":[663,204,519,324]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":7,"text":"完整報告另外列出 users / players / moves / positions 的 CREATE TABLE。程式執行時也可用 --create-tables 自動建表。","textPreview":"完整報告另外列出 users / players / moves / positions 的 CREATE TABLE。程式執行時也可用 --create-tables 自動建表。","textChars":90,"textLines":1,"bbox":[90,575,1040,38]}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":7,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/p4r65wju","slide":7,"text":"07","textPreview":"07","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/71ypgh","slide":7,"text":"不要逐字念 SQL，講重點：utf8mb4 可處理中文與符號，InnoDB 支援 foreign key，AUTO_INCREMENT 給每筆資料一個主鍵。"}
+{"kind":"slide","id":"sl/tkpdhg","slide":8,"title":"07 匯入流程","textShapes":25}
+{"kind":"textbox","id":"sh/qpg3ex0n","slide":8,"text":"07 匯入流程","textPreview":"07 匯入流程","textChars":7,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/xczed8v6","slide":8,"text":"Python 匯入器把 CSA 檔解析後，自動寫入 schema","textPreview":"Python 匯入器把 CSA 檔解析後，自動寫入 schema","textChars":32,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/8v6psfil","slide":8,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/fyxobm58","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/qd4vmtwr","slide":8,"name":"import-1","bbox":[80,255,155,118]}
+{"kind":"textbox","id":"sh/x4nap4r6","slide":8,"text":"1","textPreview":"1","textChars":1,"textLines":1,"bbox":[94,267,34,34]}
+{"kind":"textbox","id":"sh/8jqh0fep","slide":8,"text":"讀取 CSA","textPreview":"讀取 CSA","textChars":6,"textLines":1,"bbox":[130,273,90,24]}
+{"kind":"textbox","id":"sh/fmlkjm1c","slide":8,"text":"掃描檔案或資料夾","textPreview":"掃描檔案或資料夾","textChars":8,"textLines":1,"bbox":[96,313,120,42]}
+{"kind":"shape","id":"sh/q1orytsv","slide":8,"name":"import-2","bbox":[270,255,155,118]}
+{"kind":"textbox","id":"sh/4nap4r65","slide":8,"text":"2","textPreview":"2","textChars":1,"textLines":1,"bbox":[284,267,34,34]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":8,"text":"cshogi 解析","textPreview":"cshogi 解析","textChars":9,"textLines":1,"bbox":[320,273,90,24]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":8,"text":"取得棋手、結果、著手","textPreview":"取得棋手、結果、著手","textChars":10,"textLines":1,"bbox":[286,313,120,42]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":8,"bbox":[235,314,35,0]}
+{"kind":"shape","id":"sh/4byhgn29","slide":8,"name":"import-3","bbox":[460,255,155,118]}
+{"kind":"textbox","id":"sh/twra5gbq","slide":8,"text":"3","textPreview":"3","textChars":1,"textLines":1,"bbox":[474,267,34,34]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":8,"text":"建立玩家","textPreview":"建立玩家","textChars":4,"textLines":1,"bbox":[510,273,90,24]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":8,"text":"不存在就新增 players","textPreview":"不存在就新增 players","textChars":14,"textLines":1,"bbox":[476,313,120,42]}
+{"kind":"shape","id":"sh/47y1kre1","slide":8,"bbox":[425,314,35,0]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":8,"name":"import-4","bbox":[650,255,155,118]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":8,"text":"4","textPreview":"4","textChars":1,"textLines":1,"bbox":[664,267,34,34]}
+{"kind":"textbox","id":"sh/4zidonyd","slide":8,"text":"新增對局","textPreview":"新增對局","textChars":4,"textLines":1,"bbox":[700,273,90,24]}
+{"kind":"textbox","id":"sh/fepkzupw","slide":8,"text":"寫入 game_records","textPreview":"寫入 game_records","textChars":15,"textLines":1,"bbox":[666,313,120,42]}
+{"kind":"shape","id":"sh/mtwra5gb","slide":8,"bbox":[615,314,35,0]}
+{"kind":"shape","id":"sh/xc3ylc7u","slide":8,"name":"import-5","bbox":[840,255,155,118]}
+{"kind":"textbox","id":"sh/4r65wjud","slide":8,"text":"5","textPreview":"5","textChars":1,"textLines":1,"bbox":[854,267,34,34]}
+{"kind":"textbox","id":"sh/f6dcbulw","slide":8,"text":"批次新增","textPreview":"批次新增","textChars":4,"textLines":1,"bbox":[890,273,90,24]}
+{"kind":"textbox","id":"sh/mlkjm1cf","slide":8,"text":"moves / positions","textPreview":"moves / positions","textChars":17,"textLines":1,"bbox":[856,313,120,42]}
+{"kind":"shape","id":"sh/x0nuxc3y","slide":8,"bbox":[805,314,35,0]}
+{"kind":"shape","id":"sh/4fu18jqh","slide":8,"name":"import-6","bbox":[1030,255,155,118]}
+{"kind":"textbox","id":"sh/ed8v6psf","slide":8,"text":"6","textPreview":"6","textChars":1,"textLines":1,"bbox":[1044,267,34,34]}
+{"kind":"textbox","id":"sh/7y1kre1w","slide":8,"text":"交易控制","textPreview":"交易控制","textChars":4,"textLines":1,"bbox":[1080,273,90,24]}
+{"kind":"textbox","id":"sh/wjudg7ad","slide":8,"text":"成功 commit，失敗 rollback","textPreview":"成功 commit，失敗 rollback","textChars":21,"textLines":1,"bbox":[1046,313,120,42]}
+{"kind":"shape","id":"sh/p4r65wju","slide":8,"bbox":[995,314,35,0]}
+{"kind":"shape","id":"sh/i5sneloj","slide":8,"name":"code-block","bbox":[220,465,840,120]}
+{"kind":"textbox","id":"sh/7qpg3ex0","slide":8,"text":"匯入命令概念","textPreview":"匯入命令概念","textChars":6,"textLines":1,"bbox":[238,479,804,22]}
+{"kind":"textbox","id":"sh/0bi9s36h","slide":8,"text":"python src/import_csa_to_db.py ^\n  --input climbbug/data ^\n  --recursive ^\n  --database DB11211213 ^\n  --create-tables ^\n  --skip-existing","textPreview":"python src/import_csa_to_db.py ^ |   --input climbbug/data ^ |   --recursive ^ |   --database DB11211213 ^ |   --create-tables ^ |   --sk...","textChars":138,"textLines":6,"bbox":[238,509,804,64]}
+{"kind":"textbox","id":"sh/pwb2hwfy","slide":8,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/itgfmlkj","slide":8,"text":"08","textPreview":"08","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/tkpdhg","slide":8,"text":"這頁照流程講即可。特別說明 --create-tables 代表程式會先確認 schema 存在，--skip-existing 避免重複匯入。"}
+{"kind":"slide","id":"sl/7h1nwm","slide":9,"title":"08 Insert 邏輯","textShapes":13}
+{"kind":"textbox","id":"sh/u54zidon","slide":9,"text":"08 Insert 邏輯","textPreview":"08 Insert 邏輯","textChars":12,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/5sneloj2","slide":9,"text":"寫入順序要先父表再子表，才能滿足 foreign key","textPreview":"寫入順序要先父表再子表，才能滿足 foreign key","textChars":28,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/cbulwval","slide":9,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/neloj2t8","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/ytsvu9kn","slide":9,"name":"insert-game","bbox":[90,190,325,150]}
+{"kind":"textbox","id":"sh/5kb6xkf6","slide":9,"text":"1. INSERT game_records","textPreview":"1. INSERT game_records","textChars":22,"textLines":1,"bbox":[108,204,289,28]}
+{"kind":"textbox","id":"sh/czed8v6p","slide":9,"text":"先新增一場棋，取得 cursor.lastrowid 作為 game_id。","textPreview":"先新增一場棋，取得 cursor.lastrowid 作為 game_id。","textChars":38,"textLines":1,"bbox":[108,242,289,86]}
+{"kind":"shape","id":"sh/n29gr2p8","slide":9,"name":"insert-moves","bbox":[480,190,325,150]}
+{"kind":"textbox","id":"sh/yhgn29gr","slide":9,"text":"2. executemany moves","textPreview":"2. executemany moves","textChars":20,"textLines":1,"bbox":[498,204,289,28]}
+{"kind":"textbox","id":"sh/kb6xkf6d","slide":9,"text":"用同一個 game_id 批次寫入每一步，降低多次 execute 的成本。","textPreview":"用同一個 game_id 批次寫入每一步，降低多次 execute 的成本。","textChars":38,"textLines":1,"bbox":[498,242,289,86]}
+{"kind":"shape","id":"sh/9w3m94fu","slide":9,"name":"insert-positions","bbox":[870,190,325,150]}
+{"kind":"textbox","id":"sh/25kb6xkf","slide":9,"text":"3. executemany positions","textPreview":"3. executemany positions","textChars":24,"textLines":1,"bbox":[888,204,289,28]}
+{"kind":"textbox","id":"sh/rqd4vmtw","slide":9,"text":"保存每個 move_number 的 SFEN，讓前端回放與 AI export 可直接使用。","textPreview":"保存每個 move_number 的 SFEN，讓前端回放與 AI export 可直接使用。","textChars":47,"textLines":1,"bbox":[888,242,289,86]}
+{"kind":"shape","id":"sh/kzupwb2h","slide":9,"bbox":[415,265,65,0]}
+{"kind":"shape","id":"sh/9knih4by","slide":9,"bbox":[805,265,65,0]}
+{"kind":"shape","id":"sh/2t83itgf","slide":9,"name":"code-block","bbox":[190,420,900,142]}
+{"kind":"textbox","id":"sh/re1w7mp0","slide":9,"text":"程式碼重點","textPreview":"程式碼重點","textChars":5,"textLines":1,"bbox":[208,434,864,22]}
+{"kind":"textbox","id":"sh/gvy90je9","slide":9,"text":"cursor.execute(\"INSERT INTO game_records ...\")\ngame_id = int(cursor.lastrowid)\n\ncursor.executemany(\"INSERT INTO moves ...\", move_rows)\ncursor.executemany(\"INSERT INTO positions ...\", position_rows)","textPreview":"cursor.execute(\"INSERT INTO game_records ...\") | game_id = int(cursor.lastrowid) |  | cursor.executemany(\"INSERT INTO moves ...\", move_ro...","textChars":197,"textLines":5,"bbox":[208,464,864,86]}
+{"kind":"textbox","id":"sh/9gr2p8nq","slide":9,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":9,"text":"09","textPreview":"09","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/7h1nwm","slide":9,"text":"這頁講資料完整性。game_id 是整場棋的主線，moves 和 positions 都必須用這個 game_id 回連到同一場棋。"}
+{"kind":"slide","id":"sl/wtplua","slide":10,"title":"09 查詢功能：列表","textShapes":13}
+{"kind":"textbox","id":"sh/d0z61032","slide":10,"text":"09 查詢功能：列表","textPreview":"09 查詢功能：列表","textChars":10,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/29gr2p8n","slide":10,"text":"對局列表查詢靠 JOIN、子查詢與分頁組合完成","textPreview":"對局列表查詢靠 JOIN、子查詢與分頁組合完成","textChars":23,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/vu9knih4","slide":10,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/knih4byh","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/d8bat47y","slide":10,"name":"code-block","bbox":[80,155,675,380]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":10,"text":"GET /api/games 背後的 SQL","textPreview":"GET /api/games 背後的 SQL","textChars":22,"textLines":1,"bbox":[98,169,639,22]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":10,"text":"SELECT g.game_id, g.original_file_name,\n       bp.player_name AS black_player,\n       wp.player_name AS white_player,\n       g.event_name, g.opening, g.result,\n       (SELECT COUNT(1) FROM moves m\n        WHERE m.game_id = g.game_id) AS move_count\nFROM game_records g\nLEFT JOIN players bp ON g.black_player_id = bp.player_id\nLEFT JOIN players wp ON g.white_player_id = wp.player_id\nWHERE ...\nORDER BY g.played_at DESC, g.game_id DESC\nLIMIT ? OFFSET ?;","textPreview":"SELECT g.game_id, g.original_file_name, |        bp.player_name AS black_player, |        wp.player_name AS white_player, |        g.even...","textChars":451,"textLines":12,"bbox":[98,199,639,324]}
+{"kind":"shape","id":"sh/kre1w7mp","slide":10,"name":"filter","bbox":[810,170,330,120]}
+{"kind":"textbox","id":"sh/dcbulwva","slide":10,"text":"WHERE 條件","textPreview":"WHERE 條件","textChars":8,"textLines":1,"bbox":[828,184,294,28]}
+{"kind":"textbox","id":"sh/lszqtcj6","slide":10,"text":"依 event、player、opening、date_from、date_to 動態產生過濾條件。","textPreview":"依 event、player、opening、date_from、date_to 動態產生過濾條件。","textChars":50,"textLines":1,"bbox":[828,222,294,56]}
+{"kind":"shape","id":"sh/s72x4nap","slide":10,"name":"paging","bbox":[810,320,330,120]}
+{"kind":"textbox","id":"sh/3m94fu18","slide":10,"text":"LIMIT / OFFSET","textPreview":"LIMIT / OFFSET","textChars":14,"textLines":1,"bbox":[828,334,294,28]}
+{"kind":"textbox","id":"sh/a5gbq1or","slide":10,"text":"每次只取一頁資料，避免一次把所有棋譜丟給前端。","textPreview":"每次只取一頁資料，避免一次把所有棋譜丟給前端。","textChars":23,"textLines":1,"bbox":[828,372,294,56]}
+{"kind":"shape","id":"sh/h4byhgn2","slide":10,"name":"count","bbox":[810,470,330,120]}
+{"kind":"textbox","id":"sh/sji5snel","slide":10,"text":"move_count","textPreview":"move_count","textChars":10,"textLines":1,"bbox":[828,484,294,28]}
+{"kind":"textbox","id":"sh/3ylc7u54","slide":10,"text":"用子查詢計算步數，前端不用再額外讀整份 moves。","textPreview":"用子查詢計算步數，前端不用再額外讀整份 moves。","textChars":26,"textLines":1,"bbox":[828,522,294,56]}
+{"kind":"textbox","id":"sh/adsji5sn","slide":10,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/hgn29gr2","slide":10,"text":"10","textPreview":"10","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/wtplua","slide":10,"text":"這頁用一個查詢說明 API 如何把資料庫資料整理成前端需要的 JSON。JOIN 負責補棋手名稱，LIMIT/OFFSET 負責分頁。"}
+{"kind":"slide","id":"sl/mij7k0","slide":11,"title":"10 查詢功能：局面","textShapes":13}
+{"kind":"textbox","id":"sh/cj6tovah","slide":11,"text":"10 查詢功能：局面","textPreview":"10 查詢功能：局面","textChars":10,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/nyd0z610","slide":11,"text":"指定手數回放時，positions 讓前端直接取得盤面","textPreview":"指定手數回放時，positions 讓前端直接取得盤面","textChars":27,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/udg7adsj","slide":11,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/5gbq1ory","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/cvixczed","slide":11,"name":"req","bbox":[90,210,260,92]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":11,"text":"GET /api/games/{id}?ply=n","textPreview":"GET /api/games/{id}?ply=n","textChars":25,"textLines":1,"bbox":[112,242,220,28]}
+{"kind":"shape","id":"sh/upwb2hwf","slide":11,"name":"db","bbox":[500,170,260,150]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":11,"text":"positions","textPreview":"positions","textChars":9,"textLines":1,"bbox":[570,192,120,26]}
+{"kind":"textbox","id":"sh/c7u54zid","slide":11,"text":"WHERE game_id = ?\nAND move_number = ?","textPreview":"WHERE game_id = ? | AND move_number = ?","textChars":37,"textLines":2,"bbox":[532,238,200,52]}
+{"kind":"shape","id":"sh/6xkf6dcb","slide":11,"name":"move-list","bbox":[500,390,260,118]}
+{"kind":"textbox","id":"sh/zed8v6ps","slide":11,"text":"moves","textPreview":"moves","textChars":5,"textLines":1,"bbox":[595,412,80,26]}
+{"kind":"textbox","id":"sh/oza1gvy9","slide":11,"text":"ORDER BY move_number","textPreview":"ORDER BY move_number","textChars":20,"textLines":1,"bbox":[534,460,190,24]}
+{"kind":"shape","id":"sh/hk3q5o7q","slide":11,"name":"res","bbox":[910,260,250,126]}
+{"kind":"textbox","id":"sh/65wjudg7","slide":11,"text":"JSON Response","textPreview":"JSON Response","textChars":13,"textLines":1,"bbox":[954,286,160,28]}
+{"kind":"textbox","id":"sh/zqtcj6to","slide":11,"text":"sfen + move list\n+ metadata","textPreview":"sfen + move list | + metadata","textChars":27,"textLines":2,"bbox":[940,334,190,44]}
+{"kind":"shape","id":"sh/obm58z25","slide":11,"bbox":[350,245,150,11]}
+{"kind":"shape","id":"sh/hwfyxobm","slide":11,"bbox":[350,256,150,193]}
+{"kind":"shape","id":"sh/a9w3m94f","slide":11,"bbox":[760,245,150,78]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":11,"bbox":[760,323,150,126]}
+{"kind":"textbox","id":"sh/b6xkf6dc","slide":11,"text":"重點：前端不必重新推演棋盤，只要讀出指定手數的 SFEN。","textPreview":"重點：前端不必重新推演棋盤，只要讀出指定手數的 SFEN。","textChars":29,"textLines":1,"bbox":[230,585,820,34]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":11,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":11,"text":"11","textPreview":"11","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/mij7k0","slide":11,"text":"這頁講 positions 的價值。若沒有 positions，前端要從第一手一路重播到第 n 手；有 positions 後可直接取指定局面。"}
+{"kind":"slide","id":"sl/u8bdy4","slide":12,"title":"11 AI Dataset Export","textShapes":11}
+{"kind":"textbox","id":"sh/4r65wjud","slide":12,"text":"11 AI Dataset Export","textPreview":"11 AI Dataset Export","textChars":20,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/f6dcbulw","slide":12,"text":"AI 訓練資料用 positions JOIN moves 產生「局面到下一手」","textPreview":"AI 訓練資料用 positions JOIN moves 產生「局面到下一手」","textChars":40,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/mlkjm1cf","slide":12,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/xkf6dcbu","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/4zidonyd","slide":12,"name":"code-block","bbox":[90,150,610,300]}
+{"kind":"textbox","id":"sh/fepkzupw","slide":12,"text":"export_policy_dataset.py 查詢概念","textPreview":"export_policy_dataset.py 查詢概念","textChars":29,"textLines":1,"bbox":[108,164,574,22]}
+{"kind":"textbox","id":"sh/mtwra5gb","slide":12,"text":"SELECT p.game_id, p.move_number, p.sfen,\n       m.usi_move, p.side_to_move, g.result\nFROM positions p\nJOIN moves m\n  ON m.game_id = p.game_id\n AND m.move_number = p.move_number + 1\nJOIN game_records g\n  ON g.game_id = p.game_id\nORDER BY p.game_id, p.move_number;","textPreview":"SELECT p.game_id, p.move_number, p.sfen, |        m.usi_move, p.side_to_move, g.result | FROM positions p | JOIN moves m |   ON m.game_id...","textChars":262,"textLines":9,"bbox":[108,194,574,244]}
+{"kind":"shape","id":"sh/xobm58z2","slide":12,"name":"state","bbox":[805,185,270,78]}
+{"kind":"textbox","id":"sh/83itgfml","slide":12,"text":"Position_t / SFEN","textPreview":"Position_t / SFEN","textChars":17,"textLines":1,"bbox":[848,212,190,26]}
+{"kind":"shape","id":"sh/y90je9cv","slide":12,"name":"label","bbox":[805,320,270,78]}
+{"kind":"textbox","id":"sh/nuxc3ylc","slide":12,"text":"Move_{t+1} / USI","textPreview":"Move_{t+1} / USI","textChars":16,"textLines":1,"bbox":[845,347,200,26]}
+{"kind":"shape","id":"sh/gbq1oryt","slide":12,"name":"npz","bbox":[805,455,270,78]}
+{"kind":"textbox","id":"sh/5wjudg7a","slide":12,"text":".npz policy dataset","textPreview":".npz policy dataset","textChars":19,"textLines":1,"bbox":[842,482,200,26]}
+{"kind":"shape","id":"sh/yhgn29gr","slide":12,"bbox":[940,263,0,57]}
+{"kind":"shape","id":"sh/n29gr2p8","slide":12,"bbox":[940,398,0,57]}
+{"kind":"textbox","id":"sh/gn29gr2p","slide":12,"text":"policy-only 模型不需要 value head；資料庫輸出重點是正確的下一手標籤。","textPreview":"policy-only 模型不需要 value head；資料庫輸出重點是正確的下一手標籤。","textChars":46,"textLines":1,"bbox":[120,540,940,38]}
+{"kind":"textbox","id":"sh/58z25kb6","slide":12,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/ytsvu9kn","slide":12,"text":"12","textPreview":"12","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/u8bdy4","slide":12,"text":"這頁可補充目前模型是 policy-only，所以資料出口的主角是 sfen 與 usi_move。join 條件的 +1 很重要，代表用第 t 個局面預測第 t+1 手。"}
+{"kind":"slide","id":"sl/dxz71v","slide":13,"title":"12 API 對應","textShapes":23}
+{"kind":"textbox","id":"sh/u9knih4b","slide":13,"text":"12 API 對應","textPreview":"12 API 對應","textChars":9,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/1032lszq","slide":13,"text":"API 是前端與資料庫中間的翻譯層","textPreview":"API 是前端與資料庫中間的翻譯層","textChars":17,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/cfa9w3m9","slide":13,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/jm1cfa9w","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/u18jqh0f","slide":13,"bbox":[80,155,285,78]}
+{"kind":"textbox","id":"sh/1orytsvu","slide":13,"text":"API","textPreview":"API","textChars":3,"textLines":1,"bbox":[92,173,261,40]}
+{"kind":"shape","id":"sh/c7u54zid","slide":13,"bbox":[365,155,420,78]}
+{"kind":"textbox","id":"sh/nap4r65w","slide":13,"text":"使用資料表","textPreview":"使用資料表","textChars":5,"textLines":1,"bbox":[377,173,396,40]}
+{"kind":"shape","id":"sh/upwb2hwf","slide":13,"bbox":[785,155,410,78]}
+{"kind":"textbox","id":"sh/orytsvu9","slide":13,"text":"功能","textPreview":"功能","textChars":2,"textLines":1,"bbox":[797,173,386,40]}
+{"kind":"shape","id":"sh/hcrmhk3q","slide":13,"bbox":[80,233,285,78]}
+{"kind":"textbox","id":"sh/al87ed8b","slide":13,"text":"GET /api/games","textPreview":"GET /api/games","textChars":14,"textLines":1,"bbox":[92,251,261,40]}
+{"kind":"shape","id":"sh/z61032ls","slide":13,"bbox":[365,233,420,78]}
+{"kind":"textbox","id":"sh/sfil0rqd","slide":13,"text":"game_records + players + moves","textPreview":"game_records + players + moves","textChars":30,"textLines":1,"bbox":[377,251,396,40]}
+{"kind":"shape","id":"sh/h0fepkzu","slide":13,"bbox":[785,233,410,78]}
+{"kind":"textbox","id":"sh/a9w3m94f","slide":13,"text":"列表、搜尋、分頁","textPreview":"列表、搜尋、分頁","textChars":8,"textLines":1,"bbox":[797,251,386,40]}
+{"kind":"shape","id":"sh/zupwb2hw","slide":13,"bbox":[80,311,285,78]}
+{"kind":"textbox","id":"sh/obm58z25","slide":13,"text":"GET /api/games/<id>?ply=n","textPreview":"GET /api/games/<id>?ply=n","textChars":25,"textLines":1,"bbox":[92,329,261,40]}
+{"kind":"shape","id":"sh/hwfyxobm","slide":13,"bbox":[365,311,420,78]}
+{"kind":"textbox","id":"sh/18jqh0fe","slide":13,"text":"positions + moves","textPreview":"positions + moves","textChars":17,"textLines":1,"bbox":[377,329,396,40]}
+{"kind":"shape","id":"sh/8nqxs72x","slide":13,"bbox":[785,311,410,78]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":13,"text":"指定手數回放","textPreview":"指定手數回放","textChars":6,"textLines":1,"bbox":[797,329,386,40]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":13,"bbox":[80,389,285,78]}
+{"kind":"textbox","id":"sh/1w7mp0bi","slide":13,"text":"GET /api/db/stats","textPreview":"GET /api/db/stats","textChars":17,"textLines":1,"bbox":[92,407,261,40]}
+{"kind":"shape","id":"sh/8bat47y1","slide":13,"bbox":[365,389,420,78]}
+{"kind":"textbox","id":"sh/jqh0fepk","slide":13,"text":"全部主要資料表","textPreview":"全部主要資料表","textChars":7,"textLines":1,"bbox":[377,407,396,40]}
+{"kind":"shape","id":"sh/q5o7qpg3","slide":13,"bbox":[785,389,410,78]}
+{"kind":"textbox","id":"sh/1kre1w7m","slide":13,"text":"統計棋譜、棋手、著手、局面數","textPreview":"統計棋譜、棋手、著手、局面數","textChars":14,"textLines":1,"bbox":[797,407,386,40]}
+{"kind":"shape","id":"sh/c3ylc7u5","slide":13,"bbox":[80,467,285,78]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":13,"text":"POST /api/upload-csa","textPreview":"POST /api/upload-csa","textChars":20,"textLines":1,"bbox":[92,485,261,40]}
+{"kind":"shape","id":"sh/bm58z25k","slide":13,"bbox":[365,467,420,78]}
+{"kind":"textbox","id":"sh/47y1kre1","slide":13,"text":"users + game_records + moves + positions","textPreview":"users + game_records + moves + positions","textChars":40,"textLines":1,"bbox":[377,485,396,40]}
+{"kind":"shape","id":"sh/tsvu9kni","slide":13,"bbox":[785,467,410,78]}
+{"kind":"textbox","id":"sh/mp0bi9s3","slide":13,"text":"上傳並匯入 CSA","textPreview":"上傳並匯入 CSA","textChars":9,"textLines":1,"bbox":[797,485,386,40]}
+{"kind":"shape","id":"sh/bat47y1k","slide":13,"bbox":[80,545,285,78]}
+{"kind":"textbox","id":"sh/4vmtwra5","slide":13,"text":"POST /api/ai-play/move","textPreview":"POST /api/ai-play/move","textChars":22,"textLines":1,"bbox":[92,563,261,40]}
+{"kind":"shape","id":"sh/tgfmlkjm","slide":13,"bbox":[365,545,420,78]}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":13,"text":"positions / opening book / model","textPreview":"positions / opening book / model","textChars":32,"textLines":1,"bbox":[377,563,396,40]}
+{"kind":"shape","id":"sh/b2hwfyxo","slide":13,"bbox":[785,545,410,78]}
+{"kind":"textbox","id":"sh/v6psfil0","slide":13,"text":"取得 AI 回應","textPreview":"取得 AI 回應","textChars":8,"textLines":1,"bbox":[797,563,386,40]}
+{"kind":"textbox","id":"sh/2lszqtcj","slide":13,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/d8bat47y","slide":13,"text":"13","textPreview":"13","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/dxz71v","slide":13,"text":"把 API 解釋給沒學過的人：前端不直接寫 SQL，而是呼叫 API；API 再根據路由去查資料庫，最後回傳 JSON。"}
+{"kind":"slide","id":"sl/hu1omg","slide":14,"title":"13 Index 與效能","textShapes":14}
+{"kind":"textbox","id":"sh/ji5snelo","slide":14,"text":"13 Index 與效能","textPreview":"13 Index 與效能","textChars":12,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/c3ylc7u5","slide":14,"text":"索引設計針對最常見查詢路徑，不是每個欄位都加索引","textPreview":"索引設計針對最常見查詢路徑，不是每個欄位都加索引","textChars":24,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/1kre1w7m","slide":14,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/ulwval87","slide":14,"text":"14","textPreview":"14","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"shape","id":"sh/j6tovaho","slide":14,"name":"code-block","bbox":[90,160,560,310]}
+{"kind":"textbox","id":"sh/crmhk3q5","slide":14,"text":"建議索引","textPreview":"建議索引","textChars":4,"textLines":1,"bbox":[108,174,524,22]}
+{"kind":"textbox","id":"sh/1cfa9w3m","slide":14,"text":"CREATE INDEX idx_game_records_played_at\n  ON game_records (played_at, game_id);\n\nCREATE INDEX idx_moves_game_number\n  ON moves (game_id, move_number);\n\nCREATE INDEX idx_positions_game_number\n  ON positions (game_id, move_number);\n\nCREATE INDEX idx_positions_sfen_hash\n  ON positions (sfen_hash);","textPreview":"CREATE INDEX idx_game_records_played_at |   ON game_records (played_at, game_id); |  | CREATE INDEX idx_moves_game_number |   ON moves (g...","textChars":295,"textLines":11,"bbox":[108,204,524,254]}
+{"kind":"shape","id":"sh/qh0fepkz","slide":14,"name":"idx1","bbox":[735,170,360,92]}
+{"kind":"textbox","id":"sh/j2t83itg","slide":14,"text":"played_at + game_id","textPreview":"played_at + game_id","textChars":19,"textLines":1,"bbox":[753,184,324,28]}
+{"kind":"textbox","id":"sh/byhgn29g","slide":14,"text":"對局列表通常依時間排序，搭配 game_id 可以穩定排序。","textPreview":"對局列表通常依時間排序，搭配 game_id 可以穩定排序。","textChars":30,"textLines":1,"bbox":[753,222,324,28]}
+{"kind":"shape","id":"sh/idonyd0z","slide":14,"name":"idx2","bbox":[735,292,360,92]}
+{"kind":"textbox","id":"sh/t47y1kre","slide":14,"text":"game_id + move_number","textPreview":"game_id + move_number","textChars":21,"textLines":1,"bbox":[753,306,324,28]}
+{"kind":"textbox","id":"sh/0je9cvix","slide":14,"text":"讀一場棋的某一步、某個局面時是最核心的查詢條件。","textPreview":"讀一場棋的某一步、某個局面時是最核心的查詢條件。","textChars":24,"textLines":1,"bbox":[753,344,324,28]}
+{"kind":"shape","id":"sh/b6xkf6dc","slide":14,"name":"idx3","bbox":[735,414,360,92]}
+{"kind":"textbox","id":"sh/il0rqd4v","slide":14,"text":"sfen_hash","textPreview":"sfen_hash","textChars":9,"textLines":1,"bbox":[753,428,324,28]}
+{"kind":"textbox","id":"sh/tcj6tova","slide":14,"text":"opening book 或相同局面查找時，hash 比直接比對 TEXT 更適合。","textPreview":"opening book 或相同局面查找時，hash 比直接比對 TEXT 更適合。","textChars":42,"textLines":1,"bbox":[753,466,324,28]}
+{"kind":"textbox","id":"sh/0rqd4vmt","slide":14,"text":"索引的代價：寫入稍慢、佔空間；所以只加在高頻查詢欄位。","textPreview":"索引的代價：寫入稍慢、佔空間；所以只加在高頻查詢欄位。","textChars":27,"textLines":1,"bbox":[150,570,920,30]}
+{"kind":"textbox","id":"sh/bi9s36hc","slide":14,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/ixczed8v","slide":14,"text":"14","textPreview":"14","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/hu1omg","slide":14,"text":"這頁講索引觀念。索引像書本目錄，查詢變快，但每次新增資料也要維護目錄，所以不是加越多越好。"}
+{"kind":"slide","id":"sl/6917sv","slide":15,"title":"14 總結","textShapes":7}
+{"kind":"textbox","id":"sh/mhk3q5o7","slide":15,"text":"14 總結","textPreview":"14 總結","textChars":5,"textLines":1,"bbox":[70,28,520,24]}
+{"kind":"textbox","id":"sh/t83itgfm","slide":15,"text":"結論：這個 schema 同時支援瀏覽、匯入、API 與 AI 訓練","textPreview":"結論：這個 schema 同時支援瀏覽、匯入、API 與 AI 訓練","textChars":34,"textLines":1,"bbox":[70,58,930,56]}
+{"kind":"shape","id":"sh/4nap4r65","slide":15,"bbox":[70,122,1140,0]}
+{"kind":"textbox","id":"sh/bq1oryts","slide":15,"text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1150,30,60,22]}
+{"kind":"textbox","id":"sh/m58z25kb","slide":15,"text":"• ER 設計以 game_records 為中心，連接 users、players、moves、positions。\n• Relational model 用 PK / FK 維持資料一致性，避免棋譜與著手失去關聯。\n• CREATE TABLE 使用 InnoDB、utf8mb4 與 foreign key，能直接在 MySQL 建立。\n• 查詢功能透過 JOIN、WHERE、LIMIT/OFFSET、索引來實作前端需求。\n• AI 訓練透過 positions JOIN moves 產生 policy-only 的局面到下一手資料。","textPreview":"• ER 設計以 game_records 為中心，連接 users、players、moves、positions。 | • Relational model 用 PK / FK 維持資料一致性，避免棋譜與著手失去關聯。 | • CREATE TABLE 使用 InnoD...","textChars":272,"textLines":5,"bbox":[125,170,960,245]}
+{"kind":"shape","id":"sh/twra5gbq","slide":15,"name":"next","bbox":[210,470,860,80]}
+{"kind":"textbox","id":"sh/4byhgn29","slide":15,"text":"未來可加入 migration、資料品質 dashboard、更多權限控管與查詢快取。","textPreview":"未來可加入 migration、資料品質 dashboard、更多權限控管與查詢快取。","textChars":43,"textLines":1,"bbox":[252,496,780,30]}
+{"kind":"textbox","id":"sh/bm58z25k","slide":15,"text":"來源：database_design_report.tex / shogiAI 專案程式碼","textPreview":"來源：database_design_report.tex / shogiAI 專案程式碼","textChars":45,"textLines":1,"bbox":[70,684,760,18]}
+{"kind":"textbox","id":"sh/m1cfa9w3","slide":15,"text":"15","textPreview":"15","textChars":2,"textLines":1,"bbox":[1150,684,60,18]}
+{"kind":"notes","id":"nt/6917sv","slide":15,"text":"最後收斂成一句話：資料庫設計的價值是讓同一批資料能被不同功能重複使用，而且保持結構清楚、查詢快速、訓練可靠。"}
