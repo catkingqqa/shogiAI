@@ -65,7 +65,8 @@ def main() -> int:
         charset="utf8mb4",
         cursorclass=pymysql.cursors.SSDictCursor,
     )
-    query = """
+    limit_clause = "" if args.limit is None else f"\n        LIMIT {int(args.limit)}"
+    query = f"""
         SELECT
             p.game_id,
             p.move_number,
@@ -89,10 +90,12 @@ def main() -> int:
           ON final_position.game_id = p.game_id
          AND final_position.move_number = final_moves.max_move_number
         ORDER BY p.game_id, p.move_number
+        {limit_clause}
     """
 
     with connection:
         with connection.cursor() as cursor:
+            print("開始查詢 MySQL NNUE 資料...")
             cursor.execute(query)
             for row_index, row in enumerate(cursor, start=1):
                 result = clean_result(row["result"])
@@ -121,8 +124,6 @@ def main() -> int:
                 )
                 if row_index % max(1, args.progress_every) == 0:
                     print(f"exported={row_index:,}")
-                if args.limit is not None and row_index >= args.limit:
-                    break
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_name(args.output.name + ".tmp.npz")
